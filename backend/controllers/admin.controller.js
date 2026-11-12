@@ -5,6 +5,7 @@ const AdminCredentialService = require('../services/admin-credential.service');
 
 const VALID_ACTIONS = new Set(['approve', 'restrict', 'purge']);
 const VALID_TYPES = new Set(['users', 'reports', 'logs']);
+const { serverError } = require('../utils/serverError');
 
 const logAdminAction = async (adminId, action, targetType, targetId, details) => {
     try {
@@ -450,7 +451,7 @@ const updateUser = async (req, res) => {
         res.json({ status: 'success', message: 'User updated successfully' });
     } catch (error) {
         logger.error('Update user error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -473,7 +474,7 @@ const resolveReport = async (req, res) => {
         res.json({ status: 'success', message: 'Report resolved successfully' });
     } catch (error) {
         logger.error('Resolve report error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -507,7 +508,7 @@ const suspendUser = async (req, res) => {
         res.json({ status: 'success', message: `User ${status} successfully` });
     } catch (error) {
         logger.error('Suspend user error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -523,7 +524,7 @@ const getVerificationRequests = async (req, res) => {
         res.json({ requests });
     } catch (error) {
         logger.error('Admin verification requests error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -562,7 +563,7 @@ const handleVerificationRequest = async (req, res) => {
         }
     } catch (error) {
         logger.error('Handle verification error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 

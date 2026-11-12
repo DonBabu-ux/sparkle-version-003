@@ -8,6 +8,7 @@ const { JWT_SECRET } = require('../config/constants');
 const crypto = require('crypto');
 const { downloadExternalImage } = require('../utils/media.utils');
 const logger = require('../utils/logger');
+const { clientError } = require('../utils/serverError');
 const { sendEmail, templates } = require('../config/email');
 const { sendSMS } = require('../utils/sms');
 const authService = require('../services/auth.service');
@@ -365,12 +366,31 @@ const verify2FA = async (req, res) => {
         if (Array.isArray(otpRecords)) {
             for (const rec of otpRecords) {
                 if (rec.seconds_left > 0) {
+                    // A 6-digit CSPRNG code against a 10-minute window. The
+                    // column existed and was read, but never incremented or
+                    // checked, so an attacker with an IP pool could brute-force
+                    // the 10^6 space until they hit. Cap at 5 attempts, then
+                    // void the code. No voided_at column exists, so verified_at
+                    // is reused as the dead marker: the query above already
+                    // filters on `verified_at IS NULL`, which means a voided
+                    // code is already excluded from every later attempt.
+                    if (Number(rec.attempts || 0) >= 5) {
+                        await query(
+                            'UPDATE otp_verifications SET verified_at = NOW() WHERE verification_id = ?',
+                            [rec.verification_id]
+                        );
+                        continue;
+                    }
                     const match = await bcrypt.compare(cleanCode, rec.code_hash);
                     if (match) {
                         verified = true;
                         await query('UPDATE otp_verifications SET verified_at = NOW() WHERE verification_id = ?', [rec.verification_id]);
                         break;
                     }
+                    await query(
+                        'UPDATE otp_verifications SET attempts = attempts + 1 WHERE verification_id = ?',
+                        [rec.verification_id]
+                    );
                 }
             }
         }
@@ -520,7 +540,7 @@ const request2FARecovery = async (req, res) => {
         }
 
         const recoveryDestination = user.security_recovery_email || user.email;
-        const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const recoveryCode = crypto.randomInt(100000, 999999).toString();
 
         await query(
             'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at, created_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE), NOW()) ON DUPLICATE KEY UPDATE code = VALUES(code), expires_at = DATE_ADD(NOW(), INTERVAL 15 MINUTE), verified_at = NULL, created_at = NOW()',
@@ -725,7 +745,7 @@ const forgotPassword = async (req, res) => {
             });
         }
 
-        const token = Math.floor(100000 + Math.random() * 900000).toString();
+        const token = crypto.randomInt(100000, 999999).toString();
 
         // Clear previous resets for this user to avoid confusion/collisions
         await query('DELETE FROM password_resets WHERE email = ?', [email]);
@@ -833,7 +853,7 @@ const resendVerification = async (req, res) => {
         const user = users[0];
 
         if (type === 'sms') {
-            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            const code = crypto.randomInt(100000, 999999).toString();
             await sendSMS(user.phone_number, code);
             return res.json({ status: 'success', message: 'SMS verification code resent!' });
         }
@@ -874,7 +894,7 @@ const resendVerification = async (req, res) => {
         if (user.email_verified) return res.status(400).json({ status: 'error', message: 'Email already verified' });
 
 
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const code = crypto.randomInt(100000, 999999).toString();
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
         await query(
@@ -994,7 +1014,7 @@ const refreshToken = async (req, res) => {
         });
     } catch (error) {
         logger.error('Token refresh failed:', error.message);
-        res.status(401).json({ status: 'error', message: error.message });
+        clientError(res, error, 'Invalid or expired refresh token', 401);
     }
 };
 
@@ -1162,7 +1182,7 @@ const reactivateAccount = async (req, res) => {
         });
     } catch (error) {
         logger.error('Reactivate account error: ' + error.message);
-        res.status(400).json({ error: error.message || 'Failed to reactivate account' });
+        return clientError(res, error, 'Failed to reactivate account');
     }
 };
 
@@ -1223,7 +1243,7 @@ const cancelDeletion = async (req, res) => {
         });
     } catch (error) {
         logger.error('Cancel deletion error: ' + error.message);
-        res.status(400).json({ error: error.message || 'Failed to cancel deletion' });
+        clientError(res, error, 'Failed to cancel deletion');
     }
 };
 

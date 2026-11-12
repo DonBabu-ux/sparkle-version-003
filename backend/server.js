@@ -13,6 +13,11 @@ const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const compression = require('compression');
 require('dotenv').config();
+// Validate the environment before anything else runs, so a missing or
+// placeholder key stops the boot rather than surfacing as a mid-request
+// failure (SPARKLE_IDENTITY_BLOOM_HMAC_SECRET was absent until now and
+// surfaced inside accountLifecycle.test.js).
+require('./utils/envGuard');
 
 const { PORT } = require('./config/constants');
 const { initDB } = require('./utils/database/init');
@@ -80,15 +85,22 @@ app.use(cors({
             'https://sparkle-version-003-1-f4v3.onrender.com',
             'https://sparkle-app-backup.onrender.com'
         ];
-        
-        // Allow requests with no origin (like mobile apps or curl requests)
+
+        // Allow requests with no origin (mobile apps, curl, server-to-server).
         if (!origin) return callback(null, true);
-        
-        // Robust check for localhost and Capacitor origins
-        const isLocalhost = origin.includes('localhost') || origin.startsWith('capacitor://');
+
+        // Exact match only. `origin.includes('localhost')` allowed any host
+        // containing that substring — http://localhost.evil.com and
+        // https://localhost.attacker.io both passed, and with credentials: true
+        // below that is a credentialed cross-origin request from a page the
+        // attacker controls, riding a logged-in user's cookies.
+        // The NODE_ENV escape hatch was equally wide: NODE_ENV is unset unless
+        // someone sets it, so a deploy with a typo allowed every origin with
+        // credentials. Development opt-in is now an explicit variable.
         const isAllowed = allowedOrigins.indexOf(origin) !== -1;
-        
-        if (isLocalhost || isAllowed || process.env.NODE_ENV !== 'production') {
+        const devOpen = process.env.CORS_ALLOW_ALL === '1' && process.env.NODE_ENV !== 'production';
+
+        if (isAllowed || devOpen) {
             return callback(null, true);
         }
         return callback(new Error(`CORS not allowed for origin: ${origin}`), false);
@@ -143,7 +155,11 @@ app.get('/health/db', async (req, res) => {
         await pool.query('SELECT 1');
         res.json({ status: 'ok', database: 'connected', pool_open_connections: pool.getPoolStatus(), timestamp: new Date().toISOString() });
     } catch (error) {
-        res.status(503).json({ status: 'error', database: 'down', error: error.message });
+        // A failed `SELECT 1` is an auth or DNS failure, and MySQL puts the
+        // database username and host in that message. The status code and
+        // `database: 'down'` already tell an operator what they need.
+        logger.error('[health] database probe failed:', error);
+        res.status(503).json({ status: 'error', database: 'down', error: 'Database query failed' });
     }
 });
 
@@ -367,7 +383,10 @@ app.use((err, req, res, next) => {
         console.error('🔍 Error Context:', {
             url: req.originalUrl,
             method: req.method,
-            body: req.body,
+            // Never the body itself: plaintext passwords went straight into the
+            // log on /auth/* failures. Keys and size diagnose just as well.
+            bodyKeys: req.body && typeof req.body === 'object' ? Object.keys(req.body) : undefined,
+            bodyBytes: req.rawBody ? req.rawBody.length : undefined,
             user: req.user?.user_id || req.user?.id,
             timestamp: new Date().toISOString()
         });
@@ -375,11 +394,17 @@ app.use((err, req, res, next) => {
     
     // Check if it's an API request
     if (req.originalUrl.startsWith('/api') || req.path.startsWith('/api')) {
-        return res.status(err.status || 500).json({
-            success: false,
-            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
-            error: err.message
-        });
+            // A 4xx is the client's fault and safe to explain; a 5xx is ours and its
+            // message names tables, columns and internals. The 5xx body is the same
+            // in development and production, so a staging deploy cannot leak more
+            // than live does.
+            const isClientError = err.status && err.status < 500;
+            const response = {
+              success: false,
+              message: isClientError ? (err.message || 'Invalid request') : 'Internal Server Error'
+            };
+            if (isClientError && err.code) response.code = String(err.code);
+            return res.status(err.status || 500).json(response);
     }
 
     res.status(err.status || 500).json({
@@ -533,9 +558,21 @@ process.on('exit', (code) => {
     logger.error(line);
 });
 
+// Exit on an unhandled rejection, matching uncaughtException below.
+//
+// This used to log and continue, on the reasoning that a rejected promise
+// somewhere is survivable. It is not: the promise that rejected belongs to a
+// request that is now never answered, and Express 4.22 does not forward async
+// rejections to the error middleware, so nothing responds and the client hangs
+// until its own timeout. Meanwhile the process keeps serving everything else,
+// so the failure is invisible — exactly the "died silently" case this whole
+// forensics block exists for. Render restarts the process, which is the
+// correct outcome, and the breadcrumb above says why.
 process.on('unhandledRejection', (reason) => {
-    logger.error(`Unhandled Promise Rejection: ${reason?.stack || reason?.message || reason}`);
-    writeCrashLine(`unhandledRejection: ${reason?.stack || reason?.message || reason}`);
+    const detail = reason?.stack || reason?.message || String(reason);
+    logger.error(`Unhandled Promise Rejection: ${detail}`);
+    writeCrashLine(`unhandledRejection: ${detail}`);
+    process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {

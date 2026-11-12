@@ -225,7 +225,7 @@ export const CallOverlay = () => {
         </div>
 
         {/* TOP META BAR (Signal, Encryption, Timer, Cancel) */}
-        <div className="relative z-10 flex items-center justify-between px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-4 bg-gradient-to-b from-black/40 to-transparent">
+        <div className="relative z-10 flex items-center justify-between px-6 pt-[calc(3rem+var(--safe-area-inset-top))] pb-4 bg-gradient-to-b from-black/40 to-transparent">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setMinimized(true)}

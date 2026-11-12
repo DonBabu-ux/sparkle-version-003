@@ -497,7 +497,7 @@ export default function ComposeStage({
       className={`fixed inset-0 z-[var(--z-modal,60)] flex flex-col overflow-hidden ${isDark ? 'text-white' : 'text-gray-900'}`}
       style={{
         background: isDark ? '#0D080E' : '#FFFFFF',
-        paddingTop: 'env(safe-area-inset-top)',
+        paddingTop: 'var(--safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
       role="main"
@@ -912,7 +912,7 @@ export default function ComposeStage({
         <div
           className={`fixed inset-0 z-[var(--z-modal,75)] flex flex-col ${isDark ? "bg-[#0D080E] text-white" : "bg-white text-gray-900"}`}
           style={{
-            paddingTop: 'env(safe-area-inset-top)',
+            paddingTop: 'var(--safe-area-inset-top)',
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
           role="dialog"

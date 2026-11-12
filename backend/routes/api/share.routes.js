@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../config/database');
 const { authMiddleware } = require('../../middleware/auth.middleware');
+const { serverError } = require('../../utils/serverError');
 
 // Track Share Analytics
 router.post('/track', authMiddleware, async (req, res) => {
@@ -25,7 +26,7 @@ router.post('/track', authMiddleware, async (req, res) => {
         res.json({ status: 'success' });
     } catch (error) {
         console.error('Track Share Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 });
 
@@ -81,7 +82,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
                     `/post/${id}`
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 });
 

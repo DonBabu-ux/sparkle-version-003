@@ -3,6 +3,7 @@ const GroupMember = require('../models/GroupMember');
 const User = require('../models/User');
 const Message = require('../models/Message');
 const GroupChannel = require('../models/GroupChannel');
+const { statusError: serverError } = require('../utils/serverError');
 const { getIO } = require('../socket');
 const logger = require('../utils/logger');
 
@@ -103,7 +104,7 @@ class GroupChatController {
 
         } catch (error) {
             console.error('Create Chat Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -113,7 +114,7 @@ class GroupChatController {
             const chats = await GroupChat.getUserChats(userId);
             res.json({ status: 'success', data: chats });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -140,7 +141,7 @@ class GroupChatController {
             const members = await GroupMember.getMembers(chatId);
             res.json({ status: 'success', data: { ...chat, members } });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -198,7 +199,7 @@ class GroupChatController {
 
             res.json({ status: 'success', message: 'Members added' });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -232,7 +233,7 @@ class GroupChatController {
             res.json({ status: 'success', message: 'Group updated' });
         } catch (error) {
             console.error('Update Group Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
     async leaveGroupChat(req, res) {
@@ -254,7 +255,7 @@ class GroupChatController {
             res.json({ status: 'success', message: 'Left group chat' });
         } catch (error) {
             console.error('Leave Group Chat Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -282,7 +283,7 @@ class GroupChatController {
             res.status(201).json({ status: 'success', data: { messageId, chatId } });
         } catch (error) {
             console.error('Send Group Message Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -315,7 +316,7 @@ class GroupChatController {
             res.json({ status: 'success', message: 'Member removed' });
         } catch (error) {
             console.error('Remove member error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -353,7 +354,7 @@ class GroupChatController {
             res.json({ status: 'success', message: `Member ${role === 'admin' ? 'promoted' : 'demoted'}` });
         } catch (error) {
             console.error('Update member role error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 }

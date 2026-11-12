@@ -50,8 +50,8 @@ export default function SellerProfile() {
     try {
       const res = await api.post(`/marketplace/sellers/${seller.user_id}/alert`);
       if (res.data.success) {
-        setIsAlerted(res.data.alerted);
-        showInfo(res.data.alerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
+        setIsAlerted(res.data.isAlerted);
+        showInfo(res.data.isAlerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
       }
     } catch (err) {
       logger.error('Alert toggle error:', err);
@@ -112,7 +112,7 @@ export default function SellerProfile() {
       // Fetch alert status
       api.get(`/marketplace/sellers/${sellerId}/alert`)
         .then(aRes => {
-          if (aRes.data.success) setIsAlerted(aRes.data.alerted);
+          if (aRes.data.success) setIsAlerted(aRes.data.isAlerted);
         })
         .catch(() => {});
     } catch (err) {

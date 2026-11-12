@@ -6,8 +6,11 @@ const redisService = require('../services/redis.service');
 class EmailVerification {
     static async create(userId, email) {
         const verificationId = crypto.randomUUID();
-        // Generate a 6-digit numeric code for better mobile UX
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // crypto.randomInt, not Math.random: Math.random() is a seeded PRNG
+        // whose output can be predicted from a few observed values, which for a
+        // 6-digit space means the code is brute-forceable without trying the
+        // whole space. accountRecovery.service.js already uses randomInt.
+        const code = crypto.randomInt(100000, 999999).toString();
         const ttl = 15 * 60; // 15 minutes for security
         
         // 1. Store in Redis for fast verification (primary)

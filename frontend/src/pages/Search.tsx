@@ -87,8 +87,13 @@ export default function Search() {
       if (trendingRes.status === 'fulfilled' && trendingRes.value.data.status === 'success') {
           setTrending(trendingRes.value.data.data || []);
       }
-      if (suggestedRes.status === 'fulfilled' && suggestedRes.value.data.status === 'success') {
-          setSuggested(suggestedRes.value.data.suggestions || suggestedRes.value.data.data || []);
+      // GET /users/suggestions answers a bare { suggestions: [...] }
+      // (user.controller.js), not { status: 'success', data }. Gating on
+      // status === 'success' was never true, so "Suggested for you" never
+      // rendered at all. The existing `|| …data` fallback already anticipated
+      // both shapes; only the gate itself was wrong.
+      if (suggestedRes.status === 'fulfilled' && suggestedRes.value.data) {
+        setSuggested(suggestedRes.value.data.suggestions || suggestedRes.value.data.data || []);
       }
     } catch (err) {
       logger.error('Initial fetch error:', err);

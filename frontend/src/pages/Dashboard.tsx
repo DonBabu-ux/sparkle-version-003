@@ -184,7 +184,12 @@ const posts = orderedPostIds.map(id => postsById[id]);
         setPosts(newPosts);
         lastSyncTime.current = Date.now();
         if (suggestionsRes.data.suggestions) setSuggestions(suggestionsRes.data.suggestions);
-        const realTrending = Array.isArray(trendingRes.data) ? trendingRes.data : [];
+        // GET /search/trending answers { status: 'success', data: [...] }
+      // (search.controller.js). The previous check was Array.isArray(res.data),
+      // which is never true for an object, so "Hot right now" always showed
+      // "No trending tags yet" even when hashtags existed.
+      const trendingRows = trendingRes.data?.data ?? trendingRes.data;
+      const realTrending = Array.isArray(trendingRows) ? trendingRows : [];
         if (realTrending.length > 0) {
           setTrendingTags(realTrending.map((t: any) => ({
             tag: t.name?.replace(/^#/, '') || t.tag || t.name,
@@ -272,7 +277,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
     <AppScreen immersive={true} className="flex min-h-dvh font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
 
-      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] md:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(4rem+var(--safe-area-inset-top))] md:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 md:gap-6 items-start">
           <section className="flex flex-col gap-1.5">
         <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl shadow-sm p-4 sm:p-6 animate-fade-in border border-[#e6d8e1] dark:border-zinc-700">

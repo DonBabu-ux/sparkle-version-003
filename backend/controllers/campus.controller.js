@@ -4,6 +4,24 @@ const { getIO } = require('../socket');
 const PollEngagementService = require('../services/poll-engagement.service');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
+const { clampPage, clampLimit, clampOffset } = require('../utils/pagination');
+
+/**
+ * Answer a 500 without echoing internals to the client.
+ *
+ * All 25 handlers here returned the raw driver message
+ * (`{ error: error.message }`), and this controller logged nothing at
+ * all — there was not one logger call in the file — so every failure
+ * both leaked the SQL fragment, table or column name, or DSN to the
+ * caller and left no trace in the logs to diagnose it from.
+ *
+ * Logs the error object rather than `.message` so the stack trace
+ * survives and pins the call site.
+ */
+const serverError = (res, err, context) => {
+    logger.error(`[campus]${context ? ' ' + context : ''} failed:`, err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+};
 
 const getSafeAvatarUrl = (url) => {
     if (!url) return '/uploads/avatars/no-profile.png';
@@ -21,8 +39,8 @@ const getPolls = async (req, res) => {
         const affiliation = req.query.affiliation || req.query.campus;
         const currentUserId = req.user?.user_id || req.user?.userId || null;
         const filter = req.query.filter || 'for_you'; // 'for_you', 'trending', 'friends', 'new'
-        const limit = Math.min(parseInt(req.query.limit) || 20, 50);
-        const offset = parseInt(req.query.offset) || 0;
+        const limit = clampLimit(req.query.limit, { max: 50, fallback: 20 });
+        const offset = clampOffset(req.query.offset);
         // creator=me returns the caller's own polls regardless of what the
         // browse feed happens to contain. A creator's own polls must never be
         // dependent on landing on the right page of somebody else's feed.
@@ -158,24 +176,33 @@ const getPolls = async (req, res) => {
             hasMore: filter === 'for_you' ? polls.length > limit : polls.length >= limit 
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
 const getEvents = async (req, res) => {
-    try {
-        const affiliation = req.query.affiliation || req.query.campus;
-        let query = 'SELECT e.*, u.username FROM campus_events e JOIN users u ON e.creator_id = u.user_id WHERE e.is_public = TRUE';
-        const params = [];
-        if (affiliation && affiliation !== 'all') {
-            query += ' AND e.campus = ?';
-            params.push(affiliation);
-        }
-        const [events] = await pool.query(query + ' ORDER BY e.start_time ASC', params);
-        res.json(events);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+  try {
+    const affiliation = req.query.affiliation || req.query.campus;
+    // filter=managed scopes to the caller's own events. It was requested by the
+    // Events admin screen and silently ignored — `filter` was never read — so
+    // that screen listed every public event on the platform and offered Pause
+    // and Delete buttons against strangers' events.
+    const managedOnly = req.query.filter === 'managed';
+    let query = 'SELECT e.*, u.username FROM campus_events e JOIN users u ON e.creator_id = u.user_id WHERE 1=1';
+    const params = [];
+    if (affiliation && affiliation !== 'all') {
+      query += ' AND e.campus = ?';
+      params.push(affiliation);
     }
+    if (managedOnly) {
+      query += ' AND e.creator_id = ?';
+      params.push(req.user?.userId || req.user?.user_id);
+    }
+    const [events] = await pool.query(query + ' ORDER BY e.start_time ASC', params);
+    res.json(events);
+  } catch (error) {
+    serverError(res, error);
+  }
 };
 
 // Helper for media - prioritizes internal uploads, fallbacks for broken external
@@ -207,7 +234,7 @@ const getStreams = async (req, res) => {
 
         res.json(sanitizedStreams);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -224,7 +251,7 @@ const createEvent = async (req, res) => {
 
         res.status(201).json({ message: 'Event created', event_id });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -270,7 +297,7 @@ const rsvpEvent = async (req, res) => {
 
         res.json({ message: 'RSVP updated' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -296,7 +323,7 @@ const approveRSVP = async (req, res) => {
 
         res.json({ status: 'success', message: `RSVP ${status}` });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 };
 
@@ -311,7 +338,7 @@ const generateEventQR = async (req, res) => {
         // Return a simple HTML view or JSON with QR base64
         res.json({ status: 'success', qr });
     } catch(err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 };
 
@@ -350,7 +377,7 @@ const checkInEvent = async (req, res) => {
 
         res.json({ status: 'success', message: 'Check-in successful' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 };
 
@@ -370,7 +397,7 @@ const deleteEvent = async (req, res) => {
         await pool.query('DELETE FROM campus_events WHERE event_id = ?', [id]);
         res.json({ status: 'success', message: 'Event deleted' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 };
 
@@ -391,7 +418,7 @@ const updateEventStatus = async (req, res) => {
         await pool.query('UPDATE campus_events SET is_public = ? WHERE event_id = ?', [is_public ? 1 : 0, id]);
         res.json({ status: 'success', message: 'Event status updated' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 };
 
@@ -476,7 +503,7 @@ const createPoll = async (req, res) => {
         res.status(201).json({ message: 'Poll created', poll_id });
     } catch (error) {
         await connection.rollback();
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     } finally {
         connection.release();
     }
@@ -587,7 +614,7 @@ const votePoll = async (req, res) => {
         if (error && (error.code === 'ER_DUP_ENTRY' || String(error.message).includes('Duplicate'))) {
             return res.status(400).json({ error: 'You have already voted on this poll' });
         }
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     } finally {
         if (connection) connection.release();
     }
@@ -662,7 +689,7 @@ const getPollResults = async (req, res) => {
 
         res.json({ poll });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -769,7 +796,7 @@ const updatePoll = async (req, res) => {
         res.json({ success: true, message: 'Poll updated.' });
     } catch (error) {
         await connection.rollback().catch(() => { });
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     } finally {
         connection.release();
     }
@@ -793,7 +820,7 @@ const deletePoll = async (req, res) => {
 
         res.json({ success: true, message: 'Poll taken down.' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -821,7 +848,7 @@ const createStream = async (req, res) => {
 
         res.status(201).json({ message: 'Stream created', stream_id, stream_url: resolvedStreamUrl });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -848,7 +875,7 @@ const postStreamUpdate = async (req, res) => {
 
         res.status(201).json({ message: 'Update posted', update_id });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -866,7 +893,7 @@ const followStream = async (req, res) => {
 
         res.json({ message: 'Stream followed. You will receive updates.' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -892,7 +919,7 @@ const getEventAttendees = async (req, res) => {
         );
         res.json(attendees);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -903,7 +930,7 @@ const sharePoll = async (req, res) => {
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         res.json({ status: 'success', data: { share_url: `${baseUrl}/polls/${id}` } });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -914,7 +941,7 @@ const shareEvent = async (req, res) => {
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         res.json({ status: 'success', data: { share_url: `${baseUrl}/events/${id}` } });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -953,7 +980,7 @@ const updateEvent = async (req, res) => {
 
         res.json({ success: true, message: 'Event updated' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -978,7 +1005,7 @@ const getEventAnalytics = async (req, res) => {
 
         res.json(stats);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -994,7 +1021,7 @@ const notifyAttendees = async (req, res) => {
 
         res.json({ success: true, message: 'Announcement sent to all attendees' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1044,7 +1071,7 @@ const inviteToPoll = async (req, res) => {
 
         res.json({ success: true, message: 'Invitations sent' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 

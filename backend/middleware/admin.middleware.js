@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { serverError } = require('../utils/serverError');
 
 const adminMiddleware = async (req, res, next) => {
     try {
@@ -27,7 +28,10 @@ const adminMiddleware = async (req, res, next) => {
         req.user.role = users[0].role;
         next();
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        // The role lookup is the only thing that can fail here, so the message
+        // is a SQL fragment or the DSN — a free description of the schema, in
+        // the one middleware that guards every admin surface.
+        serverError(res, error);
     }
 };
 

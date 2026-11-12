@@ -1,5 +1,6 @@
 const Group = require('../models/Group');
 const logger = require('../utils/logger');
+const { clampPage, clampLimit, clampOffset } = require('../utils/pagination');
 
 /**
  * Render group page
@@ -147,9 +148,9 @@ const getGroupPostsAPI = async (req, res) => {
     try {
         const groupId = req.params.id;
         const userId = req.user ? (req.user.userId || req.user.user_id) : null;
-        const page = parseInt(req.query.page) || 1;
-        const limit = 10;
-        const offset = (page - 1) * limit;
+            const page = clampPage(req.query.page);
+            const limit = 10;
+            const offset = (page - 1) * limit;
 
         const group = await Group.findById(groupId);
         if (!group) return res.status(404).json({ error: 'Group not found' });

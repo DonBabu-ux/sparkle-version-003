@@ -562,7 +562,7 @@ export default function ProfessionalDashboard() {
     videoViews: 0, watchTime: 0, saves: 0,
   });
   const [series, setSeries] = useState({ sparks: [0,0,0,0,0,0,0], follows: [0,0,0,0,0,0,0], engagement: [0,0,0,0,0,0,0] });
-  const [distribution, setDistribution] = useState({ video: 0, image: 0, text: 0 });
+  const [distribution, setDistribution] = useState<Record<string, number>>({ video: 0, photo: 0, story: 0, text: 0 });
   const [isBoosted, setIsBoosted] = useState(false);
 
   // UI state
@@ -603,7 +603,7 @@ export default function ProfessionalDashboard() {
       });
       if (d.series) setSeries(d.series);
       setIsBoosted(d.isBoosted || false);
-      setDistribution(d.distribution || { video: 0, image: 0, text: 0 });
+      setDistribution(d.distribution || { video: 0, photo: 0, story: 0, text: 0 });
     } catch (e) {
       logger.error('Stats fetch failed:', e);
     } finally {
@@ -617,9 +617,22 @@ export default function ProfessionalDashboard() {
     document.title = 'Pro Hub | Sparkle';
   }, []);
 
-  const totalPosts = (distribution.video || 0) + (distribution.image || 0) + (distribution.text || 0) || 1;
-  const videoPercent = Math.round(((distribution.video || 0) / totalPosts) * 100);
-  const imagePercent = Math.round(((distribution.image || 0) / totalPosts) * 100);
+  // The API returns distribution keyed by `photo` (analytics.controller.js
+  // normalises type 'image' to 'photo'), plus `story` and `moment`. This read
+  // `image` and `text`, which never exist, so imagePercent was always 0 and
+  // "Text" silently absorbed the remainder — a user with zero text posts was
+  // shown "Photos 0% / Text 70%".
+  const dist = {
+    video: Number(distribution.video) || 0,
+    photo: Number(distribution.photo ?? distribution.image) || 0,
+    story: Number(distribution.story) || 0,
+    text: Number(distribution.text) || 0,
+  };
+  const totalPosts = dist.video + dist.photo + dist.story + dist.text;
+
+  const pct = (n) => (totalPosts > 0 ? Math.round((n / totalPosts) * 100) : 0);
+  const videoPercent = pct(dist.video);
+  const imagePercent = pct(dist.photo);
 
   // Authoritative dynamic balance/revenue calculations from account ledger
   const REVENUE_TYPES = useMemo(() => ['Deposit', 'Revenue', 'AdRevenue', 'Tip', 'CreatorPayment', 'Subscription', 'BoostPurchase'], []);
@@ -653,15 +666,20 @@ export default function ProfessionalDashboard() {
     { label: 'Today',    cents: todayCents, growth: '', color: '#ff1493' },
     { label: 'This week',cents: weekCents,  growth: '', color: '#ec4899' },
     { label: 'This month',cents: monthCents, growth: '', color: '#db2777' },
-    { label: 'Lifetime', cents: wallet?.lifetime_earnings || wallet?.available_balance || 0, growth: '', color: '#a855f7' },
+    { label: 'Lifetime', cents: wallet?.lifetime_earnings ?? 0, growth: '', color: '#a855f7' },
   ];
 
-  // Growth metrics
+  // These were not growth figures. Each took a raw count and divided it by an
+  // arbitrary constant — followers/10, reach/100, sparks-per-follower x20 — then
+  // clamped to 100 and rendered with a "%" suffix under a heading called Growth.
+  // A user with 400 followers saw "Followers 40%" as their growth. No
+  // period-over-period comparison exists anywhere in the API to support.
+  //
+  // Show the underlying counts instead, labelled for what they are.
   const growthMetrics = [
-    { label: 'Followers',  value: Math.min(100, Math.round(stats.followers / 10)),             color: '#ff1493' },
-    { label: 'Reach',      value: Math.min(100, Math.round(stats.accountReach / 100)),          color: '#ec4899' },
-    { label: 'Engagement', value: Math.min(100, Math.round((stats.totalSparks / Math.max(stats.followers, 1)) * 20)), color: '#a855f7' },
-    { label: 'Revenue',    value: wallet ? Math.min(100, Math.round((wallet.available_balance / Math.max(wallet.lifetime_deposits, 1)) * 100)) : 0, color: '#f43f5e' },
+    { label: 'Followers', value: (Number(stats.followers) || 0).toLocaleString() },
+    { label: 'Account reach', value: (Number(stats.accountReach) || 0).toLocaleString() },
+    { label: 'Total sparks', value: (Number(stats.totalSparks) || 0).toLocaleString() },
   ];
 
   // Quick actions
@@ -821,7 +839,11 @@ export default function ProfessionalDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { label: 'Profile visits',   value: stats.profileViews,    icon: <Eye size={16} /> },
-              { label: 'Followers gained', value: stats.followersGrowth || stats.followers, icon: <Users size={16} /> },
+              // The API does not return followersGrowth, so the || chain silently
+  // substituted the lifetime follower count next to the word "gained" — a
+  // user with 400 followers saw "Followers gained: 400" every period.
+  // followersGrowth is intentionally absent until the API provides it.
+  { label: 'Followers', value: stats.followers ?? 0, icon: <Users size={16} /> },
               { label: 'Post reach',       value: stats.accountReach,    icon: <Radio size={16} /> },
               { label: 'Video views',      value: stats.videoViews,      icon: <Video size={16} /> },
               { label: 'Comments',         value: stats.totalComments,   icon: <MessageSquare size={16} /> },
@@ -936,24 +958,16 @@ export default function ProfessionalDashboard() {
         {/* ── Section 6: Growth Bars ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
           className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
-          <h2 className="text-base font-bold text-[#18181b] dark:text-zinc-100 tracking-tight mb-5">Growth</h2>
-          <div className="space-y-5">
-            {growthMetrics.map((m, i) => (
-              <div key={i}>
-                <div className="flex justify-between mb-2">
-                  <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">{m.label}</span>
-                  <span className="text-xs font-bold text-[#18181b] dark:text-zinc-100">{m.value}%</span>
-                </div>
-                <div className="h-2 bg-[#ede3e9] dark:bg-zinc-700 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }} animate={{ width: `${m.value}%` }}
-                    transition={{ duration: 1.2, delay: 0.3 + i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                    className="h-full rounded-full"
-                    style={{ background: `linear-gradient(90deg, ${m.color}80, ${m.color})` }}
-                  />
-                </div>
-              </div>
-            ))}
+<h2 className="text-base font-bold text-[#18181b] dark:text-zinc-100 tracking-tight mb-5">Audience at a glance</h2>
+<div className="space-y-5">
+{growthMetrics.map((m, i) => (
+<div key={i}>
+<div className="flex justify-between mb-2">
+<span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">{m.label}</span>
+<span className="text-xs font-bold text-[#18181b] dark:text-zinc-100">{m.value}</span>
+</div>
+</div>
+))}
           </div>
         </motion.div>
 

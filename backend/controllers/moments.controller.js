@@ -10,6 +10,49 @@ const { STORY_AUDIENCES } = require('../services/story-audience.service');
 
 const VALID_AUDIENCES = new Set(['public', 'friends', 'close_friends', 'only_me']);
 
+// Hard ceiling on any pagination offset this controller will ask MySQL for.
+// Past this the query is pathological: the server still has to walk every row
+// it skips, and the caller is paging far beyond anything the UI can show.
+const MAX_PAGE = 1000;
+
+/**
+ * Read a `page` (or any integer) query param into a usable, non-negative index.
+ *
+ * req.query is unvalidated user input, so this must be defensive in all three
+ * directions:
+ *   - non-numeric ("abc", "", undefined) -> the default, not NaN, because NaN
+ *     propagates into OFFSET and errors
+ *   - negative -> 0, because `LIMIT 12 OFFSET -24` is a SQL syntax error and a
+ *     500 on a bad request rather than a 400
+ *   - absurdly large -> MAX_PAGE, so an unbounded OFFSET cannot be used to make
+ *     the database count rows it will never return
+ */
+const clampPage = (value, fallback = 0) => {
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(Math.max(parsed, 0), MAX_PAGE);
+};
+
+/**
+ * Answer a 500 without echoing internals to the client.
+ *
+ * 23 handlers here did `res.status(500).json({ error: error.message })`, which
+ * returns the driver's raw message to the caller: SQL fragments, table and
+ * column names, path fragments, and in the case of a failed connection
+ * sometimes the DSN. That is a free description of the schema for anyone who
+ * can provoke an error, which is precisely the situation where the message is
+ * most interesting and most public.
+ *
+ * Six of those handlers did not log the error either, so the detail was lost as
+ * well as leaked. Passing the error object (not `.message`) keeps the stack
+ * trace, which pins the exact call site, so a single generic response label
+ * costs no debuggability.
+ */
+const serverError = (res, err) => {
+    logger.error('[Moments] unhandled 500:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+};
+
 let tablesEnsured = false;
 
 const ensureMomentTables = async () => {
@@ -255,7 +298,11 @@ const getMomentsStream = async (req, res) => {
         const { page = 0, limit = 8, query, type, refresh } = req.query;
         const limitNum = Math.min(parseInt(limit, 10) || 8, 20);
         const currentUserId = req.user.user_id;
-        const pageNum = parseInt(page, 10) || 0;
+        // page came straight from the query string with no bound at all, so
+        // page=-1 made offset negative and MySQL rejected the query (ER_PARSE_ERROR,
+        // a 500 on a bad request), and a large page pushed an unbounded OFFSET into
+        // a query that still has to count every row it skips.
+        const pageNum = clampPage(req.query.page);
         const offset = pageNum * limitNum;
         // refresh=true bypasses the 30s per-user cache → full reshuffle
         const forceRefresh = refresh === 'true' || refresh === '1';
@@ -335,7 +382,7 @@ const getMomentsStream = async (req, res) => {
 
     } catch (error) {
         logger.error('Moments Stream Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -416,7 +463,7 @@ const toggleMomentPin = async (req, res) => {
         res.json({ status: 'success', is_pinned: next });
     } catch (error) {
         logger.error('Toggle Moment Pin Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -496,7 +543,7 @@ const sparkMoment = async (req, res) => {
         });
     } catch (error) {
         logger.error('Spark Moment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -823,7 +870,7 @@ const createMoment = async (req, res) => {
             } catch (_) { /* fall through to generic error */ }
         }
         logger.error('Create Moment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -878,7 +925,7 @@ const updateMomentPrivacy = async (req, res) => {
         });
     } catch (error) {
         logger.error('Update Moment Privacy Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -915,7 +962,7 @@ const saveMoment = async (req, res) => {
         }
     } catch (error) {
         logger.error('Save Moment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -998,7 +1045,7 @@ const addComment = async (req, res) => {
         });
     } catch (error) {
         logger.error('Add Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1052,7 +1099,7 @@ const getComments = async (req, res) => {
         });
     } catch (error) {
         logger.error('Get Comments Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1072,9 +1119,25 @@ const likeComment = async (req, res) => {
             await pool.query('UPDATE moment_comments SET like_count = GREATEST(like_count - 1, 0), updated_at = updated_at WHERE comment_id = ?', [id]);
             action = 'unliked';
         } else {
-            await pool.query('INSERT INTO moment_comment_likes (comment_id, user_id) VALUES (?, ?)', [id, userId]);
-            await pool.query('UPDATE moment_comments SET like_count = like_count + 1, updated_at = updated_at WHERE comment_id = ?', [id]);
-            action = 'liked';
+            // The EXISTS check above is racy: two fast taps on a comment that
+            // was never liked can both find no row and both try to INSERT,
+            // and the composite PRIMARY KEY (comment_id, user_id) makes the
+            // second one fail with ER_DUP_ENTRY, which used to 500.
+            //
+            // Treat losing that race as already-liked and finish the unlike,
+            // which is what the user asked for by tapping twice. This follows
+            // the same ER_DUP_ENTRY handling as campus.controller.js:596.
+            try {
+                await pool.query('INSERT INTO moment_comment_likes (comment_id, user_id) VALUES (?, ?)', [id, userId]);
+                await pool.query('UPDATE moment_comments SET like_count = like_count + 1, updated_at = updated_at WHERE comment_id = ?', [id]);
+                action = 'liked';
+            } catch (error) {
+                const dup = error && (error.code === 'ER_DUP_ENTRY' || String(error.message).includes('Duplicate entry'));
+                if (!dup) throw error;
+                await pool.query('DELETE FROM moment_comment_likes WHERE comment_id = ? AND user_id = ?', [id, userId]);
+                await pool.query('UPDATE moment_comments SET like_count = GREATEST(like_count - 1, 0), updated_at = updated_at WHERE comment_id = ?', [id]);
+                action = 'unliked';
+            }
         }
 
         const [updated] = await pool.query('SELECT like_count FROM moment_comments WHERE comment_id = ?', [id]);
@@ -1084,15 +1147,19 @@ const likeComment = async (req, res) => {
             likes: updated[0]?.like_count || 0 
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
 const followUser = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const currentUserId = req.user.user_id;
+    // These two are read from the catch block below, which is a SIBLING block
+    // of the try, not nested inside it: a const declared inside the try is
+    // scoped to the try block and is simply not visible in the catch. Keeping
+    // them here makes the duplicate-key recovery reachable.
+    const { userId } = req.params;
+    const currentUserId = req.user.user_id;
 
+    try {
         if (userId === currentUserId) {
             return res.status(400).json({ error: 'Cannot follow yourself' });
         }
@@ -1116,8 +1183,8 @@ const followUser = async (req, res) => {
 
             // Create notification
             await pool.query(
-                `INSERT INTO notifications 
-                (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url) 
+                `INSERT INTO notifications
+                (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url)
                 VALUES (UUID(), ?, 'follow', 'New Follower', 'Someone started following you.', ?, 'user', ?, '/connect')`,
                 [userId, currentUserId, currentUserId]
             );
@@ -1125,8 +1192,24 @@ const followUser = async (req, res) => {
             res.json({ status: 'success', action: 'followed' });
         }
     } catch (error) {
+        // Tapping follow twice fast can win the EXISTS check above twice and
+        // both try to INSERT, so the second hits the unique key on
+        // follows and used to 500. Same handling as campus.controller.js:596 and
+        // this file's likeComment: losing that race means the follow already
+        // exists, so finish the unfollow the user asked for.
+        if (error && (error.code === 'ER_DUP_ENTRY' || String(error.message).includes('Duplicate entry'))) {
+            try {
+                await pool.query(
+                    'DELETE FROM follows WHERE follower_id = ? AND following_id = ?',
+                    [currentUserId, userId]
+                );
+                return res.json({ status: 'success', action: 'unfollowed' });
+            } catch (cleanupError) {
+                logger.error('Follow User cleanup failed:', cleanupError);
+            }
+        }
         logger.error('Follow User Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1139,7 +1222,7 @@ const trackShare = async (req, res) => {
         );
         res.json({ status: 'success' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1172,7 +1255,7 @@ const getShareData = async (req, res) => {
             type: 'video.moment'
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1231,7 +1314,7 @@ const trackView = async (req, res) => {
 
         res.json({ status: 'success', counted: true });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1269,7 +1352,7 @@ const getMomentViewers = async (req, res) => {
         );
         res.json({ status: 'success', viewers });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1314,7 +1397,7 @@ const saveSticker = async (req, res) => {
         });
     } catch (error) {
         logger.error('Save Sticker Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1333,7 +1416,7 @@ const listStickers = async (req, res) => {
         res.json({ status: 'success', stickers });
     } catch (error) {
         logger.error('List Stickers Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1352,7 +1435,7 @@ const deleteSticker = async (req, res) => {
         res.json({ status: 'success' });
     } catch (error) {
         logger.error('Delete Sticker Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1374,7 +1457,7 @@ const trackEngagement = async (req, res) => {
 
         res.json({ status: 'success' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1388,7 +1471,7 @@ const getMyMoments = async (req, res) => {
         const userId = req.user.user_id || req.user.userId;
         if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const page = Math.max(parseInt(req.query.page, 10) || 0, 0);
+        const page = clampPage(req.query.page);
         const limit = Math.min(parseInt(req.query.limit, 10) || 12, 50);
         const offset = page * limit;
 
@@ -1703,7 +1786,7 @@ const editComment = async (req, res) => {
         res.json({ success: true, comment: updated[0] });
     } catch (error) {
         logger.error('Edit Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1787,7 +1870,7 @@ const deleteComment = async (req, res) => {
         res.json({ success: true, deletedCount });
     } catch (error) {
         logger.error('Delete Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1942,7 +2025,7 @@ const moderateComment = async (req, res) => {
         res.json({ success: true, deletedCount, auditId });
     } catch (error) {
         logger.error('Moderate Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1995,7 +2078,7 @@ const reportComment = async (req, res) => {
         res.status(201).json({ success: true, report_id: reportId });
     } catch (error) {
         logger.error('Report Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -2029,7 +2112,7 @@ const getComment = async (req, res) => {
         res.json({ success: true, comment: c });
     } catch (error) {
         logger.error('Get Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 

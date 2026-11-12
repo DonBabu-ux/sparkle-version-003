@@ -6,6 +6,7 @@ const PermissionEngine = require('../services/PermissionEngine');
 const { canPinMessage, canEditMessage, canDeleteForMe, canDeleteForEveryone, canReactMessage, canForwardMessage } = require('../services/messagePermission');
 const db = require('../config/database');
 const logger = require('../utils/logger');
+const { serverError } = require('../utils/serverError');
 
 // Assuming you have a socket.io instance exported from your server entry
 const { getIO } = require('../socket');
@@ -680,7 +681,7 @@ async function updatePrivacySettings(req, res) {
   return res.json({ success: true, privacySettings, permissions: computedPermissions, disappearingDuration: currentDisappearing });
   } catch (err) {
     console.error('updatePrivacySettings error:', err?.message || err);
-    return res.status(500).json({ error: 'Failed to update privacy settings', details: err?.message || err });
+    return serverError(res, err, 500);
   }
 }
 
@@ -769,7 +770,7 @@ async function recordCaptureAttempt(req, res) {
     return res.json({ success: true, attemptId });
   } catch (err) {
     console.error('recordCaptureAttempt error:', err?.message || err);
-    return res.status(500).json({ error: 'Failed to record capture attempt', details: err?.message || err });
+    return serverError(res, err, 500);
   }
 }
 

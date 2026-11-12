@@ -4,6 +4,7 @@ const router = express.Router();
 const { getTurso } = require('../../config/turso');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { getIO } = require('../../socket');
+const { serverError } = require('../../utils/serverError');
 
 router.use(authMiddleware);
 
@@ -35,7 +36,7 @@ router.get('/conversations/:chatId/messages', async (req, res) => {
     });
   } catch (error) {
     console.error('[turso-messages] pull error:', error);
-    res.status(500).json({ error: error.message });
+    serverError(res, error);
   }
 });
 
@@ -46,7 +47,10 @@ router.get('/health', async (req, res) => {
     const rs = await db.execute('SELECT 1 AS ok');
     res.json({ status: 'ok', turso: rs.rows[0] ? true : false });
   } catch (error) {
-    res.status(503).json({ status: 'error', error: error.message });
+    // The health probe exists so the APK can distinguish "Turso is down" from
+    // "Turso is reachable". It answers 503 either way; the driver message adds
+    // nothing an operator cannot get from the log.
+    serverError(res, error, 503);
   }
 });
 

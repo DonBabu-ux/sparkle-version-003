@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const logger = require('../utils/logger');
+const { serverError } = require('../utils/serverError');
 
 /**
  * 🚀 SPARKLE INTENT ENGINE & HIGH-PERFORMANCE SEARCH
@@ -372,7 +373,7 @@ const getSuggestions = async (req, res) => {
     const [suggestions] = await pool.query(finalQuery, params);
     res.json({ status: 'success', data: suggestions });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    serverError(res, error);
   }
 };
 

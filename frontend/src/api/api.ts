@@ -137,12 +137,16 @@ const processQueue = (error: unknown, token: string | null = null) => {
  */
 const isFailoverCandidateError = (error: any): boolean => {
   if (!error.response) {
-    // Network error / timeout / abort
+    // Network error / timeout / abort. econnreset is included because a reset
+    // mid-request is a transport failure, not an application answer — the
+    // previous omitting it meant a reset surfaced as a raw client error with
+    // no failover attempt.
     const msg = String(error.message || '').toLowerCase();
     const code = String(error.code || '').toLowerCase();
     return (
       code === 'econnaborted' ||
       code === 'econnrefused' ||
+      code === 'econnreset' ||
       code === 'enotfound' ||
       code === 'err_network' ||
       code === 'etimedout' ||
@@ -152,7 +156,15 @@ const isFailoverCandidateError = (error: any): boolean => {
     );
   }
   const status = error.response.status;
-  return status === 502 || status === 503 || status === 504;
+  // Gateway/proxy statuses only — the other host was unreachable or too slow,
+  // so retrying there is meaningful.
+  //
+  // 500 is deliberately NOT a failover trigger. A 500 means the application
+  // IS running and threw, and both Render instances share the same alwaysdata
+  // database, so a shared-dependency outage returns 500 from every host.
+  // Retrying that would double the failing load while hiding the real error
+  // from the user, which is the opposite of what failover is for.
+  return status === 408 || status === 502 || status === 503 || status === 504;
 };
 
 // Interceptor to handle common errors and refresh token

@@ -1,7 +1,7 @@
 import { confirmDialog } from '../../store/dialogStore';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, MoreHorizontal, Tag, ShoppingBag as ShoppingBagIcon, SlidersHorizontal, EyeOff, ShieldAlert } from 'lucide-react';
+import { AlertCircle, MessageCircle, MoreHorizontal, Tag, ShoppingBag as ShoppingBagIcon, SlidersHorizontal, EyeOff, ShieldAlert } from 'lucide-react';
 import clsx from 'clsx';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { useUserStore } from '../../store/userStore';
@@ -23,18 +23,19 @@ export default function MarketplaceInbox() {
   const [ selectedChatId,  ] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [chats, setChats] = useState<any[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useSocket();
 
-  // Fetch chats on mount
-  useEffect(() => {
-    const fetchChats = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get('/marketplace/conversations');
-        
-        if (res.data && Array.isArray(res.data)) {
+  // Hoisted out of the effect so the retry button can call it.
+  const fetchChats = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/marketplace/conversations');
+
+      if (res.data && Array.isArray(res.data)) {
           const mappedChats = res.data.map((c: any) => ({
             id: c.id,
             type: c.buyer_id === user?.user_id ? 'buying' : 'selling',
@@ -62,15 +63,21 @@ export default function MarketplaceInbox() {
           }));
           
           setChats(mappedChats);
+  setLoadError(false); setErrorMsg(null);
         }
       } catch (err) {
         logger.error('Failed to fetch marketplace chats:', err);
+        setLoadError(true);
+        setErrorMsg(err?.response?.data?.error || "Couldn't load your conversations.");
       } finally {
         setLoading(false);
       }
-    };
-    if (user) fetchChats();
   }, [user]);
+
+  // Fetch chats on mount
+  useEffect(() => {
+    if (user) fetchChats();
+  }, [user, fetchChats]);
 
   const filteredChats = chats.filter(chat => {
     if (chat.type?.toLowerCase() !== activeTab.toLowerCase()) return false;
@@ -306,7 +313,24 @@ export default function MarketplaceInbox() {
               )}
             </div>
           ))
-        ) : (
+        ) : loadError ? (
+  // A failed fetch used to fall straight through to this branch, so a network
+  // error read as "no chats match your filters" — identical to a genuinely
+  // empty inbox. Now the two are distinguishable, with the real message.
+  <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+    <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+      <AlertCircle size={28} className="text-red-500" />
+    </div>
+    <h3 className="text-[16px] font-bold text-marketplace-text mb-1">Couldn't load your chats</h3>
+    <p className="text-[14px] text-marketplace-muted mb-4">{errorMsg}</p>
+    <button
+      onClick={() => { setLoading(true); fetchChats(); }}
+      className="px-4 py-2 rounded-full bg-marketplace-text text-marketplace-bg text-sm font-bold"
+    >
+      Try again
+    </button>
+  </div>
+) : (
           <div className="flex flex-col items-center justify-center text-center py-20 px-6 opacity-60">
             <div className="w-16 h-16 bg-marketplace-bg rounded-full flex items-center justify-center mb-4">
               <MessageCircle size={28} className="text-marketplace-muted" />

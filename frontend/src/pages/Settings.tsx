@@ -881,16 +881,11 @@ export default function Settings() {
                             >
                               <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-white dark:bg-zinc-800/80 border border-slate-200/60 dark:border-zinc-700/60">
                                 <span>Export Format:</span>
-                                <span className="font-semibold text-slate-800 dark:text-zinc-200">ZIP Archive (JSON + Media)</span>
+                                <span className="font-semibold text-slate-800 dark:text-zinc-200">JSON file</span>
                               </div>
-                              <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-white dark:bg-zinc-800/80 border border-slate-200/60 dark:border-zinc-700/60">
-                                <span>Dispatch Email:</span>
-                                <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate max-w-[180px]">
-                                  {(user as { email?: string })?.email || 'Account registered email'}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-slate-400 dark:text-zinc-300 italic">
-                                ℹ️ A secure link will be emailed to you with your account history and media assets.
+                              <p className="text-[11px] text-slate-500 dark:text-zinc-400 italic">
+                                ℹ️ Confirming downloads a JSON file straight to this device. It holds your
+                                account history — messages, posts and listings — but not your media files.
                               </p>
                             </motion.div>
                           )}

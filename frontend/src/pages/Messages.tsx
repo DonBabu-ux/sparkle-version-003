@@ -1,12 +1,19 @@
 import { showError, showInfo, showSuccess } from '../utils/toast';
-import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { registerPlugin } from '@capacitor/core';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 import { formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
 import { useChatStore, sortMessagesChronologically } from '../store/chatStore';
 import toast from 'react-hot-toast';
-import { ReplyPreview } from '../components/chat/ReplyPreview';
+import { queueOutgoingMessage } from '../services/chatSendPipeline';
+import { transmitMessage } from '../services/chatSendTransport';
+import { PrivacyProtection } from '../services/privacyProtection';
+import VoiceNotePlayer from '../components/chat/VoiceNotePlayer';
+import ChatBackground from '../components/chat/ChatBackground';
+import MediaAlbumBubble from '../components/chat/MediaAlbumBubble';
+import WordEffectBubbles from '../components/chat/WordEffectBubbles';
+import AttachmentCard from '../components/chat/AttachmentCard';
+import ChatInput from '../components/chat/ChatInput';
 import api from '../api/api';
 import { clearNotificationForChat } from '../services/PushService';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
@@ -14,15 +21,14 @@ import Navbar from '../components/Navbar';
 import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
-import { useThemeStore, type AnimationType } from '../store/themeStore';
+import { useThemeStore } from '../store/themeStore';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal, ReactionDetailsSheet } from '../components/chat/MessageActionModals';
 import { useLongPress } from '../hooks/useLongPress';
 
 import { MessageInfoModal } from '../components/chat/MessageInfoModal';
 import type { MessagePermissions } from '../types/messagePermissions';
-import { KeyboardAwareChatLayout, ChatInputDock } from '../components/SafeLayout';
+import { KeyboardAwareChatLayout } from '../components/SafeLayout';
 import { BlockingLoader, useBlockingLoader } from '../components/ui/BlockingLoader';
-import type { SparkleTheme } from '../store/themeStore';
 import { OfficialAccountBanner } from '../components/chat/OfficialAccountBanner';
 import { OfficialComposerFooter } from '../components/chat/OfficialComposerFooter';
 import '../components/chat/OfficialMessageCard';
@@ -54,13 +60,11 @@ import 'lodash.debounce';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
-import { voiceRecordingService, type RecordingState } from '../services/VoiceRecordingService';
 import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 
 // Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
-const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
 
-import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, MessageSquarePlus, Zap, Camera, Mic, Play, Pause, Forward, Settings, Reply, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Phone, Video, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, X, User, Palette, Pin, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, MessageSquarePlus, Camera, Mic, Forward, Settings, Reply, ChevronLeft, ChevronRight } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { useCall } from '../components/CallProvider';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
@@ -75,7 +79,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
 import { useMessageSocket } from '../hooks/useMessageSocket';
 import { logger } from '../utils/logger';
-import { fetchGiphyItems } from '../utils/giphyClient';
 import { validateFile, validateFiles } from '../utils/fileValidation';
 
 // --- Types ---
@@ -112,242 +115,6 @@ interface ChatConversation {
 
 
 // Real voice-note waveforms: peaks are decoded once per URL and cached.
-const voiceWaveformCache = new Map<string, number[]>();
-const SYNTHETIC_BARS = Array.from({ length: 32 }, (_, i) => 0.15 + Math.abs(Math.sin(i * 0.4)) * 0.85);
-
-/** Decodes an audio URL into normalised amplitude peaks (0..1) for rendering. */
-async function computeVoicePeaks(url: string, buckets = 32): Promise<number[]> {
-  const res = await fetch(url);
-  const buf = await res.arrayBuffer();
-  const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  const ctx = new AudioCtx();
-  try {
-    const audio = await ctx.decodeAudioData(buf);
-    const data = audio.getChannelData(0);
-    const step = Math.max(1, Math.floor(data.length / buckets));
-    const peaks: number[] = [];
-    for (let b = 0; b < buckets; b++) {
-      let max = 0;
-      const start = b * step;
-      const end = Math.min(start + step, data.length);
-      for (let j = start; j < end; j++) max = Math.max(max, Math.abs(data[j]));
-      peaks.push(max);
-    }
-    const loudest = Math.max(...peaks, 0.0001);
-    return peaks.map((p) => Math.max(0.08, p / loudest));
-  } finally {
-    ctx.close().catch(() => {});
-  }
-}
-
-const VoiceNotePlayer = ({ url }: { url: string }) => {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const waveformRef = useRef<HTMLDivElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [peaks, setPeaks] = useState<number[] | null>(() => voiceWaveformCache.get(url) ?? null);
-  const [audioError, setAudioError] = useState(false);
-
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        AudioSessionManager.unregisterVoicePlayback(audioRef.current);
-      }
-    };
-  }, []);
-
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      AudioSessionManager.registerVoicePlayback(audioRef.current);
-      audioRef.current.play().catch(logger.error);
-    }
-  };
-
-  const handleTimeUpdate = () => {
-    if (!audioRef.current) return;
-    setCurrentTime(audioRef.current.currentTime);
-  };
-
-  const handleLoadedMetadata = () => {
-    if (!audioRef.current) return;
-    setDuration(audioRef.current.duration || 0);
-  };
-
-  const toggleSpeed = () => {
-    if (!audioRef.current) return;
-    let nextRate = 1;
-    if (playbackRate === 1) nextRate = 1.5;
-    else if (playbackRate === 1.5) nextRate = 2;
-    else nextRate = 1;
-
-    audioRef.current.playbackRate = nextRate;
-    setPlaybackRate(nextRate);
-  };
-
-  // Decode the real waveform once per URL; synthetic bars remain as fallback
-  // when decoding is unavailable (CORS-blocked, exotic codec, decoding error).
-  useEffect(() => {
-    let cancelled = false;
-    const cached = voiceWaveformCache.get(url);
-    if (cached) {
-      setPeaks(cached);
-      return;
-    }
-    computeVoicePeaks(url)
-      .then((p) => {
-        voiceWaveformCache.set(url, p);
-        if (!cancelled) setPeaks(p);
-      })
-      .catch(() => {
-        if (!cancelled) setPeaks(null);
-      });
-    return () => { cancelled = true; };
-  }, [url]);
-
-  const handleWaveformClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!waveformRef.current || !audioRef.current || duration <= 0) return;
-    const rect = waveformRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const fraction = Math.max(0, Math.min(1, clickX / rect.width));
-    const targetTime = fraction * duration;
-    audioRef.current.currentTime = targetTime;
-    setCurrentTime(targetTime);
-  };
-
-  const formatTime = (time: number) => {
-    if (isNaN(time) || time < 0) return '0:00';
-    const mins = Math.floor(time / 60);
-    const secs = Math.floor(time % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
-  if (audioError) {
-    return (
-      <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] select-none">
-        <AlertCircle size={18} className="text-white/40 shrink-0" />
-        <span className="flex-1 text-[11px] font-bold text-white/50">Voice note unavailable</span>
-        <button
-          type="button"
-          onClick={() => {
-            setAudioError(false);
-            setPeaks(voiceWaveformCache.get(url) ?? null);
-            if (audioRef.current) audioRef.current.load();
-          }}
-          className="px-2 py-1 rounded-lg bg-white/10 text-white text-[10px] font-black border border-white/5 hover:bg-white/20 transition-all"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] select-none">
-      <audio
-        ref={audioRef}
-        src={url}
-        preload="metadata"
-        onError={() => setAudioError(true)}
-        onPlay={() => {
-          setIsPlaying(true);
-          if (audioRef.current) AudioSessionManager.registerVoicePlayback(audioRef.current);
-        }}
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => setIsPlaying(false)}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-      />
-      <button
-        type="button"
-        onClick={togglePlay}
-        className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 active:scale-95 transition-all shrink-0 shadow-md"
-      >
-        {isPlaying ? <Pause size={18} strokeWidth={2.5} fill="white" /> : <Play size={18} strokeWidth={2.5} fill="white" className="ml-0.5" />}
-      </button>
-      <div className="flex-1 flex flex-col gap-1 min-w-0 cursor-pointer" onClick={handleWaveformClick}>
-        <div ref={waveformRef} className="flex items-end gap-[3px] h-[22px] px-1 overflow-hidden">
-          {(peaks ?? SYNTHETIC_BARS).map((peak, i) => {
-            const progress = duration > 0 ? currentTime / duration : 0;
-            const barIndex = i / (peaks?.length ?? SYNTHETIC_BARS.length);
-            const isActive = progress >= barIndex;
-            const height = 4 + peak * 16;
-            return (
-              <div
-                key={i}
-                className="flex-1 rounded-full transition-all duration-150"
-                style={{
-                  height: `${height}px`,
-                  backgroundColor: isActive ? '#ff1493' : 'rgba(255,255,255,0.2)'
-                }}
-              />
-            );
-          })}
-        </div>
-        <div className="flex justify-between items-center text-[10px] text-white/50 font-bold uppercase tracking-wider">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration || 0)}</span>
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={toggleSpeed}
-        className="px-2 py-1 rounded-lg bg-white/10 text-white text-[10.5px] font-black border border-white/5 hover:bg-white/20 transition-all active:scale-95 shrink-0"
-      >
-        {playbackRate}x
-      </button>
-    </div>
-  );
-};
-
-const AttachmentCard = ({ metadata }: { metadata: string }) => {
-  const navigate = useNavigate();
-  let parsed: any = null;
-  try {
-    parsed = JSON.parse(metadata);
-  } catch (e) {
-    logger.error("Failed to parse metadata", e);
-    return null;
-  }
-  const att = parsed?.attachment;
-  if (!att) return null;
-
-  if (att.type === 'story') {
-    return (
-      <div
-        onClick={() => navigate(`/stories/${att.owner}`)}
-        className="rounded-[20px] overflow-hidden border border-white/10 cursor-pointer max-w-[240px] bg-white/5 backdrop-blur-md relative group select-none shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] mt-1"
-      >
-        {att.thumbnail ? (
-          <div className="relative aspect-[3/4] w-full overflow-hidden bg-black/20">
-            <img src={att.thumbnail} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Story preview" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_#a855f7]" />
-              <span className="text-white text-[11px] font-black uppercase tracking-wider">Story Reply</span>
-            </div>
-          </div>
-        ) : (
-          <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
-              <Sparkles size={20} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[13px] font-bold text-white leading-tight">Story Reply</span>
-              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">Click to view</p>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return null;
-};
 
 // --- Components ---
 
@@ -356,138 +123,9 @@ const AttachmentCard = ({ metadata }: { metadata: string }) => {
  * from the same sender (see albumGroups). Tapping any cell opens the existing
  * fullscreen viewer with that message. Albums cap at 9 cells with a +N badge.
  */
-const MediaAlbumBubble = ({ items, isMe, onOpen }: { items: any[]; isMe: boolean; onOpen: (msg: any) => void }) => {
-  const visible = items.slice(0, 9);
-  const overflow = items.length - visible.length;
-  const cols = items.length === 2 ? 2 : 3;
 
-  return (
-    <div className={`flex animate-fade-in mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className="grid gap-[2px] rounded-[18px] overflow-hidden border border-white/10 bg-black/20 max-w-[300px]"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-      >
-        {visible.map((m, idx) => (
-          <button
-            key={m.message_id || idx}
-            type="button"
-            onClick={() => onOpen(m)}
-            className="relative aspect-square overflow-hidden bg-black/30 active:opacity-80 transition-opacity"
-            aria-label={`Open image ${idx + 1} of ${items.length}`}
-          >
-            <img
-              src={getMediaUrl(m.media_url || m.mediaUrl) || undefined}
-              className="w-full h-full object-cover"
-              alt=""
-              loading="lazy"
-            />
-            {overflow > 0 && idx === visible.length - 1 && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-lg">
-                +{overflow}
-              </div>
-            )}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
 
-const WordEffectBubbles = ({ emoji, active }: { emoji: string | null, active: boolean }) => {
-  if (!active || !emoji) return null;
 
-  return (
-    <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-      {[...Array(20)].map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{
-            y: '110vh',
-            x: `${Math.random() * 100}vw`,
-            scale: 0.5,
-            opacity: 0,
-            rotate: 0
-          }}
-          animate={{
-            y: '-10vh',
-            x: `${Math.random() * 100}vw`,
-            scale: [0.5, 1.5, 1],
-            opacity: [0, 1, 1, 0],
-            rotate: Math.random() * 360
-          }}
-          transition={{
-            duration: Math.random() * 2 + 2,
-            delay: Math.random() * 1.5,
-            ease: "easeOut"
-          }}
-          className="absolute text-5xl select-none"
-        >
-          {emoji}
-        </motion.div>
-      ))}
-    </div>
-  );
-};
-
-const LiveAnimations = ({ type }: { type: AnimationType | undefined }) => {
-  if (!type || type === 'none') return null;
-
-  if (type === 'snow') {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-60">
-        {[...Array(30)].map((_, i) => (
-          <div key={i} className="absolute bg-white dark:bg-[#1b1b24] rounded-full opacity-80 animate-snow" style={{
-            left: `${Math.random() * 100}%`,
-            width: `${Math.random() * 4 + 2}px`,
-            height: `${Math.random() * 4 + 2}px`,
-            animationDuration: `${Math.random() * 3 + 2}s`,
-            animationDelay: `${Math.random() * 2}s`
-          }} />
-        ))}
-        <style>{` .animate-snow { animation: snow linear infinite; }`}</style>
-      </div>
-    );
-  }
-
-  if (type === 'rain') {
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-40">
-        {[...Array(40)].map((_, i) => (
-          <div key={i} className="absolute bg-blue-200 opacity-60 animate-rain" style={{
-            left: `${Math.random() * 100}%`,
-            width: '1.5px',
-            height: `${Math.random() * 15 + 10}px`,
-            animationDuration: `${Math.random() * 0.5 + 0.3}s`,
-            animationDelay: `${Math.random() * 1}s`
-          }} />
-        ))}
-        <style>{` .animate-rain { animation: rain linear infinite; }`}</style>
-      </div>
-    );
-  }
-
-  if (type === 'particles' || type === 'stars' || type === 'fireflies') {
-    const color = type === 'fireflies' ? 'bg-yellow-300' : 'bg-white';
-    return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        {[...Array(25)].map((_, i) => (
-          <div key={i} className={`absolute ${color} rounded-full opacity-50 animate-float`} style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            width: `${Math.random() * 3 + 1}px`,
-            height: `${Math.random() * 3 + 1}px`,
-            animationDuration: `${Math.random() * 4 + 3}s`,
-            animationDelay: `${Math.random() * 2}s`,
-            boxShadow: `0 0 ${Math.random() * 4 + 2}px ${type === 'fireflies' ? '#FDE047' : '#FFFFFF'}`
-          }} />
-        ))}
-        <style>{`@keyframes float { 0%, 100% { transform: translate(0, 0); opacity: 0.2; } 50% { transform: translate(${Math.random() * 20 - 10}px, ${Math.random() * -20 - 10}px); opacity: 0.8; } } .animate-float { animation: float ease-in-out infinite; }`}</style>
-      </div>
-    );
-  }
-
-  return null;
-};
 
 const isLegitimateCaption = (content?: string, mediaUrl?: string): boolean => {
   if (!content || typeof content !== 'string') return false;
@@ -647,705 +285,9 @@ const MessageBubbleWrapper: React.FC<{
 // Wallpapers are big external images — preload each URL exactly once per
 // session so theme switches re-render from the HTTP cache instead of
 // re-fetching, and downscale the Unsplash variants (the heaviest sources).
-const preloadedWallpapers = new Set<string>();
 
-function lightenWallpaperUrl(url: string): string {
-  // Unsplash honors width/quality params — cap at a phone-friendly size.
-  if (url.includes('images.unsplash.com')) {
-    const u = new URL(url);
-    u.searchParams.set('w', '1080');
-    u.searchParams.set('q', '60');
-    u.searchParams.set('auto', 'format');
-    u.searchParams.set('fit', 'crop');
-    return u.toString();
-  }
-  return url;
-}
 
-const ChatBackground = ({ theme, mode = 'dark' }: { theme: SparkleTheme | null; mode?: 'light' | 'dark' }) => {
-  // Wallpapers live on our own server (/uploads/wallpapers) and are resolved
-  // through getMediaUrl so the native APK gets the absolute API origin.
-  const wallpaperUrl = theme?.wallpaperUrl ? getMediaUrl(lightenWallpaperUrl(theme.wallpaperUrl)) : null;
 
-  useEffect(() => {
-    if (!wallpaperUrl || preloadedWallpapers.has(wallpaperUrl)) return;
-    preloadedWallpapers.add(wallpaperUrl);
-    const img = new Image();
-    img.src = wallpaperUrl;
-  }, [wallpaperUrl]);
-
-  const base = mode === 'light'
-    ? (theme?.colors?.backgroundLight || '#f8e7ed')
-    : (theme?.colors?.backgroundDark || '#18181b');
-  const tint = mode === 'light'
-    ? (theme?.colors?.backgroundLight || '#fdf8fa')
-    : (theme?.colors?.backgroundDark || '#18181b');
-  const isDarkMode = mode !== 'light';
-
-  if (!theme) {
-    return <div className="absolute inset-0 z-0" style={{ backgroundColor: isDarkMode ? '#18181b' : '#f8e7ed' }} />;
-  }
-
-  return (
-    <div
-      className="absolute inset-0 z-0 overflow-hidden pointer-events-none transition-all duration-700"
-      style={{ backgroundColor: base }}
-    >
-      {/* Base gradient — light in light mode, dark in dark mode */}
-      <div
-        className="absolute inset-0 transition-all duration-700"
-        style={{
-          background: `linear-gradient(135deg, ${base} 0%, ${tint} 100%)`,
-          opacity: 1,
-        }}
-      />
-
-      {wallpaperUrl && (
-        <>
-          <div
-            className="absolute inset-0 z-0"
-            style={{
-              backgroundImage: `url(${wallpaperUrl})`,
-              backgroundSize: theme?.wallpaperStyle === 'tile' ? '350px' : (theme?.wallpaperStyle || 'cover'),
-              backgroundPosition: 'center',
-              backgroundRepeat: theme?.wallpaperStyle === 'tile' ? 'repeat' : 'no-repeat',
-              opacity: isDarkMode ? 0.55 : 0.4,
-            }}
-          />
-          {/* Readability scrim: heavy in dark mode, light wash in light mode so
-              bubble text and timestamps stay legible over any wallpaper */}
-          <div
-            className="absolute inset-0 z-0"
-            style={{
-              background: isDarkMode
-                ? 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.6) 100%)'
-                : 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.75) 100%)',
-            }}
-          />
-        </>
-      )}
-
-      {/* Live Animations Layer */}
-      <LiveAnimations type={theme?.animationType} />
-    </div>
-  );
-};
-
-const EMOJIS = {
-  smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕'],
-  gestures: ['👋', '🤚', '🖐', '✋', '🖖', '👌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦵', '🦿', '🦶', '👣', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁', '👅', '👄'],
-  hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟'],
-  nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷', '🕸', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐄', '🐎', '🐖', '🐏', '🐑', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿', '🦔', '🐾', '🐉', '🐲', '🌵', '🎄', '🌲', '🌳', '🌴', '🌱', '🌿', '☘️', '🍀', '🎍', '🎋', '🍃', '🍂', '🍁', '🍄', '🐚', '🌾', '💐', '🌷', '🌹', '🥀', '🌺', '🌸', '🌼', '🌻', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🌙', '🌎', '🌍', '🌏', '🪐', '💫', '⭐️', '🌟', '✨', '⚡️', '☄️', '💥', '🔥', '🌪', '🌈', '☀️', '🌤', '⛅️', '🌥', '☁️', '🌦', '🌧', '🌨', '🌩', '🌨', '❄️', '☃️', '⛄️', '🌬', '💨', '💧', '💦', '☔️', '☂️', '🌊', '🌫'],
-  activities: ['⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳️', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🛹', '🛼', '🛷', '⛸', '🎿', '⛷', '🏂', '🏋️', '🤺', '🤼', '🤸', '⛹️', '🤺', '🏇', '🧘', '🩰', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎸', '🎻', '🎲', '🧩', '🎳', '🎮', '🎰', '🎯'],
-  places: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🛵', '🚲', '🛴', '🚏', '🛣', '🛤', '⛽️', '🚨', '🚥', '🚦', '🛑', '🚧', '⚓️', '⛵️', '🛶', '🚤', '🛳', '⛴', '🚢', '✈️', '🛩', '🛫', '🛬', '🚀', '🛸', '🛰', '🚠', '🚟', '🚁', '🏟', '🏗', '🏘', '🏚', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏪', '🏫', '🏬', '🏭', '🏰', '🏯', '💒', '🗼', '🗽', '⛪️', '🕌', '🕍', '⛩', '🕋', '⛲️', '⛺️', '🌁', '🌃', '🏙', '🌄', '🌅', '🌆', '🌇', '🌉', '♨️', '🎠', '🎡', '🎢', '💈', '🎪'],
-  objects: ['⌚️', '📱', '📲', '💻', '⌨️', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙', '🎚', '🎛', '🧭', '⏱', '⏲', '⏰', '🕰', '⌛️', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯', '🪔', '🧯', '🛢', '💸', '💵', '💴', '💶', '💷', '💰', '💳', '💎', '⚖️', '🧰', '🔧', '🔨', '⚒', '🛠', '⛏', '🔩', '⚙️', '🧱', '⛓', '🧲', '🔫', '💣', '🧨', '🪓', '🔪', '🗡', '⚔️', '🛡', '🚬', '⚰️', '⚱️', '🏺', '🔮', '📿', '🧿', '💈', '⚗️', '🔭', '🔬', '🕳', '🩹', '🩺', '💊', '💉', '🩸', '🧬', '🦠', '🧫', '🧪', '🌡', '🧹', '🧺', '🧻', '🧼', '🧽', '🧴', '🛎', '🔑', '🗝', '🚪', '🪑', '🛋', '🛏', '🛌', '🧸', '🖼', '🛍', '🛒', '🎁', '🎈', '🎏', '🎀', '🎊', '🎉', '🎎', '🏮', '🎐', '🧧', '✉️', '📩', '📨', '📧', '💌', '📥', '📤', '📦', '🏷', '📁', '📂', '🗂', '📅', '📆', '🗒', '🗓', '📇', '📈', '📉', '📊', '📋', '📌', '📍', '📎', '🖇', '📏', '📐', '✂️', '🗃', '🗄', '🗑', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝', '🔨', '⛏', '⚒', '🛠', '🗡', '⚔️', '🔫', '🏹', '🛡', '🔧', '🔩', '⚙️', '🗜', '⚖️', '🔗', '⛓', '🧰', '🧲', '⚗️', '🧪', '🧫', '🧬', '🔬', '🔭', '📡', '💉', '💊', '🩹', '🩺', '🚪', '🛏', '🛋', '🪑', '🚽', '🚿', '🛀', '🛁', '🪒', '🧴', '🧷', '🧹', '🧺', '🧻', '🧼', '🧽', '🧯', '🛒', '🚬', '⚰️', '⚱️', '🗿'],
-  symbols: ['💘', '💝', '💖', '💗', '💓', '💞', '💕', '💟', '❣️', '💔', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💯', '💢', '💥', '💫', '💦', '💨', '🕳', '💣', '💬', '👁‍🗨', '🗨', '🗯', '💭', '💤', '♨️', '💈', '🛑', '🕛', '🕧', '🕐', '🕜', '🕑', '🕝', '🕒', '🕞', '🕓', '🕟', '🕔', '🕠', '🕕', '🕡', '🕖', '🕢', '🕗', '🕣', '🕘', '🕤', '🕙', '🕥', '🕚', '🕦', '🌀', '♠️', '♥️', '♦️', '♣️', '🃏', '🀄️', '🎴', '🎭', '🖼', '🎨', '🧵', '🧶', '🎼', '🎵', '🎶', '🎙', '🎚', '🎛', '🎤', '🎧', '📻', '🎷', '🎸', '🎹', '🎺', '🎻', '🥁', '📱', '📲', '☎️', '📞', '📟', '📠', '🔋', '🔌', '💻', '🖥', '🖨', '⌨️', '🖱', '🖲', '💽', '💾', '💿', '📀', '🧮', '🎥', '🎞', '📽', '🎬', '📺', '📷', '📸', '📹', '📼', '🔍', '🔎', '🕯', '💡', '🔦', '🏮', '🪔', '📔', '📕', '📖', '📗', '📘', '📙', '📚', '📓', '📒', '📃', '📜', '📄', '📰', '🗞', '📑', '🔖', '🏷', '💰', '💴', '💵', '💶', '💷', '💸', '💳', '💹', '💱', '💲', '✉️', '📧', '📨', '📩', '📤', '📥', '📦', '📫', '📪', '📬', '📭', '📮', '🗳', '✏️', '✒️', '🖋', '🖊', '🖌', '🖍', '📝', '📁', '📂', '🗂', '📅', '📆', '🗒', '🗓', '📇', '📈', '📉', '📊', '📋', '📌', '📍', '📎', '🖇', '📏', '📐', '✂️', '🗃', '🗄', '🗑', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝', '🔨', '⛏', '⚒', '🛠', '🗡', '⚔️', '🔫', '🏹', '🛡', '🔧', '🔩', '⚙️', '🗜', '⚖️', '🔗', '⛓', '🧰', '🧲', '⚗️', '🧪', '🧫', '🧬', '🔬', '🔭', '📡', '💉', '💊', '🩹', '🩺', '🚪', '🛏', '🛋', '🪑', '🚽', '🚿', '🛀', '🛁', '🪒', '🧴', '🧷', '🧹', '🧺', '🧻', '🧼', '🧽', '🧯', '🛒', '🚬', '⚰️', '⚱️', '🗿'],
-  flags: ['🏁', '🚩', '🎌', '🏴', '🏳️', '🏳️‍🌈', '🏳️‍⚧️', '🏴‍☠️', '🇦🇫', '🇦🇽', '🇦🇱', '🇩🇿', '🇦🇸', '🇦🇩', '🇦🇴', '🇦🇮', '🇦🇶', '🇦🇬', '🇦🇷', '🇦🇲', '🇦🇼', '🇦🇺', '🇦🇹', '🇦🇿', '🇧🇸', '🇧🇭', '🇧🇩', '🇧🇧', '🇧🇾', '🇧🇪', '🇧🇿', '🇧🇯', '🇧🇲', '🇧🇹', '🇧🇴', '🇧🇦', '🇧🇼', '🇧🇷', '🇮🇴', '🇻🇬', '🇧🇳', '🇧🇬', '🇧🇫', '🇧🇮', '🇰🇭', '🇨🇲', '🇨🇦', '🇮🇨', '🇨🇻', '🇧🇶', '🇰🇾', '🇨🇫', '🇹🇩', '🇨🇱', '🇨🇳', '🇨🇽', '🇨🇨', '🇨🇴', '🇰🇲', '🇨🇬', '🇨🇩', '🇨🇰', '🇨🇷', '🇨🇮', '🇭🇷', '🇨🇺', '🇨🇼', '🇨🇾', '🇨🇿', '🇩🇰', '🇩🇯', '🇩🇲', '🇩🇴', '🇪🇨', '🇪🇬', '🇸🇻', '🇬🇶', '🇪🇷', '🇪🇪', '🇸🇿', '🇪🇹', '🇪🇺', '🇫🇰', '🇫🇴', '🇫🇯', '🇫🇮', '🇫🇷', '🇬🇫', '🇵🇫', '🇹🇫', '🇬🇦', '🇬🇲', '🇬🇪', '🇩🇪', '🇬🇭', '🇬🇮', '🇬🇷', '🇬🇱', '🇬🇩', '🇬🇵', '🇬🇺', '🇬🇹', '🇬🇬', '🇬🇳', '🇬🇼', '🇬🇾', '🇭🇹', '🇭🇳', '🇭🇰', '🇭🇺', '🇮🇸', '🇮🇳', '🇮🇩', '🇮🇷', '🇮🇶', '🇮🇪', '🇮🇲', '🇮🇱', '🇮🇹', '🇯🇲', '🇯🇵', '🇯🇪', '🇯🇴', '🇰🇿', '🇰🇪', '🇰🇮', '🇽🇰', '🇰🇼', '🇰🇬', '🇱🇦', '🇱🇻', '🇱🇧', '🇱🇸', '🇱🇷', '🇱🇾', '🇱🇮', '🇱🇹', '🇱🇺', '🇲🇴', '🇲🇬', '🇲🇼', '🇲🇾', '🇲🇻', '🇲🇱', '🇲🇹', '🇲🇭', '🇲🇶', '🇲🇷', '🇲🇺', '🇾🇹', '🇲🇽', '🇫🇲', '🇲🇩', '🇲🇨', '🇲🇳', '🇲🇪', '🇲🇸', '🇲🇦', '🇲🇿', '🇲🇲', '🇳🇦', '🇳🇷', '🇳🇵', '🇳🇱', '🇳🇨', '🇳🇿', '🇳🇮', '🇳🇪', '🇳🇬', '🇳🇺', '🇳🇫', '🇰🇵', '🇲🇰', '🇲🇵', '🇳🇴', '🇴🇲', '🇵🇰', '🇵🇼', '🇵🇸', '🇵🇦', '🇵🇬', '🇵🇾', '🇵🇪', '🇵🇭', '🇵🇳', '🇵🇱', '🇵🇹', '🇵🇷', '🇶🇦', '🇷🇪', '🇷🇴', '🇷🇺', '🇷🇼', '🇼🇸', '🇸🇲', '🇸🇹', '🇸🇦', '🇸🇳', '🇷🇸', '🇸🇨', '🇸🇱', '🇸🇬', '🇸🇽', '🇸🇰', '🇸🇮', '🇬🇸', '🇸🇧', '🇸🇴', '🇿🇦', '🇰🇷', '🇸🇸', '🇪🇸', '🇱🇰', '🇧🇱', '🇸🇭', '🇰🇳', '🇱🇨', '🇲🇫', '🇵🇲', '🇻🇨', '🇸🇩', '🇸🇷', '🇸🇪', '🇨🇭', '🇸🇾', '🇹🇼', '🇹🇯', '🇹🇿', '🇹🇭', '🇹🇱', '🇹🇬', '🇹🇰', '🇹🇴', '🇹🇹', '🇹🇳', '🇹🇷', '🇹🇲', '🇹🇨', '🇹🇻', '🇻🇮', '🇺🇬', '🇺🇦', '🇦🇪', '🇬🇧', '🏴󠁧󠁢󠁥󠁮󠁧󠁿', '🏴󠁧󠁢󠁳󠁣󠁴󠁿', '🏴󠁧󠁢󠁷󠁬󠁳󠁿', '🇺🇸', '🇺🇾', '🇺🇿', '🇻🇺', '🇻🇦', '🇻🇪', '🇻🇳', '🇼🇫', '🇪🇭', '🇾🇪', '🇿🇲', '🇿🇼']
-};
-
-const LiveRecordingBar = memo(({
-  sessionId,
-  onDiscard,
-  onSend
-}: {
-  sessionId: string;
-  onDiscard: () => void;
-  onSend: () => void;
-}) => {
-  const [state, setState] = useState<RecordingState>({
-    isRecording: true,
-    isPaused: false,
-    duration: 0,
-    audioLevels: new Array(16).fill(0.1),
-    sessionId
-  });
-
-  useEffect(() => {
-    const handleStateChange = (newState: RecordingState) => {
-      if (newState.sessionId === sessionId || voiceRecordingService.getCurrentSessionId() === sessionId) {
-        setState(newState);
-      }
-    };
-
-    voiceRecordingService.subscribe(handleStateChange);
-    return () => {
-      voiceRecordingService.unsubscribe();
-    };
-  }, [sessionId]);
-
-  const minutes = Math.floor(state.duration / 60);
-  const seconds = String(state.duration % 60).padStart(2, '0');
-
-  return (
-    <div className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2">
-      <div className="flex items-center w-full chat-overlay-bg border border-white/20 rounded-full px-4 py-2 justify-between backdrop-blur-xl shadow-2xl">
-        <button
-          type="button"
-          onClick={onDiscard}
-          className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-all active:scale-95 shrink-0 flex items-center justify-center"
-          title="Discard voice note"
-        >
-          <Trash2 size={20} />
-        </button>
-
-        <div className="flex-1 flex items-center justify-center gap-3 px-4 overflow-hidden">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-            <span className="text-xs font-black text-red-400 tracking-wider">
-              {minutes}:{seconds}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-[3px] h-5 overflow-hidden flex-1 justify-center max-w-[220px]">
-            {state.audioLevels.map((lvl, idx) => (
-              <div
-                key={idx}
-                className="w-1 bg-[#ff1493] rounded-full transition-all duration-75"
-                style={{ height: `${Math.max(4, Math.round(lvl * 20))}px` }}
-              />
-            ))}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={onSend}
-          className="p-2.5 rounded-full bg-[#ff1493] text-white hover:opacity-90 active:scale-95 transition-all shadow-lg shrink-0 flex items-center justify-center"
-          title="Send Voice Note"
-        >
-          <Send size={18} strokeWidth={2.5} />
-        </button>
-      </div>
-    </div>
-  );
-});
-
-const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttachmentMenu, onVoiceSend, theme, replyToMessage, onOpenDisappearingSettings }: any) => {
-  const drafts = useChatStore(state => state.drafts);
-  const setDraft = useChatStore(state => state.setDraft);
-  const localMessage = selectedChat ? (drafts[selectedChat.chat_id] || '') : '';
-  const isTyping = Boolean(localMessage.length > 0);
-
-  const setLocalMessage = useCallback((updater: string | ((prev: string) => string)) => {
-    if (!selectedChat) return;
-    const current = drafts[selectedChat.chat_id] || '';
-    const nextVal = typeof updater === 'function' ? updater(current) : updater;
-    setDraft(selectedChat.chat_id, nextVal);
-    onTyping(nextVal);
-  }, [selectedChat, drafts, setDraft, onTyping]);
-
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [pickerTab, setPickerTab] = useState<'emojis' | 'stickers' | 'gifs' | 'avatars'>('emojis');
-  const [giphySearch, setGiphySearch] = useState('');
-  const [giphyResults, setGiphyResults] = useState<any[]>([]);
-  const [loadingGiphy, setLoadingGiphy] = useState(false);
-
-  const [recordingSessionId, setRecordingSessionId] = useState<string | null>(null);
-
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const editing = useChatStore(state => state.editing);
-
-  useEffect(() => {
-    if (editing.messageId && editing.chatId === selectedChat?.chat_id) {
-      inputRef.current?.focus();
-    }
-  }, [editing.messageId, editing.chatId, selectedChat?.chat_id]);
-
-  // Editing window: the server allows edits only within 15 minutes of send.
-  // Show the remaining time and auto-close the composer when it runs out.
-  const editingSentAt = useChatStore(state => {
-    if (!editing.messageId || !editing.chatId) return null;
-    const m = state.messagesByConversation[editing.chatId]?.find(
-      (x: any) => (x.message_id || x.id) === editing.messageId
-    );
-    return m?.sent_at || null;
-  });
-  const [nowTick, setNowTick] = useState(() => Date.now());
-  useEffect(() => {
-    if (!editing.messageId) return;
-    const t = setInterval(() => setNowTick(Date.now()), 20000);
-    return () => clearInterval(t);
-  }, [editing.messageId]);
-  const editMinutesLeft = editingSentAt
-    ? Math.max(0, 15 - Math.floor((nowTick - new Date(editingSentAt).getTime()) / 60000))
-    : null;
-  useEffect(() => {
-    if (!editing.messageId || editMinutesLeft === null || editMinutesLeft > 0) return;
-    const chatId = editing.chatId;
-    useChatStore.getState().finishEdit(chatId);
-    showInfo('Editing window expired — messages can only be edited within 15 minutes');
-  }, [editMinutesLeft, editing.messageId, editing.chatId]);
-
-  const startMicRecording = useCallback(() => {
-    if (recordingSessionId) return;
-
-    const sessionId = crypto.randomUUID();
-    setRecordingSessionId(sessionId);
-
-    voiceRecordingService.start(sessionId).catch((err: any) => {
-      logger.error('[ChatInput] Microphone access failed:', err);
-      if (voiceRecordingService.getCurrentSessionId() === sessionId) {
-        setRecordingSessionId(null);
-        showError('Microphone access is required to record voice notes.');
-      }
-    });
-  }, [recordingSessionId]);
-
-  const handleDiscardRecording = useCallback(() => {
-    const currentId = recordingSessionId;
-    setRecordingSessionId(null);
-
-    if (currentId) {
-      voiceRecordingService.cancel(currentId);
-    }
-  }, [recordingSessionId]);
-
-  const handleFinishAndSendRecording = useCallback(async () => {
-    const currentId = recordingSessionId;
-    if (!currentId) return;
-
-    setRecordingSessionId(null);
-
-    const result = await voiceRecordingService.stop(currentId);
-    if (!result || !result.file) return;
-
-    if (result.duration < 0.8) {
-      logger.log('[ChatInput] Voice note too short (<0.8s), discarded');
-      return;
-    }
-
-    if (onVoiceSend) {
-      onVoiceSend(result.file, result.duration, 'recorded_voice_note');
-    }
-  }, [recordingSessionId, onVoiceSend]);
-
-  const fetchGiphy = useCallback(async (type: 'gifs' | 'stickers', query?: string) => {
-    setLoadingGiphy(true);
-    try {
-      const items = await fetchGiphyItems({
-        type,
-        endpoint: query ? 'search' : 'trending',
-        q: query || undefined,
-        limit: 20,
-      });
-      setGiphyResults(items);
-    } catch (err) {
-      logger.error('Giphy error', err);
-    } finally {
-      setLoadingGiphy(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (showEmojiPicker && (pickerTab === 'gifs' || pickerTab === 'stickers')) {
-      fetchGiphy(pickerTab === 'gifs' ? 'gifs' : 'stickers', giphySearch);
-    }
-  }, [showEmojiPicker, pickerTab, giphySearch, fetchGiphy]);
-
-  const themePrimary = theme?.colors?.primary || '#ff1493';
-  // Mode-aware: the dock must follow the app's light/dark state, not paint the
-  // theme's dark background in light mode (that produced a black bar with
-  // invisible icons). Falls back to the app shell tokens per mode.
-  const themeMode = useUserStore(s => s.theme);
-  const themeBg = (themeMode === 'dark'
-    ? theme?.colors?.backgroundDark
-    : theme?.colors?.backgroundLight) || (themeMode === 'dark' ? '#18181b' : '#f8e7ed');
-
-  const isBlocked = Boolean(selectedChat?.is_blocked || selectedChat?.conversation_status === 'blocked' || selectedChat?.can_send_messages === false);
-  const isBlockedByMe = Boolean(selectedChat?.is_blocked_by_me);
-
-  if (isBlocked) {
-    return (
-      <ChatInputDock className="z-30 shrink-0 border-t border-[#e6d8e1] dark:border-white/10 transition-all duration-300" backgroundColor={themeBg}>
-        <div className="w-full max-w-[1200px] mx-auto py-5 px-6 text-center">
-          <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-red-500/10 text-red-500 mb-2 shadow-sm border border-red-500/20">
-            <Ban size={22} strokeWidth={2.5} />
-          </div>
-        <h3 className="text-sm font-semibold text-[#18181b] dark:text-white mb-1 tracking-tight">
-          {isBlockedByMe ? 'You blocked this user' : 'Messaging is blocked'}
-        </h3>
-        <p className="text-xs font-medium text-slate-600 dark:text-zinc-300 max-w-sm mx-auto mb-3 leading-relaxed">
-            {isBlockedByMe
-              ? 'Messaging is unavailable while this user is blocked.'
-              : 'Messages cannot be sent in this conversation.'}
-          </p>
-          {isBlockedByMe && selectedChat?.partner_id && (
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await api.delete(`/users/block/${selectedChat.partner_id}`);
-                  useChatStore.getState().setConversationBlockState(selectedChat.chat_id, {
-                    is_blocked: false,
-                    is_blocked_by_me: false,
-                    am_i_blocked: false,
-                    conversation_status: 'active',
-                    can_send_messages: true
-                  });
-                } catch (err) {
-                  logger.error('Failed to unblock user:', err);
-                }
-              }}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold text-xs transition-all active:scale-95 border border-red-500/30 shadow-md"
-            >
-              Unblock User
-            </button>
-          )}
-        </div>
-      </ChatInputDock>
-    );
-  }
-
-  if (selectedChat?.account_type === 'system' || selectedChat?.conversation_type === 'system' || selectedChat?.is_system_account || selectedChat?.is_system || selectedChat?.partner_id === 'd75fe3b5-7a45-4581-ab13-91934d8b54de') {
-    return (
-      <ChatInputDock className="z-30 shrink-0 border-t border-[#e6d8e1] dark:border-slate-800 transition-all duration-300" backgroundColor={themeBg}>
-        <OfficialComposerFooter />
-      </ChatInputDock>
-    );
-  }
-
-  
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    if (selectedChat) {
-      setDraft(selectedChat.chat_id, val);
-    }
-    // Auto-grow the composer up to ~5 lines
-    const el = e.target;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-    onTyping(val);
-  };
-
-  const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // IME composition guard — never send half-composed CJK text
-    if (e.nativeEvent.isComposing) return;
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!localMessage.trim() || sending) return;
-      e.currentTarget.form?.requestSubmit();
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!localMessage.trim() && !sending) return;
-    onSend(e, localMessage);
-  };
-
-  return (
-    <ChatInputDock className="z-30 shrink-0 border-t border-[#ede3e9] dark:border-white/5 transition-all duration-300" backgroundColor={themeBg}>
-      <div className="w-full max-w-[1200px] mx-auto">
-        {editing.messageId && editing.chatId === selectedChat?.chat_id && (
-          <div className="flex items-center justify-between gap-2 p-2 bg-white/5 border-b border-white/5 px-4 text-xs text-white/50">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="font-bold text-[#ff1493] shrink-0">
-                Editing message{editMinutesLeft !== null ? ` · ${editMinutesLeft}m left` : ''}…
-              </span>
-              <span className="truncate">"{editing.originalContent}"</span>
-            </div>
-            <button
-              onClick={() => useChatStore.getState().finishEdit(selectedChat.chat_id)}
-              className="p-1 hover:text-white shrink-0"
-              type="button"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        )}
-        {replyToMessage && (
-          <ReplyPreview
-            onClear={() => {
-              if (selectedChat) {
-                useChatStore.getState().setReplyTarget(selectedChat.chat_id, undefined);
-              }
-            }}
-            messageId={replyToMessage.message_id}
-            message={replyToMessage}
-            chatId={selectedChat?.chat_id}
-            onNavigateToMessage={(id) => {
-              const el = document.getElementById(`msg-${id}`);
-              if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.classList.add('ring-2', 'ring-purple-400', 'bg-purple-500/20');
-                setTimeout(() => el.classList.remove('ring-2', 'ring-purple-400', 'bg-purple-500/20'), 1500);
-              }
-            }}
-          />
-        )}
-        {recordingSessionId ? (
-          <LiveRecordingBar
-            sessionId={recordingSessionId}
-            onDiscard={handleDiscardRecording}
-            onSend={handleFinishAndSendRecording}
-          />
-        ) : (
-          <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2 relative gap-1.5">
-            {/* Native @ / Sparkle Mention Suggestion Popup */}
-            <AnimatePresence>
-              {(() => {
-                const isAtTrigger = /@(?:s|sp|spar|spark|sparkle|sparkly)?$/i.test(localMessage);
-                const isKeywordTrigger = /(^|\s)sparkl(?:y|e)\b/i.test(localMessage) && !/@sparkl(?:y|e)\b/i.test(localMessage);
-                const showPopup = isAtTrigger || isKeywordTrigger;
-
-                if (!showPopup) return null;
-
-                return (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                    className="absolute bottom-full left-4 mb-2 z-50 bg-slate-900/95 backdrop-blur-xl border border-purple-500/40 rounded-2xl p-2.5 shadow-2xl shadow-purple-950/50 flex items-center gap-3 cursor-pointer hover:border-purple-400/70 transition-all group"
-                    onClick={() => {
-                      let updated = localMessage;
-                      if (isAtTrigger) {
-                        updated = localMessage.replace(/@(?:s|sp|spar|spark|sparkle|sparkly)?$/i, '@sparkle ');
-                      } else if (isKeywordTrigger) {
-                        if (/^\s*sparkl(?:y|e)\b/i.test(localMessage)) {
-                          updated = localMessage.replace(/^\s*sparkl(?:y|e)\b\s*/i, '@sparkle ');
-                        } else {
-                          updated = '@sparkle ' + localMessage.replace(/(^|\s)sparkl(?:y|e)\b/i, '$1').trim();
-                        }
-                      }
-                      if (selectedChat) {
-                        setDraft(selectedChat.chat_id, updated);
-                      }
-                      onTyping(updated);
-                      inputRef.current?.focus();
-                    }}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-pink-500 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform shrink-0">
-                      <Sparkles size={16} />
-                    </div>
-                    <div className="flex flex-col pr-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black text-white leading-tight">Sparkly AI</span>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">Ask Sparkly</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-medium leading-tight">
-                        {isKeywordTrigger ? 'Tap to authorize Sparkly AI request' : 'Tap to ask questions or search Marketplace'}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })()}
-            </AnimatePresence>
-
-            {/* Left Action Icons: Plus (+), Camera (📷), Files (📎) — Visible ONLY when NOT typing */}
-            <AnimatePresence initial={false}>
-              {!isTyping && (
-                <motion.div
-                  key="composer-left-actions"
-                  initial={{ opacity: 0, width: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, width: 'auto', scale: 1 }}
-                  exit={{ opacity: 0, width: 0, scale: 0.8 }}
-                  transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-                  className="flex items-center gap-0.5 shrink-0 overflow-hidden"
-                >
-                  {/* Attach — single WhatsApp-style paperclip. The attachment
-                      sheet (gallery / camera / document / audio / location)
-                      lives behind this one control. */}
-                  <button
-                    type="button"
-                    onClick={() => setShowAttachmentMenu(true)}
-                    className="w-9 h-9 flex items-center justify-center text-white/75 hover:text-white active:scale-90 transition-all shrink-0"
-                    title="Attach"
-                    aria-label="Attach"
-                  >
-                    <Paperclip size={20} strokeWidth={2.2} />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Input Area — Naturally expands as left icons collapse */}
-            {/* Dotted border signals disappearing messages are active */}
-            <div className={clsx(
-              "flex-1 flex items-end bg-[#f6eef3] dark:bg-white/5 rounded-3xl px-4 py-2 mx-1 transition-all duration-300 min-w-0 relative",
-              selectedChat?.disappearing_duration > 0
-                ? "border-2 border-dashed border-[#ff1493]/70 shadow-[0_0_10px_rgba(255,20,147,0.18)]"
-                : "border border-[#e6d8e1] dark:border-white/10"
-            )}>
-              {selectedChat?.disappearing_duration > 0 && (
-                <button
-                  type="button"
-                  onClick={onOpenDisappearingSettings}
-                  className="mr-2 mb-1 shrink-0 flex items-center justify-center cursor-pointer text-[#ff1493] hover:opacity-80 transition-transform active:scale-95"
-                  title="Disappearing messages active — tap to change"
-                >
-                  <Clock size={16} className="text-[#ff1493] animate-pulse" />
-                </button>
-              )}
-              <textarea
-                ref={inputRef}
-                rows={1}
-                value={localMessage}
-                onChange={handleChange}
-                onKeyDown={handleComposerKeyDown}
-                onFocus={() => setShowEmojiPicker(false)}
-                placeholder={editing.messageId && editing.chatId === selectedChat?.chat_id ? "Editing message…" : "Type a message..."}
-                className="flex-1 bg-transparent text-[15px] font-medium chat-input-text placeholder:text-slate-600 dark:placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-[#18181b] dark:caret-white resize-none max-h-[120px] overflow-y-auto no-scrollbar leading-snug"
-                autoComplete="off"
-                aria-label="Message text"
-              />
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                aria-label={showEmojiPicker ? 'Close emoji picker' : 'Open emoji picker'}
-                className={clsx(
-                  "transition-all ml-2 shrink-0 mb-0.5",
-                  showEmojiPicker ? "text-[#ff1493] scale-110" : "text-white/20 hover:text-white"
-                )}
-              >
-                <Smile size={20} strokeWidth={2.2} />
-              </button>
-            </div>
-
-            <div className="flex items-center shrink-0 mr-1 gap-1">
-              {localMessage.trim() ? (
-                <button
-                  type="submit"
-                  disabled={sending}
-                  aria-label="Send message"
-                  className="p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center"
-                  style={{ backgroundColor: themePrimary, color: '#ffffff' }}
-                >
-                  <Send size={18} strokeWidth={2.5} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={startMicRecording}
-                  style={{ backgroundColor: themePrimary }}
-                  className="p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center text-white"
-                  title="Record Voice Note"
-                  aria-label="Record voice note"
-                >
-                  <Mic size={18} strokeWidth={2.5} />
-                </button>
-              )}
-            </div>
-          </form>
-        )}
-
-        <AnimatePresence>
-          {showEmojiPicker && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 360, opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="w-full overflow-hidden flex flex-col rounded-none"
-              style={{ backgroundColor: themeBg }}
-            >
-              {/* Reference Header */}
-              <div className="flex items-center px-4 py-2 gap-3 shrink-0 border-b border-[#e6d8e1] dark:border-white/5">
-                <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-slate-600 dark:text-white/60 hover:text-[#18181b] dark:hover:text-white p-1"><ArrowLeft size={20} /></button>
-                <div className="flex-1 h-9 bg-[#e6d8e1] dark:bg-white/10 rounded-full flex items-center px-4 border border-[#e6d8e1] dark:border-white/5 focus-within:border-[#e6d8e1] dark:border-white/20 transition-all">
-                  <Search size={14} className="text-slate-600 dark:text-white/40 mr-2" />
-                  <input
-                    placeholder="Search"
-                    value={giphySearch}
-                    onChange={e => setGiphySearch(e.target.value)}
-                    className="bg-transparent border-none outline-none text-sm w-full text-[#18181b] dark:text-white/90 placeholder:text-slate-500 dark:placeholder:text-slate-600 dark:text-white/20"
-                  />
-                </div>
-                <div className="flex items-center gap-4 text-slate-600 dark:text-white/40 ml-1">
-                  <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("hover:text-[#18181b] dark:hover:text-white transition-colors", pickerTab === 'emojis' ? 'text-white' : '')}><Clock size={20} /></button>
-                  <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("hover:text-[#18181b] dark:hover:text-white transition-colors", pickerTab === 'emojis' ? 'text-white' : '')}><Smile size={20} /></button>
-                  <button type="button" onClick={() => setPickerTab('gifs')} className={clsx("hover:text-[#18181b] dark:hover:text-white transition-colors", pickerTab === 'gifs' ? 'text-white' : '')}><Zap size={20} /></button>
-                  <button type="button" onClick={() => setPickerTab('stickers')} className={clsx("hover:text-[#18181b] dark:hover:text-white transition-colors", pickerTab === 'stickers' ? 'text-white' : '')}><Sparkles size={20} /></button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-hidden relative">
-                {pickerTab === 'emojis' ? (
-                  <div className="h-full overflow-y-auto no-scrollbar px-3 py-4 space-y-6">
-                    {Object.entries(EMOJIS).map(([category, list]) => (
-                      <div key={category} className="space-y-3">
-                        <h5 className="text-[11px] min-h-[30px] flex items-center font-semibold text-slate-600 dark:text-white/30 uppercase tracking-[2px] px-1">{category}</h5>
-                        <div className="grid grid-cols-8 sm:grid-cols-9 gap-y-4 max-w-[640px] mx-auto w-full">
-                          {Array.from(new Set(list)).map((emoji, idx) => (
-                            <button
-                              key={`${category}-${emoji}-${idx}`}
-                              type="button"
-                              onClick={() => setLocalMessage(prev => prev + emoji)}
-                              className="text-[26px] flex items-center justify-center hover:scale-120 active:scale-90 transition-all"
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : pickerTab === 'gifs' ? (
-                  <div className="h-full overflow-y-auto no-scrollbar grid grid-cols-2 gap-x-3 gap-y-4 p-3 content-start">
-                    {loadingGiphy ? (
-                      <div className="col-span-2 h-full flex flex-col items-center justify-center py-20 gap-3">
-                        <Spinner size="large" color="#ff1493" />
-                        <span className="text-[10px] font-semibold text-slate-600 dark:text-white/20 uppercase tracking-widest">Loading GIFs...</span>
-                      </div>
-                    ) : giphyResults.map((item: any) => (
-                      <motion.div
-                        key={item.id}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="relative h-[110px] bg-[#f6eef3] dark:bg-white/5 border border-[#e6d8e1] dark:border-white/5 overflow-hidden cursor-pointer shadow-md"
-                        onClick={() => {
-                          onSend(null, 'GIF', 'gif', item.images.fixed_height.url);
-                          setShowEmojiPicker(false);
-                        }}
-                      >
-                        <img src={item.images.fixed_height.url} className="w-full h-full object-cover" alt="" />
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : pickerTab === 'stickers' ? (
-                  <div className="h-full overflow-y-auto no-scrollbar grid grid-cols-3 gap-x-3 gap-y-4 p-3 content-start">
-                    {loadingGiphy ? (
-                      <div className="col-span-3 h-full flex flex-col items-center justify-center py-20 gap-3">
-                        <Spinner size="large" color="#ff1493" />
-                        <span className="text-[10px] font-semibold text-slate-600 dark:text-white/20 uppercase tracking-widest">Loading Stickers...</span>
-                      </div>
-                    ) : giphyResults.map((item: any) => (
-                      <motion.div
-                        key={item.id}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="relative h-[100px] flex items-center justify-center bg-[#f6eef3] dark:bg-white/5 border border-[#e6d8e1] dark:border-white/5 overflow-hidden cursor-pointer p-1"
-                        onClick={() => {
-                          onSend(null, 'Sticker', 'sticker', item.images.fixed_height.url);
-                          setShowEmojiPicker(false);
-                        }}
-                      >
-                        <img src={item.images.fixed_height.url} className="w-full h-full object-contain" alt="" />
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : null
-                }
-              </div>
-
-              {/* Reference Bottom Bar */}
-              <div className="h-14 border-t border-[#e6d8e1] dark:border-white/5 flex items-center justify-between px-6 shrink-0" style={{ backgroundColor: 'rgba(24,24,27,0.04)' }}>
-                <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-xs font-semibold text-slate-600 dark:text-white/40 hover:text-[#18181b] dark:hover:text-white transition-colors">ABC</button>
-                <div className="flex items-center gap-8">
-                  <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("p-2 rounded-xl transition-all", pickerTab === 'emojis' ? "bg-[#e6d8e1] dark:bg-white/20 text-[#18181b] dark:text-white scale-110 shadow-lg" : "text-slate-600 dark:text-white/40 hover:text-[#18181b] dark:hover:text-white")}><Smile size={20} /></button>
-                  <button type="button" onClick={() => setPickerTab('gifs')} className={clsx("text-[11px] font-semibold px-2.5 py-1 border-2 rounded-lg transition-all", pickerTab === 'gifs' ? "border-[#ff1493] text-[#18181b] dark:text-white scale-110 shadow-lg" : "border-[#e6d8e1] dark:border-white/20 text-slate-600 dark:text-white/40 hover:border-[#ff1493]/60 dark:hover:border-white/40")}>GIF</button>
-                  <button type="button" onClick={() => setPickerTab('stickers')} className={clsx("p-2 rounded-xl transition-all", pickerTab === 'stickers' ? "bg-[#e6d8e1] dark:bg-white/20 text-[#18181b] dark:text-white scale-110 shadow-lg" : "text-slate-600 dark:text-white/40 hover:text-[#18181b] dark:hover:text-white")}><Sparkles size={20} /></button>
-                  <button type="button" onClick={() => setLocalMessage(prev => prev + ':-)')} className="text-xs font-semibold text-slate-600 dark:text-white/40 hover:text-[#18181b] dark:hover:text-white transition-colors">:-)</button>
-                </div>
-                <button type="button" onClick={() => setLocalMessage(prev => Array.from(prev).slice(0, -1).join(''))} className="text-slate-600 dark:text-white/30 hover:text-[#18181b] dark:hover:text-white transition-colors p-3 active:scale-90"><X size={20} /></button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-    </ChatInputDock>
-  );
-});
 
 async function uploadFileWithProgress(fileOrUrl: any, onProgress?: (p: number) => void, abortSignal?: AbortSignal) {
   const formData = new FormData();
@@ -1716,6 +658,10 @@ export default function Messages() {
 
   // --- State ---
   const conversations = useChatStore(state => state.conversations);
+  // Tracks a failed inbox load separately from an empty one. conversations is
+  // store state cleared by the catch, so without this the error path renders
+  // the "No chats yet" empty copy.
+  const [inboxError, setInboxError] = useState(false);
   const setConversations = useChatStore(state => state.setConversations);
   // Keep conversationsRef in sync with the latest conversations on every render.
   // This lets socket/navigation effects read the current list without declaring
@@ -2030,43 +976,38 @@ export default function Messages() {
 
       const finalMediaUrl = uploadedUrl;
       if (selectedChat) {
-        const payload = {
-          messageId: tempMessageId,
-          chatId: selectedChat.chat_id,
-          partnerId: selectedChat.partner_id,
-          content: caption || '',
-          type: mediaType,
-          mediaUrl: finalMediaUrl
-        };
+            const payload = {
+                messageId: tempMessageId,
+                chatId: selectedChat.chat_id,
+                partnerId: selectedChat.partner_id,
+                content: caption || '',
+                type: mediaType,
+                mediaUrl: finalMediaUrl,
+                // `name` and `filePayload` are both parameters of this function,
+                // so the file identity was in scope and simply not sent. The
+                // recipient's client has no way to recover a filename from a URL
+                // alone, and mimeType from the object was the one thing that let
+                // it decide how to present the attachment.
+                metadata: JSON.stringify({
+                    fileName: name,
+                    mimeType: filePayload?.type,
+                    fileSize: filePayload?.size
+                })
+            };
 
-        if (socket?.connected) {
-          socket.emit('send-message', payload, (response: any) => {
-            if (response?.success) {
-              const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
-              updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                ? {
-                    ...m,
-                    status: 'sent',
-                    sent_at: response.sentAt || m.sent_at,
-                    server_sequence: serverSeq ?? m.server_sequence,
-                    media_url: finalMediaUrl,
-                    mediaUrl: finalMediaUrl,
-                    message_id: response.messageId || m.message_id,
-                    id: response.messageId || m.id,
-                  }
-                : m
-              ));
-              uploadPayloadsRef.current.delete(tempMessageId);
-            } else {
-              updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                ? { ...m, status: 'failed' }
-                : m
-              ));
-            }
-          });
-        } else {
-          PersistentOfflineQueue.enqueue({ ...payload, senderId: user?.id || user?.user_id || '' });
-        }
+        // The upload is already on Cloudinary, so this path only needs the
+        // transport's acknowledgement reconciliation. It used to carry none:
+        // no 10s timeout, so an upload the server never acked sat at
+        // "sending" forever with no retry and no failure state.
+        const outcome = transmitMessage(socket, payload, {
+          clientMessageId: tempMessageId,
+          chatId: selectedChat.chat_id,
+          ackFields: { media_url: finalMediaUrl, mediaUrl: finalMediaUrl },
+          onAck: () => {
+            uploadPayloadsRef.current.delete(tempMessageId);
+          },
+        });
+        if (outcome === 'offline') queueOutgoingMessage(payload);
       }
     } catch (err: any) {
       if (err?.name === 'AbortError' || err?.message?.includes('aborted') || controller.signal.aborted) {
@@ -2702,7 +1643,15 @@ export default function Messages() {
       // the canonical read-receipt path is the message-read-ack effect below.
       store.markRead(selectedChat.chat_id, user?.id || user?.user_id || '');
       store.refreshConversation(selectedChat.chat_id);
-      fetchMessages(selectedChat.chat_id);
+      // A brand-new conversation carries a client-side temp_ id that has no
+      // server row yet. Fetching it used to 404 (or 500), which set
+      // messagesError and rendered "Couldn't load messages / Check your
+      // connection and try again" above an otherwise fine, empty chat. The
+      // privacy and nickname effects below already guard on this; this one
+      // did not.
+      if (!selectedChat.chat_id.startsWith('temp_')) {
+        fetchMessages(selectedChat.chat_id);
+      }
     } else {
       store.setActiveConversationId(null);
     }
@@ -2833,9 +1782,15 @@ export default function Messages() {
       const res = await api.get('/messages/inbox');
       const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
       setConversations(list);
+      setInboxError(false);
     } catch (err: any) {
       logger.error('Failed to fetch inbox', err.response?.data || err);
+      // Clearing the list here made a network failure indistinguishable from
+      // "you have no chats": the catch wiped it, and the render then showed the
+      // cheerful empty-copy state. Track the failure separately so the UI can
+      // say the load failed rather than implying the inbox is empty.
       setConversations([]);
+      setInboxError(true);
     } finally {
       setLoading(false);
     }
@@ -3415,6 +2370,29 @@ export default function Messages() {
     }
   };
 
+  /**
+   * Map a client-side message kind to the type the server accepts.
+   *
+   * Giphy sends 'gif' and stickers send 'sticker'; the messages ENUM in
+   * backend/utils/database/init.js and migrations/20261021_extend_message_types.sql
+   * has neither, so the INSERT was rejected every time. The optimistic bubble
+   * spun for 10s and then showed "Message not delivered" with no server error
+   * surfaced — only a logger.warn. GIF and sticker payloads are images, and
+   * presenting them as such is what the receiver already renders.
+   */
+  const toServerMessageType = (kind?: string): string => {
+    switch (kind) {
+      case 'gif':
+      case 'gift':
+      case 'sticker':
+        return 'image';
+      case 'live_location':
+        return 'location';
+      default:
+        return kind || 'text';
+    }
+  };
+
   const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, specialType?: string, mediaUrl?: string, metadataPayload?: string) => {
     if (e) e.preventDefault();
     const currentChatId = selectedChat?.chat_id || '';
@@ -3464,7 +2442,7 @@ export default function Messages() {
       sent_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
       is_read: false,
-      type: specialType || 'text',
+      type: toServerMessageType(specialType),
       media_url: mediaUrl,
       mediaUrl: mediaUrl,
       metadata: metadataPayload
@@ -3508,7 +2486,7 @@ export default function Messages() {
       chatId: selectedChat.chat_id,
       partnerId: selectedChat.partner_id,
       content: content || (specialType ? `Shared ${specialType}` : ''),
-      type: specialType || 'text',
+      type: toServerMessageType(specialType),
       mediaUrl: mediaUrl,
       metadata: metadataPayload
     };
@@ -3523,28 +2501,20 @@ export default function Messages() {
     }
 
     // ── Step 2: Enqueue to Durable Local Outbox FIRST ──
-    PersistentOfflineQueue.enqueue({
-      messageId,
-      chatId: selectedChat.chat_id,
-      recipientId: selectedChat.partner_id,
-      senderId: user?.id || user?.user_id || '',
-      content: content || (specialType ? `Shared ${specialType}` : ''),
-      type: specialType || 'text',
-      mediaUrl: mediaUrl,
-      replyToId: currentReplyTo?.message_id,
-      context: 'chat'
-    }).catch((err) => logger.warn('[Sparkle] Outbox persistence warning:', err));
+        queueOutgoingMessage({
+            messageId,
+            chatId: selectedChat.chat_id,
+            recipientId: selectedChat.partner_id,
+            content: content || (specialType ? `Shared ${specialType}` : ''),
+            type: toServerMessageType(specialType),
+            mediaUrl,
+            replyToId: currentReplyTo?.message_id,
+            context: 'chat'
+        });
 
     // Start individual 10-second delivery timeout timer ONLY when we can actually transmit.
     // Offline messages sit in the outbox as 'queued' and flush automatically on reconnect.
-    if (socket?.connected) {
-      PersistentOfflineQueue.startMessageTimeout(messageId, () => {
-        updateMessages(prev => prev.map(m => (m.message_id === messageId || m.id === messageId ? { ...m, status: 'failed' } : m)));
-        if (selectedChat) {
-          useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, { status: 'failed' });
-        }
-      });
-    } else {
+    if (!socket?.connected) {
       updateMessages(prev => prev.map(m => (m.message_id === messageId || m.id === messageId ? { ...m, status: 'queued' } : m)));
       if (selectedChat) {
         useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, { status: 'queued' });
@@ -3553,70 +2523,31 @@ export default function Messages() {
 
     // ── Step 3: Transmit via WebSocket if connected ──
     const emitStartTime = performance.now();
-    if (socket?.connected) {
-      socket.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string, server_sequence?: number }) => {
+    transmitMessage(socket, payload, {
+      clientMessageId: messageId,
+      chatId: selectedChat.chat_id,
+      // The reply fields were put on the optimistic bubble before the first
+      // render; re-assert them on ack so a late re-fetch cannot drop them.
+      ackFields: currentReplyTo
+        ? {
+            reply_to_message_id: currentReplyTo.message_id,
+            reply_content: currentReplyTo.content,
+            reply_type: currentReplyTo.type || 'text',
+            reply_sender_name: currentReplyTo.sender_name || currentReplyTo.sender_username || 'User',
+          }
+        : undefined,
+      onAck: () => {
         const serverAckMs = Math.round(performance.now() - emitStartTime);
         const totalMs = Math.round(performance.now() - sendStartTime);
-        logger.log(`[SPARKLE_MESSAGE_PERFORMANCE] messageId=${messageId} localRenderMs=${localRenderMs}ms serverAckMs=${serverAckMs}ms totalMs=${totalMs}ms STATUS:${response?.success ? 'PASS' : 'FAIL'}`);
-        if (response && response.success && response.messageId) {
-          PersistentOfflineQueue.acknowledge(messageId);
-          if (selectedChat) {
-            useChatStore.getState().setDraft(selectedChat.chat_id, '');
-          }
-          const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
-          updateMessages(prev => prev.map(m => m.message_id === messageId || m.id === messageId
-            ? {
-              ...m,
-              message_id: response.messageId!,
-              id: response.messageId!,
-              status: 'sent',
-              sent_at: response.sentAt || m.sent_at,
-              server_sequence: serverSeq ?? m.server_sequence,
-              reply_to_message_id: currentReplyTo?.message_id || m.reply_to_message_id || null,
-              reply_content: currentReplyTo?.content || m.reply_content || null,
-              reply_type: currentReplyTo?.type || m.reply_type || null,
-              reply_sender_name: currentReplyTo?.sender_name || currentReplyTo?.sender_username || m.reply_sender_name || null
-            }
-            : m
-          ));
-          if (selectedChat) {
-            useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, {
-              message_id: response.messageId!,
-              id: response.messageId!,
-              status: 'sent',
-              sent_at: response.sentAt,
-              server_sequence: serverSeq,
-            });
-          }
-          setConversations((prev: any[]) => {
-            const chatIndex = prev.findIndex(c => c.chat_id === selectedChat.chat_id);
-            if (chatIndex >= 0) {
-              const newConvs = [...prev];
-              const chat = { ...newConvs[chatIndex] };
-              const preview = specialType === 'location'
-                ? '📍 Location'
-                : specialType === 'live_location'
-                  ? '📍 Live Location'
-                  : (content || (specialType ? `Shared ${specialType}` : ''));
-              chat.last_message = preview;
-              chat.last_message_type = specialType || 'text';
-              chat.last_message_content = preview;
-              chat.last_message_status = 'sent';
-              chat.last_message_sender_id = user?.id || user?.user_id;
-              chat.last_message_time = response.sentAt || chat.last_message_time;
-              newConvs.splice(chatIndex, 1);
-              newConvs.unshift(chat);
-              return newConvs;
-            }
-            return prev;
-          });
-        } else {
-          logger.warn('[Sparkle] Socket emit unacknowledged, message remains in outbox:', response?.error);
+        logger.log(`[SPARKLE_MESSAGE_PERFORMANCE] messageId=${messageId} localRenderMs=${localRenderMs}ms serverAckMs=${serverAckMs}ms totalMs=${totalMs}ms STATUS:PASS`);
+        if (selectedChat) {
+          // Clearing the draft again here is what the old inline handler did;
+          // setMessages inside the transport already refreshed the chat list
+          // and moved this conversation to the top.
+          useChatStore.getState().setDraft(selectedChat.chat_id, '');
         }
-      });
-    } else {
-      logger.log('[Sparkle] Offline — message safely persisted in local outbox:', messageId);
-    }
+      },
+    });
   };
 
   const handleSendMessageWrapper = (e: any, content: string, specialType?: string, mediaUrl?: string) => handleSendMessage(e, content, specialType, mediaUrl);
@@ -3645,37 +2576,30 @@ export default function Messages() {
     useChatStore.getState().updateMessage(selectedChat.chat_id, msgId, { status: 'sending' });
     PersistentOfflineQueue.updateStatus(msgId, 'sending');
 
-    // Start individual 10-second timer for manual resend attempt
-    PersistentOfflineQueue.startMessageTimeout(msgId, () => {
-      updateMessages(prev => prev.map(m => (m.message_id === msgId || m.id === msgId ? { ...m, status: 'failed' } : m)));
-      useChatStore.getState().updateMessage(selectedChat.chat_id, msgId, { status: 'failed' });
-    });
-
-    const payload: any = {
-      messageId: msgId,  // same UUID — server deduplicates
-      chatId: selectedChat.chat_id,
-      partnerId: selectedChat.partner_id,
-      content: failedMsg.content,
-      type: failedMsg.type || 'text',
-      mediaUrl: failedMsg.media_url || failedMsg.mediaUrl,
-    };
+            const payload: any = {
+                messageId: msgId,  // same UUID — server deduplicates
+                chatId: selectedChat.chat_id,
+                partnerId: selectedChat.partner_id,
+                content: failedMsg.content,
+                type: failedMsg.type || 'text',
+                mediaUrl: failedMsg.media_url || failedMsg.mediaUrl,
+                // The original send carried metadata (duration, fileName, fileSize,
+                // mimeType for voice notes; a descriptor for stickers and GIFs) and
+                // this rebuild dropped it, so a resent media message arrived at the
+                // recipient in a degraded state compared to the first attempt.
+                metadata: failedMsg.metadata,
+                replyToId: failedMsg.reply_to_message_id
+            };
     if (failedMsg.reply_to_message_id) payload.replyToId = failedMsg.reply_to_message_id;
 
+    // The transport owns the 10s window, the acknowledge and the failure
+    // reconciliation — this path used to start its own timer and then drop the
+    // server's `server_sequence` on a successful ack, so a resent message lost
+    // its ordering key and could land out of place after the next re-sort.
     if (socket?.connected) {
-      socket.emit('send-message', payload, (response: any) => {
-        if (response?.success && response.messageId) {
-          PersistentOfflineQueue.acknowledge(msgId);
-          updateMessages(prev => prev.map(m =>
-            (m.message_id === msgId || m.id === msgId)
-              ? { ...m, message_id: response.messageId, id: response.messageId, status: 'sent', sent_at: response.sentAt || m.sent_at }
-              : m
-          ));
-        } else {
-          PersistentOfflineQueue.markFailed(msgId);
-          updateMessages(prev => prev.map(m =>
-            (m.message_id === msgId || m.id === msgId) ? { ...m, status: 'failed' } : m
-          ));
-        }
+      transmitMessage(socket, payload, {
+        clientMessageId: msgId,
+        chatId: selectedChat.chat_id,
       });
     } else {
       logger.log('[Sparkle] Retry queued offline, will sync when connection returns:', msgId);
@@ -3763,33 +2687,14 @@ export default function Messages() {
         };
         if (replyToMessage) payload.replyToId = replyToMessage.message_id;
 
-        if (socket && socket.connected) {
-          socket.emit('send-message', payload, (response: any) => {
-            if (response?.success) {
-              const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
-              updateMessages(prev => prev.map(m =>
-                (m.message_id === clientMessageId || m.id === clientMessageId)
-                  ? {
-                      ...m,
-                      status: 'sent',
-                      sent_at: response.sentAt || m.sent_at,
-                      server_sequence: serverSeq ?? m.server_sequence,
-                      message_id: response.messageId || m.message_id,
-                      id: response.messageId || m.id,
-                    }
-                  : m
-              ));
-            } else {
-              updateMessages(prev => prev.map(m =>
-                (m.message_id === clientMessageId || m.id === clientMessageId)
-                  ? { ...m, status: 'failed' }
-                  : m
-              ));
-            }
-          });
-        } else {
-          PersistentOfflineQueue.enqueue(payload);
-        }
+        // The voice path had no delivery timer at all, so a recording the server
+        // never acked stayed at "sending" indefinitely. The transport supplies
+        // the timer, the acknowledge, and the failure reconciliation.
+        const outcome = transmitMessage(socket, payload, {
+          clientMessageId,
+          chatId: selectedChat.chat_id,
+        });
+        if (outcome === 'offline') queueOutgoingMessage(payload);
       } else {
         updateMessages(prev => prev.map(m =>
           (m.message_id === clientMessageId || m.id === clientMessageId) ? { ...m, status: 'failed' } : m
@@ -3947,21 +2852,53 @@ export default function Messages() {
     return messages.filter(m => m.pinned);
   }, [messages]);
 
-  const startNewChat = (contact: any) => {
+  const startNewChat = async (contact: any) => {
     const existing = conversations.find(c => c.partner_id === contact.user_id);
     if (existing) {
       setSelectedChat(existing);
-    } else {
-      setSelectedChat({
-        chat_id: 'temp_' + Date.now(),
-        partner_id: contact.user_id,
-        partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
-        partner_avatar: contact.avatar_url,
-        unread_count: 0,
-        last_message_time: new Date().toISOString()
-      });
+      setShowNewChatModal(false);
+      return;
     }
-    setShowNewChatModal(false);
+
+    // The old code set a client-only `chat_id: 'temp_' + Date.now()` here. That id
+    // has no row on the server, so every send against it emitted send-message
+    // with a chat the server cannot resolve: no error, no feedback, the bubble
+    // sat on 'sending' until the 10s timeout flipped it to 'failed', and the
+    // recipient never received anything. That is the reported "user message is
+    // apparently not going through".
+    //
+    // Open the real conversation instead, exactly as handleStartChatFromPicker
+    // does. Only select a chat we can actually deliver to.
+    const partnerId = contact.user_id;
+    const newConv = {
+      chat_id: '',
+      partner_id: partnerId,
+      partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
+      partner_username: contact.username,
+      partner_avatar: contact.avatar_url,
+      unread_count: 0,
+      last_message_time: new Date().toISOString()
+    };
+
+    try {
+      const res = await api.post('/messages/open', { partnerId });
+      const conversationId = res.data?.data?.conversationId || res.data?.data?.chatId;
+      if (conversationId) {
+        const conv = { ...newConv, chat_id: conversationId };
+        setConversations((prev: any[]) => [conv, ...prev.filter(c => c.chat_id !== conversationId)]);
+        setSelectedChat(conv);
+        navigate(`/messages?chat=${conversationId}`);
+        setShowNewChatModal(false);
+        return;
+      }
+      logger.warn('[Messages] /messages/open returned no conversation id');
+    } catch (err) {
+      logger.error('[Messages] Failed to open a new conversation:', err);
+    }
+
+    // No real conversation: say so rather than opening a chat that discards
+    // everything the user types into it.
+    showError('Could not start this conversation. Check your connection and try again.');
   };
 
   const handleStartChatFromPicker = async (selectedContacts: ContactUser[]) => {
@@ -4458,16 +3395,16 @@ export default function Messages() {
             onScroll={handleScroll}
             className="flex-1 overflow-y-auto pb-24 md:pb-6 no-scrollbar scroll-smooth chat-panel-bg"
           >
-            {Array.isArray(filteredConversations) && filteredConversations.length === 0 && !loading ? (
-              <div className="py-12 px-4">
-                <ModernOfflineState
-                  type="empty"
-                  title="No chats yet"
-                  message="When you start a conversation, it'll show up here."
-                  onRetry={() => fetchInbox()}
-                />
-              </div>
-            ) : loading && (!Array.isArray(filteredConversations) || filteredConversations.length === 0) ? (
+{Array.isArray(filteredConversations) && filteredConversations.length === 0 && !loading ? (
+  <div className="py-12 px-4">
+    <ModernOfflineState
+      type={inboxError ? "error" : "empty"}
+      title={inboxError ? "Couldn't load your chats" : "No chats yet"}
+      message={inboxError ? "Check your connection and try again." : "When you start a conversation, it'll show up here."}
+      onRetry={() => fetchInbox()}
+    />
+  </div>
+) : loading && (!Array.isArray(filteredConversations) || filteredConversations.length === 0) ? (
               <div className="py-4 px-2 flex flex-col gap-3" aria-hidden>
                 {[0, 1, 2, 3, 4, 5].map(i => (
                   <div key={i} className="flex items-center gap-3 px-2">
@@ -6386,7 +5323,7 @@ export default function Messages() {
             className="fixed inset-0 bg-black z-(--z-modal) flex flex-col"
           >
             {/* Top Bar */}
-            <div className="flex items-center justify-between px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4">
+            <div className="flex items-center justify-between px-5 pt-[calc(1rem+var(--safe-area-inset-top))] pb-4">
               <div className="flex items-center gap-3">
                 {viewingNote.initials ? (
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black" style={{ background: viewingNote.color }}>{viewingNote.initials}</div>

@@ -5,6 +5,22 @@ const logger = require('../utils/logger');
 const PermissionEngine = require('../services/PermissionEngine');
 const { getIO } = require('../socket');
 
+/**
+ * Answer a 500 in this controller's response shape without echoing internals.
+ *
+ * 47 handlers returned `{ status: 'error', error: error.message }`, so the raw
+ * driver message — SQL fragments, table and column names, sometimes the DSN —
+ * went back to the caller. That is a free schema description for anyone who can
+ * provoke an error.
+ *
+ * Logs the error object rather than `.message` so the stack trace survives and
+ * still pins the call site.
+ */
+const serverError = (res, err) => {
+    logger.error('[messages] unhandled 500:', err);
+    res.status(500).json({ status: 'error', error: 'Something went wrong. Please try again.' });
+};
+
 class MessageController {
     /**
      * Get mutual groups between user and a partner
@@ -17,7 +33,7 @@ class MessageController {
             res.json({ status: 'success', data: groups });
         } catch (error) {
             console.error('getMutualGroups Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -31,7 +47,7 @@ class MessageController {
             res.json({ status: 'success', data: cards });
         } catch (error) {
             console.error('getWelcomeCards Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -59,7 +75,7 @@ class MessageController {
             });
         } catch (error) {
             console.error('getOfficialChatStatus Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -118,7 +134,7 @@ class MessageController {
             });
         } catch (error) {
             console.error('updateOfficialOnboardingStatus Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -161,7 +177,7 @@ class MessageController {
             });
         } catch (error) {
             console.error('replayOfficialOnboarding Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -201,8 +217,12 @@ class MessageController {
                 }
             });
         } catch (error) {
-            console.error('openConversation Error:', error);
-            res.status(500).json({ status: 'error', error: error.message || 'Failed to open conversation' });
+            // Was `error.message || 'Failed to open conversation'` — the fallback
+            // never protected anything, because error.message is truthy whenever
+            // there is a real failure. It also logged through console.error rather
+            // than the shared logger, so this error was not reachable in the log
+            // pipeline.
+            serverError(res, error);
         }
     }
     /**
@@ -230,7 +250,7 @@ class MessageController {
             res.json({ status: 'success', data: mapped });
         } catch (error) {
             console.error('getInbox Error:', error);
-            res.status(500).json({ status: 'error', error: 'Server error', details: error.message });
+            serverError(res, error);
         }
     }
 
@@ -363,7 +383,7 @@ class MessageController {
                     error: error.message
                 });
             }
-            res.status(500).json({ status: 'error', error: 'Failed to send message', details: error.message });
+            serverError(res, error);
         }
     }
 
@@ -379,7 +399,7 @@ class MessageController {
             res.json({ status: 'success', data: { messages } });
         } catch (error) {
             console.error('cursorSync Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -395,7 +415,7 @@ class MessageController {
             res.json({ status: 'success' });
         } catch (error) {
             console.error('ackDelivery Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -411,7 +431,7 @@ class MessageController {
             res.json({ status: 'success' });
         } catch (error) {
             console.error('ackRead Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -474,7 +494,7 @@ class MessageController {
                 return res.json({ status: 'success', message: 'Deleted for me' });
             }
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -495,7 +515,7 @@ class MessageController {
             }
             res.json({ status: 'success', data: result });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -506,7 +526,7 @@ class MessageController {
             const result = await Message.removeReaction(messageId, userId);
             res.json({ status: 'success', data: result });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -517,7 +537,7 @@ class MessageController {
             const result = await Message.starMessage(messageId, userId, true);
             res.json({ status: 'success', data: result });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -528,7 +548,7 @@ class MessageController {
             const result = await Message.starMessage(messageId, userId, false);
             res.json({ status: 'success', data: result });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -573,7 +593,7 @@ class MessageController {
 
             res.json({ status: 'success', data: updated });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -588,7 +608,7 @@ class MessageController {
             }
             res.json({ status: 'success', data: deleted });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -598,7 +618,7 @@ class MessageController {
             const events = await Message.getEventsSinceSeq(chatId, sinceSeq);
             res.json({ status: 'success', data: events });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -609,7 +629,7 @@ class MessageController {
             const messages = await Message.searchMessages(userId, chatId, q);
             res.json({ status: 'success', data: messages });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -621,7 +641,7 @@ class MessageController {
             await Message.muteConversation(userId, chatId, muted !== false);
             res.json({ status: 'success' });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -667,7 +687,7 @@ class MessageController {
 
             res.json({ status: 'success' });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -678,7 +698,7 @@ class MessageController {
             await Message.updateStatus(chatId, userId, 'unread');
             res.json({ status: 'success' });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -703,7 +723,7 @@ class MessageController {
 
             res.json({ status: 'success' });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -725,7 +745,7 @@ class MessageController {
             res.json({ status: 'success', data: archived, conversations: archived });
         } catch (error) {
             console.error('getArchivedConversations Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -751,7 +771,7 @@ class MessageController {
 
             res.json({ status: 'success' });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -776,7 +796,7 @@ class MessageController {
 
             res.json({ status: 'success' });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -801,7 +821,7 @@ class MessageController {
 
             res.json({ status: 'success' });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -826,7 +846,7 @@ class MessageController {
 
             res.json({ status: 'success' });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -867,7 +887,7 @@ class MessageController {
                 res.status(404).json({ status: 'error', error: 'Message not found' });
             }
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -900,7 +920,7 @@ class MessageController {
                 res.status(404).json({ status: 'error', error: 'Message not found' });
             }
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -939,7 +959,7 @@ class MessageController {
 
             res.json({ status: 'success', data: { content: originalMsg.content } });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1116,7 +1136,7 @@ class MessageController {
 
             res.json({ status: 'success', data: forwardedMessages });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1173,7 +1193,7 @@ class MessageController {
             res.json({ status: 'success', data: rows });
         } catch (error) {
             console.error('[getChatPinnedMessages]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1238,7 +1258,7 @@ class MessageController {
             res.json({ status: 'success', data, nextCursor, hasMore });
         } catch (error) {
             console.error('[getChatMedia]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1334,7 +1354,7 @@ class MessageController {
             res.json({ status: 'success', data: finalData, nextCursor, hasMore });
         } catch (error) {
             console.error('[getChatFiles]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1416,7 +1436,7 @@ class MessageController {
             res.json({ status: 'success', data: finalData, nextCursor, hasMore });
         } catch (error) {
             console.error('[getChatLinks]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1477,7 +1497,7 @@ class MessageController {
             res.json({ status: 'success', data, nextCursor, hasMore });
         } catch (error) {
             console.error('[getChatVoice]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1538,7 +1558,7 @@ class MessageController {
             res.json({ status: 'success', data, nextCursor, hasMore });
         } catch (error) {
             console.error('[getChatMusic]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1599,7 +1619,7 @@ class MessageController {
             res.json({ status: 'success', data, nextCursor, hasMore });
         } catch (error) {
             console.error('[getChatStories]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1662,7 +1682,7 @@ class MessageController {
             res.json({ status: 'success', data, nextCursor, hasMore });
         } catch (error) {
             console.error('[getChatPosts]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1726,7 +1746,7 @@ class MessageController {
             });
         } catch (error) {
             console.error('[getMessageInfo]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1822,7 +1842,7 @@ class MessageController {
             });
         } catch (error) {
             console.error('[getChatStats]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -1858,7 +1878,7 @@ class MessageController {
             return res.json({ status: 'success', data: nicknames });
         } catch (error) {
             logger.error('[getChatNicknames]', error);
-            return res.status(500).json({ status: 'error', error: error.message });
+            return serverError(res, error);
         }
     }
 
@@ -2003,7 +2023,7 @@ class MessageController {
             });
         } catch (error) {
             console.error('[setChatNickname]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 
@@ -2040,7 +2060,7 @@ class MessageController {
             res.json({ status: 'success', data: history });
         } catch (error) {
             console.error('[getChatNicknameHistory]', error);
-            res.status(500).json({ status: 'error', error: error.message });
+            serverError(res, error);
         }
     }
 }

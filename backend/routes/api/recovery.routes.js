@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const accountRecoveryService = require('../../services/accountRecovery.service');
 const logger = require('../../utils/logger');
+const { clientError } = require('../../utils/serverError');
 
 // POST /api/recovery/challenge - Request 6-digit verification challenge
 router.post('/challenge', async (req, res) => {
@@ -18,7 +19,7 @@ router.post('/challenge', async (req, res) => {
         res.json(result);
     } catch (err) {
         logger.warn(`[RecoveryAPI] Challenge failed: ${err.message}`);
-        res.status(400).json({ error: err.message });
+        clientError(res, err, 'Could not start recovery. Please try again.');
     }
 });
 
@@ -29,7 +30,7 @@ router.post('/verify', async (req, res) => {
         const result = await accountRecoveryService.verifyChallenge({ requestId, code });
         res.json(result);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        clientError(res, err, 'Could not verify that code. Please try again.');
     }
 });
 
@@ -40,7 +41,7 @@ router.post('/cancel-deletion', async (req, res) => {
         const result = await accountRecoveryService.executeCancelDeletion({ verifiedToken });
         res.json(result);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        clientError(res, err, 'Could not cancel the deletion. Please try again.');
     }
 });
 
@@ -55,7 +56,7 @@ router.post('/appeal', async (req, res) => {
         });
         res.json(result);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        clientError(res, err, 'Could not submit that appeal. Please try again.');
     }
 });
 
@@ -70,7 +71,7 @@ router.post('/emergency-export', async (req, res) => {
         });
         res.json(result);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        clientError(res, err, 'Could not start the export. Please try again.');
     }
 });
 
@@ -81,7 +82,7 @@ router.get('/appeal/status', async (req, res) => {
         const result = await accountRecoveryService.checkAppealStatus(ref, contact);
         res.json(result);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        clientError(res, err, 'No appeal case matched that reference and contact.');
     }
 });
 

@@ -363,7 +363,7 @@ export default function FollowListModal({ isOpen, onClose, title = "Followers", 
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[1100] bg-white dark:bg-zinc-950 text-[#10112D] dark:text-white flex flex-col overflow-hidden animate-fade-in">
-      <header className="pt-[calc(1.25rem+env(safe-area-inset-top))] px-4 pb-3 border-b border-black/10 dark:border-white/10 flex items-center justify-between gap-3 bg-white dark:bg-zinc-950 shrink-0">
+      <header className="pt-[calc(1.25rem+var(--safe-area-inset-top))] px-4 pb-3 border-b border-black/10 dark:border-white/10 flex items-center justify-between gap-3 bg-white dark:bg-zinc-950 shrink-0">
         <div className="flex items-center gap-3">
           <button type="button" onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 text-black dark:text-white active:scale-95 transition-all focus:outline-none" aria-label="Back to Profile">
             <ArrowLeft size={22} strokeWidth={2.4} />

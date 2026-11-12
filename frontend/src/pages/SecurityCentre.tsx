@@ -895,9 +895,22 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
     setLoading(true);
     setError(null);
     try {
-      const res = await api.post('/security/2fa/disable', {
-        verification_token: verificationToken
-      });
+    // The route depends on the purpose, and this used to hardcode
+    // /2fa/disable for all three. That endpoint zeroes two_factor_enabled,
+    // both factor flags, the secret and every backup code, so asking to
+    // "Disable SMS" silently removed email 2FA and all 10 recovery codes
+    // while the toast claimed only the one factor was off.
+    const DISABLE_ROUTE_BY_PURPOSE = {
+      '2fa_disable': '/security/2fa/disable',
+      'email_2fa_disable': '/security/2fa/email/disable',
+      'sms_2fa_disable': '/security/2fa/sms/disable',
+      '2fa_disable_all': '/security/2fa/disable-all',
+    };
+    const route = DISABLE_ROUTE_BY_PURPOSE[purpose] ?? '/security/2fa/disable';
+
+    const res = await api.post(route, {
+      verification_token: verificationToken
+    });
       if (res.data?.status === 'success') {
         onSuccess();
       } else {
@@ -1459,6 +1472,7 @@ export default function SecurityCentre() {
   const navigate = useNavigate();
 
   const [status, setStatus] = useState<SecurityStatus | null>(null);
+  const [statusError, setStatusError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isPinConfigured, setIsPinConfigured] = useState(false);
   const [lockTimeout, setLockTimeout] = useState<number>(0); // Default: 0 (Immediately)
@@ -1470,12 +1484,17 @@ export default function SecurityCentre() {
 
   const fetchStatus = useCallback(async () => {
     try {
+      setStatusError(false);
       const res = await api.get('/security/status');
       if (res.data?.status === 'success') {
         setStatus(res.data.data);
       }
     } catch {
-      // Non-fatal
+      // Non-fatal, but NOT indistinguishable from "no 2FA". status staying
+      // null made a failed request render the account as password-only and
+      // unsecured, which is the wrong instruction to give someone who is
+      // actually protected and simply offline.
+      setStatusError(true);
     } finally {
       setLoading(false);
     }
@@ -1615,9 +1634,21 @@ export default function SecurityCentre() {
           </div>
         </div>
 
-        {/* Feedback */}
-        {success && <FeedbackBanner type="success" message={success} onClose={() => setSuccess(null)} />}
-        {error && <FeedbackBanner type="error" message={error} onClose={() => setError(null)} />}
+      {/* Feedback */}
+      {success && <FeedbackBanner type="success" message={success} onClose={() => setSuccess(null)} />}
+      {error && <FeedbackBanner type="error" message={error} onClose={() => setError(null)} />}
+
+      {/* A failed status fetch must not read as "you have no 2FA". Without
+          this, an offline visit sees the password-only banner and the SMS row
+          disabled as "not available on this server", on an account that is in
+          fact protected. */}
+      {statusError && !loading && !status && (
+        <FeedbackBanner
+          type="error"
+          message="We couldn't load your security settings. Check your connection and tap Back, then reopen this screen — don't read your two-factor settings from it."
+          onClose={() => setStatusError(false)}
+        />
+      )}
 
         {/* Loading skeleton */}
         {loading && (
@@ -1906,6 +1937,7 @@ export default function SecurityCentre() {
 
       {activeModal === 'email-2fa-disable' && (
         <Disable2FAModal
+          purpose="email_2fa_disable"
           title="Disable Email Verification"
           description="Verify your identity to turn off email-based two-factor authentication."
           onSuccess={handle2FADisableSuccess}
@@ -1926,6 +1958,7 @@ export default function SecurityCentre() {
 
       {activeModal === 'sms-2fa-disable' && (
         <Disable2FAModal
+          purpose="sms_2fa_disable"
           title="Disable SMS Verification"
           description="Verify your identity to turn off SMS-based two-factor authentication."
           onSuccess={handle2FADisableSuccess}
@@ -1949,6 +1982,7 @@ export default function SecurityCentre() {
 
       {activeModal === '2fa-disable-all' && (
         <Disable2FAModal
+          purpose="2fa_disable_all"
           title="Reset & Disable All 2FA"
           description="Verify your identity using an enrolled authentication method to disable all two-factor authentication and permanently invalidate any existing recovery codes."
           onSuccess={() => {

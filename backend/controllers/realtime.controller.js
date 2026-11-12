@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const { getIO } = require('../socket');
 const logger = require('../utils/logger');
+const { serverError } = require('../utils/serverError');
 const { canViewPresence } = require('../services/presencePrivacy');
 
 // Get online friends
@@ -28,7 +29,7 @@ const getOnlineFriends = async (req, res) => {
         res.json({ status: 'success', data: visible });
     } catch (error) {
         logger.error('Get online friends error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -64,7 +65,7 @@ const getUserPresence = async (req, res) => {
         });
     } catch (error) {
         logger.error('Get user presence error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -113,7 +114,7 @@ const getChatHistory = async (req, res) => {
         });
     } catch (error) {
         logger.error('Get chat history error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -145,7 +146,7 @@ const markAllAsRead = async (req, res) => {
         res.json({ status: 'success', message: 'All messages marked as read' });
     } catch (error) {
         logger.error('Mark all as read error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 

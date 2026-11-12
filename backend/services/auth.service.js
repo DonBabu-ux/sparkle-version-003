@@ -4,6 +4,20 @@ const { safeQuery } = require('../config/database');
 const logger = require('../utils/logger');
 const { JWT_SECRET } = require('../config/constants');
 
+/**
+ * Mark a rejection as one the caller may be told about.
+ *
+ * `refreshAccessToken` throws three authored messages a user can act on, and
+ * `safeQuery` can throw a driver error in the same try. The controller used to
+ * answer `error.message` on a 401 either way, so a dead connection handed the
+ * caller a SQL fragment on an endpoint that exists solely to mint credentials.
+ */
+const domainError = (message) => {
+    const err = new Error(message);
+    err.isOperational = true;
+    return err;
+};
+
 class AuthService {
     /**
      * Generate Access and Refresh tokens
@@ -38,7 +52,7 @@ class AuthService {
         const tokens = await safeQuery('SELECT * FROM refresh_tokens WHERE token = ? AND expires_at > NOW()', [oldRefreshToken]);
 
         if (tokens.length === 0) {
-            throw new Error('Invalid or expired refresh token');
+            throw domainError('Invalid or expired refresh token');
         }
 
         const tokenData = tokens[0];
@@ -47,7 +61,7 @@ class AuthService {
         const users = await safeQuery('SELECT user_id, email, username, role, account_status FROM users WHERE user_id = ?', [tokenData.user_id]);
 
         if (users.length === 0) {
-            throw new Error('User not found');
+            throw domainError('User not found');
         }
 
         const user = users[0];
@@ -57,7 +71,7 @@ class AuthService {
         //     explicit DELETE, so account_status is the durable check here.
         const status = user.account_status ? String(user.account_status).trim().toLowerCase() : 'active';
         if (status && status !== 'active' && status !== 'verified') {
-            throw new Error('Account is not active');
+            throw domainError('Account is not active');
         }
 
         // 3. Generate new tokens (Rotation)
@@ -325,7 +339,10 @@ class AuthService {
                     [crypto.randomUUID(), userId, 'system_welcome', 'Welcome to Sparkle', 'Discover trends, follow creators, and share your first spark.', '/explore', 0]
                 );
 
-                const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+                // crypto.randomInt, not Math.random: this is a security code, and
+                // Math.random() is a seeded PRNG whose output is predictable. See
+                // accountRecovery.service.js, which already does this correctly.
+                const verificationCode = crypto.randomInt(100000, 999999).toString();
                 await conn.execute(
                     'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR)) ON DUPLICATE KEY UPDATE code = ?, expires_at = DATE_ADD(NOW(), INTERVAL 24 HOUR)',
                     [crypto.randomUUID(), userId, normEmail, verificationCode, verificationCode]

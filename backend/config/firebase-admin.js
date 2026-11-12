@@ -9,6 +9,7 @@ let admin = null;
 
 try {
     const firebaseAdmin = require('firebase-admin');
+    const logger = require('../utils/logger');
 
     const fs = require('fs');
     const path = require('path');
@@ -31,12 +32,31 @@ try {
     // v14 API: use getApps() instead of apps, cert() instead of credential.cert()
     const alreadyInitialized = firebaseAdmin.getApps().length > 0;
 
-    if (serviceAccount && !alreadyInitialized) {
-        firebaseAdmin.initializeApp({
-            credential: firebaseAdmin.cert(serviceAccount),
-            databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://sparkleapp-10f62-default-rtdb.firebaseio.com'
-        });
-        admin = firebaseAdmin;
+if (serviceAccount && !alreadyInitialized) {
+    // The RTDB URL used to fall back to a hardcoded
+    // 'https://sparkleapp-10f62-default-rtdb.firebaseio.com' when the env var was
+    // unset. That made a misconfigured deploy fail quietly instead of loudly:
+    // FCM push would work against whatever project the credentials belong to,
+    // while RTDB wrote to a different project it had no permission on, so order
+    // status sync silently broke with nothing in the config to point at.
+    //
+    // When the env var is absent the URL is now derived from the service
+    // account's own project_id, so the database always belongs to the project
+    // the credentials authenticate against. No project id is hardcoded here.
+    const derivedDatabaseUrl = serviceAccount.project_id
+        ? `https://${serviceAccount.project_id}-default-rtdb.firebaseio.com`
+        : null;
+    const databaseURL = process.env.FIREBASE_DATABASE_URL || derivedDatabaseUrl;
+
+    if (!databaseURL) {
+        logger.warn('[firebase-admin] FIREBASE_DATABASE_URL is unset and the service account has no project_id; RTDB is disabled.');
+    }
+
+    firebaseAdmin.initializeApp({
+        credential: firebaseAdmin.cert(serviceAccount),
+        ...(databaseURL ? { databaseURL } : {})
+    });
+    admin = firebaseAdmin;
     } else if (alreadyInitialized) {
         admin = firebaseAdmin;
     } else if (process.env.FIREBASE_DATABASE_URL) {

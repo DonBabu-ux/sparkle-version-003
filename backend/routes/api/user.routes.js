@@ -9,6 +9,7 @@ const { searchSchema, updateProfileSchema, updatePasswordSchema, userIdSchema } 
 
 const socialController = require('../../controllers/social.controller');
 const { getUserHighlights } = require('../../controllers/highlight.controller');
+const { clientError, serverError } = require('../../utils/serverError');
 
 router.get('/me', authMiddleware, userController.getCurrentUser);
 router.get('/hub-relevance-badges', authMiddleware, userController.getHubRelevanceBadges);
@@ -57,7 +58,7 @@ router.get('/data-centre/history', authMiddleware, async (req, res) => {
         const history = await dataExportService.getUserExports(req.user.user_id || req.user.id);
         res.json({ success: true, history });
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        serverError(res, e);
     }
 });
 router.post('/data-centre/export', authMiddleware, async (req, res) => {
@@ -73,7 +74,7 @@ router.post('/data-centre/export', authMiddleware, async (req, res) => {
         });
         res.json({ success: true, ...result });
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        clientError(res, e, 'Could not start that export. Please try again.');
     }
 });
 router.get('/data-centre/download/:token', async (req, res) => {
@@ -82,7 +83,7 @@ router.get('/data-centre/download/:token', async (req, res) => {
         const { filePath, fileName } = await dataExportService.getFileByToken(req.params.token);
         res.download(filePath, fileName);
     } catch (e) {
-        res.status(403).json({ error: e.message });
+        clientError(res, e, 'That download link is not valid.', 403);
     }
 });
 

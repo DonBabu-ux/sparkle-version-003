@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
-import { Calendar, Users, QrCode, Power, Settings, Plus, Check, X, Trash2, ArrowLeft, Shield } from 'lucide-react';
+import { Calendar, Users, QrCode, Power, Settings, Plus, Check, X, Trash2, ArrowLeft, Shield, AlertCircle } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
 
@@ -49,8 +49,10 @@ export default function EventsAdmin() {
 
   const [activeEventAttendees, setActiveEventAttendees] = useState<string | null>(null);
   const [attendeesList, setAttendeesList] = useState<Attendee[]>([]);
+  const [loadError, setLoadError] = useState(false);
 
   const fetchManagedEvents = useCallback(async () => {
+    setLoadError(false);
     setLoading(true);
     try {
       const res = await api.get('/events?filter=managed');
@@ -63,6 +65,9 @@ export default function EventsAdmin() {
       }
     } catch (err) {
       logger.error('Failed to fetch admin events', err);
+      // The catch only logged and left events as [], so a network failure
+      // rendered "No events managed yet." — identical to genuinely having none.
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -124,8 +129,12 @@ export default function EventsAdmin() {
 
   const processRSVP = async (eventId: string, userId: string, status: string) => {
     try {
-      await api.patch(`/events/${eventId}/rsvp/${userId}`, { status });
-      loadAttendees(eventId); 
+      // Was api.patch(`/events/${eventId}/rsvp/${userId}`), which has no matching
+      // route — the real one is POST /events/rsvp/approve, taking all three
+      // values in the body. Every approve/reject click 404'd, so the guest list
+      // could never be moderated.
+      await api.post('/events/rsvp/approve', { eventId, userId, status });
+      loadAttendees(eventId);
     } catch {
       showError('Failed to process RSVP');
     }
@@ -276,7 +285,7 @@ export default function EventsAdmin() {
             <h3 className="text-sm font-bold text-slate-600 dark:text-zinc-300 flex items-center gap-2">
               <Settings size={14} className="text-primary" /> Your events
             </h3>
-            <span className="text-xs font-medium text-slate-600 dark:text-zinc-300">{events.length} active</span>
+            <span className="text-xs font-medium text-slate-600 dark:text-zinc-300">{events.length} events</span>
           </div>
 
           {loading ? (
@@ -308,14 +317,10 @@ export default function EventsAdmin() {
                     </div>
                   </div>
 
-                  <div onClick={() => loadAttendees(e.event_id)} className="grid grid-cols-2 gap-2 mb-4 bg-[#f6eef3] dark:bg-zinc-900 p-2.5 rounded-2xl cursor-pointer hover:bg-primary/5 transition-all">
-                     <div className="text-center border-r border-[#ede3e9] dark:border-zinc-700">
+                  <div onClick={() => loadAttendees(e.event_id)} className="grid grid-cols-1 gap-2 mb-4 bg-[#f6eef3] dark:bg-zinc-900 p-2.5 rounded-2xl cursor-pointer hover:bg-primary/5 transition-all">
+ <div className="text-center ">
                         <div className="text-lg font-bold text-[#18181b] dark:text-zinc-100 leading-none">{e.total_rsvps || 0}</div>
                         <div className="text-xs font-medium text-slate-600 dark:text-zinc-400 mt-1">RSVPs</div>
-                     </div>
-                     <div className="text-center">
-                        <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 leading-none">{e.total_attended || 0}</div>
-                        <div className="text-xs font-medium text-slate-600 dark:text-zinc-400 mt-1">Present</div>
                      </div>
                   </div>
 
@@ -353,14 +358,28 @@ export default function EventsAdmin() {
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-3xl p-12 text-center border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
-               <div className="w-12 h-12 bg-[#f0e5ec] dark:bg-zinc-700 rounded-2xl flex items-center justify-center mb-4 text-slate-600 dark:text-zinc-300 mx-auto">
-                 <Calendar size={24} />
-               </div>
-               <p className="text-[13px] text-slate-600 dark:text-zinc-400 font-medium">No events managed yet.</p>
-            </div>
-          )}
+) : loadError ? (
+  <div className="bg-red-50 dark:bg-red-950/20 rounded-3xl p-12 text-center border-2 border-dashed border-red-200 dark:border-red-900/40">
+    <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mb-4 mx-auto text-red-500">
+      <AlertCircle size={24} />
+    </div>
+    <p className="text-[13px] text-red-600 dark:text-red-400 font-bold mb-1">Couldn't load your events</p>
+    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mb-4">This isn't the same as having none — the request failed.</p>
+    <button
+      onClick={() => fetchManagedEvents()}
+      className="px-4 py-2 rounded-full bg-red-500 text-white text-xs font-bold"
+    >
+      Try again
+    </button>
+  </div>
+) : (
+  <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-3xl p-12 text-center border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700">
+    <div className="w-12 h-12 bg-[#f0e5ec] dark:bg-zinc-700 rounded-2xl flex items-center justify-center mb-4 mx-auto text-slate-400">
+      <Calendar size={24} />
+    </div>
+    <p className="text-[13px] text-slate-600 dark:text-zinc-400 font-medium">No events managed yet.</p>
+  </div>
+)}
         </div>
       </main>
 

@@ -125,7 +125,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
       <motion.div ref={peopleRef} role="dialog" aria-modal="true" tabIndex={-1} initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'tween', duration: 0.22 }}
         className="fixed inset-0 z-[10001] bg-black flex flex-col"
       >
-        <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-3 shrink-0">
+        <div className="flex items-center justify-between px-4 pt-[calc(1rem+var(--safe-area-inset-top))] pb-3 shrink-0">
           <div className="flex items-center gap-3">
             <button onClick={() => setScreen('settings')} className="text-white p-1">
               <ArrowLeft size={22} strokeWidth={2.5} />
@@ -204,7 +204,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
       <motion.div ref={settingsRef} role="dialog" aria-modal="true" tabIndex={-1} initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'tween', duration: 0.22 }}
         className="fixed inset-0 z-[10001] bg-black flex flex-col"
       >
-        <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-3 shrink-0">
+        <div className="flex items-center justify-between px-4 pt-[calc(1rem+var(--safe-area-inset-top))] pb-3 shrink-0">
           <div className="flex items-center gap-3">
             <button onClick={() => setScreen('editor')} className="text-white p-1">
               <ArrowLeft size={22} strokeWidth={2.5} />
@@ -307,7 +307,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 shrink-0">
+      <div className="flex items-center justify-between px-5 pt-[calc(1rem+var(--safe-area-inset-top))] pb-4 shrink-0">
         <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-white/70 hover:text-white transition-colors">
           <X size={22} strokeWidth={2.5} />
         </button>

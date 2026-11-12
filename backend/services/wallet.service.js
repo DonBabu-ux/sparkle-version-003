@@ -21,6 +21,22 @@ const systemMessageService = require('./systemMessage.service');
 const { reconcileDepositAmount } = require('../utils/walletReconciliation');
 
 /**
+ * Mark a rejection as one the caller may be told about.
+ *
+ * The wallet controller answers `err.message` on a 400, so a throw's text is
+ * user-facing copy by default. Amounts, phone numbers and consent confirmations
+ * are marked here; the two throws that describe an internal inconsistency
+ * ("No recipient_code returned from Paystack", the wallet/withdrawal id
+ * mismatch) deliberately stay plain, so `clientError` masks them instead of
+ * handing the caller a uuid pair it cannot act on.
+ */
+const domainError = (message) => {
+    const err = new Error(message);
+    err.isOperational = true;
+    return err;
+};
+
+/**
  * Send a withdrawal lifecycle notification at most once per (withdrawal, status)
  * per process. The recovery worker re-executes stuck withdrawals every 60s, so
  * without this guard every retry re-notifies the user (the "1–2 business days"
@@ -292,10 +308,10 @@ class WalletService {
      */
     async initializeDeposit(userId, amountCents, email, method = 'card', phone = null) {
         if (!Number.isInteger(amountCents) || amountCents <= 0) {
-            throw new Error('Amount must be a positive integer (cents)');
+            throw domainError('Amount must be a positive integer (cents)');
         }
         if (amountCents < 100) { // minimum KES 1 (1 bob)
-            throw new Error('Minimum deposit is KES 1.00 (1 bob)');
+            throw domainError('Minimum deposit is KES 1.00 (1 bob)');
         }
 
         const walletId = await this.getOrCreateWallet(userId);
@@ -315,7 +331,7 @@ class WalletService {
 
         let paystackResult;
         if (method === 'mpesa') {
-            if (!normalizedPhone) throw new Error('Phone number required for M-Pesa deposits');
+            if (!normalizedPhone) throw domainError('Phone number required for M-Pesa deposits');
             paystackResult = await paystackService.chargeMobileMoney(
                 amountCents, email, normalizedPhone, 'mpesa', reference, metadata
             );
@@ -385,7 +401,7 @@ async processDepositConfirmation(reference, actor = {}) {
         // reconciliation below. Anything else must name a user.
         if (!viaWebhook) {
             if (typeof userId !== 'string' || userId.length === 0) {
-                throw new Error('A signed-in user is required to confirm a deposit.');
+                throw domainError('A signed-in user is required to confirm a deposit.');
             }
             if (w[0].user_id !== userId) {
                 return { status: 'not_authorized' };
@@ -539,7 +555,7 @@ async processDepositConfirmation(reference, actor = {}) {
      * (provider, reference, event_type) makes this safe to call repeatedly.
      */
     async enqueueWebhookEvent({ eventType, reference, payload }) {
-        if (!eventType || !reference) throw new Error('eventType and reference are required');
+        if (!eventType || !reference) throw domainError('eventType and reference are required');
 
         await pool.query(
             `INSERT INTO wallet_webhook_events
@@ -595,7 +611,7 @@ async processDepositConfirmation(reference, actor = {}) {
             if (event.event_type === 'charge.success') {
                 result = await this.processDepositConfirmation(event.paystack_ref, { viaWebhook: true });
                 if (result.status === 'pending') {
-                    throw new Error('Provider still reports the deposit as pending');
+                    throw domainError('Provider still reports the deposit as pending');
                 }
             } else if (event.event_type === 'charge.failed') {
                 await pool.query(
@@ -669,10 +685,10 @@ async processDepositConfirmation(reference, actor = {}) {
      */
     async requestWithdrawal(userId, amountCents, method = 'bank', details = {}) {
         if (!Number.isInteger(amountCents) || amountCents <= 0) {
-            throw new Error('Amount must be a positive integer (cents)');
+            throw domainError('Amount must be a positive integer (cents)');
         }
         if (amountCents < 100) { // minimum KES 1 (1 bob)
-            throw new Error('Minimum withdrawal is KES 1.00 (1 bob)');
+            throw domainError('Minimum withdrawal is KES 1.00 (1 bob)');
         }
         if (method === 'mpesa' && details.phone) {
             details.phone = normalizeKenyanPhone(details.phone);
@@ -691,7 +707,7 @@ async processDepositConfirmation(reference, actor = {}) {
             );
             if (wallet.available_balance < amountCents) {
                 await connection.rollback();
-                throw new Error(`Insufficient balance. Available: ${wallet.available_balance} cents`);
+                throw domainError(`Insufficient balance. Available: ${wallet.available_balance} cents`);
             }
 
             // Abandonment guard: an old request the user never saw resolved must
@@ -1196,8 +1212,8 @@ async processDepositConfirmation(reference, actor = {}) {
      * @param {object}  metadata
      */
     async creditEarnings(userId, amountCents, type = TXN_TYPES.REVENUE, reference, metadata = {}) {
-        if (!Object.values(TXN_TYPES).includes(type)) throw new Error(`Invalid txn type: ${type}`);
-        if (!Number.isInteger(amountCents) || amountCents <= 0) throw new Error('Invalid amount');
+        if (!Object.values(TXN_TYPES).includes(type)) throw domainError(`Invalid txn type: ${type}`);
+        if (!Number.isInteger(amountCents) || amountCents <= 0) throw domainError('Invalid amount');
 
         const walletId = await this.getOrCreateWallet(userId);
         const transactionId = crypto.randomUUID();
@@ -1265,22 +1281,22 @@ async processDepositConfirmation(reference, actor = {}) {
         } = data;
 
         if (isEnabled && !consentConfirmed) {
-            throw new Error('Explicit confirmation of terms and automatic payout agreement is required');
+            throw domainError('Explicit confirmation of terms and automatic payout agreement is required');
         }
 
         const validModes = ['scheduled', 'threshold', 'hybrid'];
         if (!validModes.includes(mode)) {
-            throw new Error(`Invalid mode. Choose: ${validModes.join(', ')}`);
+            throw domainError(`Invalid mode. Choose: ${validModes.join(', ')}`);
         }
 
         const validFrequencies = ['daily', 'weekly', 'monthly'];
         if (!validFrequencies.includes(scheduleFrequency)) {
-            throw new Error(`Invalid frequency. Choose: ${validFrequencies.join(', ')}`);
+            throw domainError(`Invalid frequency. Choose: ${validFrequencies.join(', ')}`);
         }
 
         const normalizedPhone = phone ? normalizeKenyanPhone(phone) : null;
         if (isEnabled && method === 'mpesa' && !normalizedPhone) {
-            throw new Error('Valid M-Pesa phone number is required for automated payouts');
+            throw domainError('Valid M-Pesa phone number is required for automated payouts');
         }
 
         let nextScheduled = new Date();
@@ -1327,7 +1343,7 @@ async processDepositConfirmation(reference, actor = {}) {
      */
     async deductFundsForBoost(userId, amountCents, metadata = {}) {
         if (!Number.isInteger(amountCents) || amountCents <= 0) {
-            throw new Error('Amount must be a positive integer (cents)');
+            throw domainError('Amount must be a positive integer (cents)');
         }
         const walletId = await this.getOrCreateWallet(userId);
         const connection = await pool.getConnection();
@@ -1342,7 +1358,7 @@ async processDepositConfirmation(reference, actor = {}) {
             if (!wallet || wallet.available_balance < amountCents) {
                 const avail = wallet ? (wallet.available_balance / 100).toFixed(2) : '0.00';
                 await connection.rollback();
-                throw new Error(`Insufficient wallet balance. Available: KES ${avail}`);
+                throw domainError(`Insufficient wallet balance. Available: KES ${avail}`);
             }
 
             const transactionId = crypto.randomUUID();

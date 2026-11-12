@@ -600,6 +600,40 @@ class MomentsRankingService {
 
         return finalBatch;
     }
+
+    /**
+     * Drop every cached feed for this user, so a takedown or restore is not
+     * kept alive by a stale cache entry.
+     *
+     * deleteMoment and restoreMoment both call `invalidateFeedForOwner?.(userId)`,
+     * but this method did not exist, so both were silent no-ops behind the
+     * optional call. All that protected a taken-down reel was the
+     * `deleted_at IS NULL` baked into the pool SQL at write time: the ranked feed
+     * lives 30s and the following pool 60s, regenerated at most once per 60s, so
+     * a taken-down reel kept being served for up to that window — and far longer
+     * whenever pool generation was failing and the stale pool kept serving.
+     *
+     * Defensive rather than load-bearing: also reject deleted rows in
+     * reels-visibility.service.js `canView`, so a stale cache entry cannot
+     * authorise a takedown even if this method fails.
+     */
+    async invalidateFeedForOwner(userId) {
+        if (!userId) return;
+        const keys = [
+            `ranked_feed:${userId}`,
+            `pool:following:${userId}`,
+        ];
+        // A singleflight or a just-kicked refresh for this user would repopulate
+        // the key immediately after deletion; drop those too.
+        this._inflightFeeds?.delete?.(`ranked_feed:${userId}`);
+        this._lastFeedRefreshAt?.delete?.(userId);
+        try {
+            await Promise.all(keys.map((k) => redis.del(k)));
+        } catch (e) {
+            // Never let cache cleanup break a takedown.
+            logger.warn?.(`[moments-ranking] invalidateFeedForOwner failed for ${userId}: ${e.message}`);
+        }
+    }
 }
 
 module.exports = new MomentsRankingService();

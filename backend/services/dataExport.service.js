@@ -10,6 +10,22 @@ const pool = require('../config/database');
 const logger = require('../utils/logger');
 const emailService = require('./email.service');
 
+/**
+ * Mark a rejection as one the caller may be told about.
+ *
+ * All five throws in this service are domain rejections a user can act on
+ * ("User not found", "Download link has expired"). The routes that call it
+ * answer with the reason, so without this marker they cannot tell one of those
+ * from a database failure reaching the same catch — and a raw driver message
+ * handed to the caller is a free description of the schema. `clientError`
+ * (utils/serverError.js) routes on this flag.
+ */
+const domainError = (message) => {
+    const err = new Error(message);
+    err.isOperational = true;
+    return err;
+};
+
 const EXPORTS_DIR = path.join(__dirname, '../exports_storage');
 if (!fs.existsSync(EXPORTS_DIR)) {
     fs.mkdirSync(EXPORTS_DIR, { recursive: true, mode: 0o700 });
@@ -109,14 +125,19 @@ const CATEGORY_MANIFEST = {
     },
     marketplace: {
         title: 'Marketplace Listings',
-        query: `SELECT item_id, title, price, currency, category, condition_type, status, created_at
-                FROM marketplace_items WHERE seller_id = ? ORDER BY created_at DESC LIMIT 100`,
+        // Was `marketplace_items` with item_id/currency/condition_type. That
+        // table does not exist — the live schema has marketplace_listings keyed
+        // on listing_id, with `condition` rather than condition_type and no
+        // currency column at all (Sparkle is single-currency KES). This section
+        // threw ER_NO_SUCH_TABLE on every data-export request.
+        query: `SELECT listing_id, title, price, category, condition, status, created_at
+                FROM marketplace_listings WHERE seller_id = ? ORDER BY created_at DESC LIMIT 100`,
         formatters: (rows) => rows.map(r => ({
-            'Item ID': r.item_id,
+            'Listing ID': r.listing_id,
             'Title': r.title,
-            'Price': `${r.currency || 'USD'} ${r.price}`,
+            'Price': `KES ${r.price}`,
             'Category': r.category || 'General',
-            'Condition': r.condition_type || '',
+            'Condition': r.condition || '',
             'Status': r.status || 'active',
             'Listed At': r.created_at ? new Date(r.created_at).toISOString() : ''
         }))
@@ -145,11 +166,11 @@ class DataExportService {
      * Create an Export Job Request
      */
     async requestExport({ userId, requestedCategories, format = 'pdf', deliveryEmail, isAlternate = false }) {
-        if (!userId) throw new Error('User ID is required');
+        if (!userId) throw domainError('User ID is required');
 
         // Check account existence and eligibility
         const [users] = await pool.query('SELECT user_id, email, name, account_status FROM users WHERE user_id = ?', [userId]);
-        if (users.length === 0) throw new Error('User not found');
+        if (users.length === 0) throw domainError('User not found');
         const user = users[0];
 
         // Valid categories selection
@@ -492,15 +513,15 @@ class DataExportService {
             WHERE download_token = ?
         `, [token]);
 
-        if (jobs.length === 0) throw new Error('Invalid or non-existent download token.');
+        if (jobs.length === 0) throw domainError('Invalid or non-existent download token.');
         const job = jobs[0];
 
         if (job.status !== 'READY' || !job.file_path || !fs.existsSync(job.file_path)) {
-            throw new Error('Requested file is not available or has been purged.');
+            throw domainError('Requested file is not available or has been purged.');
         }
 
         if (new Date(job.token_expires_at) <= new Date()) {
-            throw new Error('Download link has expired.');
+            throw domainError('Download link has expired.');
         }
 
         await pool.query('UPDATE data_export_jobs SET download_count = download_count + 1 WHERE job_id = ?', [job.job_id]);

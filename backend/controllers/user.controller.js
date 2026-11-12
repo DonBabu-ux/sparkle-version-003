@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
 const logger = require('../utils/logger');
+const { clientError } = require('../utils/serverError');
 const bcrypt = require('bcryptjs');
 const { downloadExternalImage, processImage } = require('../utils/media.utils');
 const notificationController = require('./notification.controller');
@@ -9,6 +10,7 @@ const path = require('path');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const accountLifecycleService = require('../services/accountLifecycle.service');
+const { clampPage, clampLimit, clampOffset } = require('../utils/pagination');
 
 
 
@@ -700,7 +702,7 @@ const cancelDeletion = async (req, res) => {
         return res.json(result);
     } catch (error) {
         logger.error('Cancel deletion error: ' + error.message);
-        res.status(400).json({ error: error.message || 'Failed to cancel deletion' });
+        return clientError(res, error, 'Failed to cancel deletion');
     }
 };
 
@@ -917,9 +919,14 @@ const generateSecurityToken = async (req, res) => {
 };
 
 const followUser = async (req, res) => {
+    // These two are read from the catch block below, which is a SIBLING of the
+    // try rather than nested in it: a const declared inside the try is scoped
+    // to the try block and invisible in the catch. Declared here so the
+    // duplicate-key recovery can actually reach them.
+    const followerId = req.user.userId || req.user.user_id;
+    const followingId = req.params.id;
+
     try {
-        const followerId = req.user.userId || req.user.user_id;
-        const followingId = req.params.id;
         const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
 
         if (followingId === SYSTEM_USER_ID) {
@@ -953,8 +960,27 @@ const followUser = async (req, res) => {
             message: result.status === 'requested' ? 'Follow request sent' : 'User followed' 
         });
     } catch (error) {
+        // Tapping follow twice fast can both win the EXISTS check above and both
+        // try to INSERT, so the second hits the unique key on `follows` and used
+        // to surface as a 500. Losing that race means the follow already exists,
+        // which is what the second tap was asking to undo, so finish the
+        // unfollow. Same handling as moments.controller.js and
+        // campus.controller.js.
+        if (error && (error.code === 'ER_DUP_ENTRY' || String(error.message).includes('Duplicate entry'))) {
+            try {
+                await User.unfollow(followerId, followingId);
+                return res.json({
+                    success: true,
+                    status: 'unfollowed',
+                    is_following: false,
+                    message: 'User unfollowed'
+                });
+            } catch (cleanupError) {
+                logger.error('Follow User cleanup failed:', cleanupError);
+            }
+        }
         logger.error('Follow user error:', error);
-        res.status(500).json({ error: error.message || 'Failed to follow user' });
+        res.status(500).json({ error: 'Failed to follow user' });
     }
 };
 
@@ -1274,8 +1300,8 @@ const getUserTaggedPosts = async (req, res) => {
 // return a small batch of users that the current user might want to follow
 const getSuggestions = async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 20;
-        const offset = parseInt(req.query.offset) || 0;
+        const limit = clampLimit(req.query.limit, { max: 50, fallback: 20 });
+        const offset = clampOffset(req.query.offset);
         const currentUserId = req.user.userId || req.user.user_id;
         const { tab = 'suggested', filter = null, q = null, force, seed: clientSeed = '' } = req.query;
         

@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const crypto = require('crypto');
 const notificationController = require('./notification.controller');
 const MediaService = require('../services/media.service');
+const { clampPage, clampLimit, clampOffset } = require('../utils/pagination');
 
 const createPost = async (req, res) => {
     try {
@@ -265,7 +266,7 @@ const savePost = async (req, res) => {
 const getLikedPosts = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
-        const limit = parseInt(req.query.limit) || 20;
+        const limit = clampLimit(req.query.limit, { max: 50, fallback: 20 });
         const posts = await Post.getLikedPosts(userId, limit);
         res.json(posts);
     } catch (error) {
@@ -277,7 +278,7 @@ const getLikedPosts = async (req, res) => {
 const getSavedPosts = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
-        const limit = parseInt(req.query.limit) || 20;
+        const limit = clampLimit(req.query.limit, { max: 50, fallback: 20 });
         const posts = await Post.getSavedPosts(userId, limit);
         res.json(posts);
     } catch (error) {

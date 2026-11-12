@@ -22,6 +22,7 @@
 const walletService = require('../services/wallet.service');
 const paystackService = require('../services/paystack.service');
 const logger = require('../utils/logger');
+const { clientError, apiError } = require('../utils/serverError');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ exports.initializeDeposit = async (req, res) => {
         res.json({ success: true, ...result });
     } catch (err) {
         logger.error('[WalletController] initializeDeposit:', err.message);
-        res.status(400).json({ success: false, message: err.message || 'Failed to initialize deposit' });
+        clientError(res, err, 'Failed to initialize deposit');
     }
 };
 
@@ -136,7 +137,7 @@ exports.verifyDeposit = async (req, res) => {
         res.json({ success: true, ...result });
     } catch (err) {
         logger.error('[WalletController] verifyDeposit:', err.message);
-        res.status(500).json({ success: false, message: err.message || 'Verification failed' });
+        apiError(res, err);
     }
 };
 
@@ -165,7 +166,7 @@ exports.requestWithdrawal = async (req, res) => {
         res.json({ success: true, ...result });
     } catch (err) {
         logger.error('[WalletController] requestWithdrawal:', err.message);
-        res.status(400).json({ success: false, message: err.message || 'Withdrawal request failed' });
+        clientError(res, err, 'Withdrawal request failed');
     }
 };
 
@@ -193,7 +194,7 @@ exports.resolveAccount = async (req, res) => {
         res.json({ success: true, accountDetails: data.data || null });
     } catch (err) {
         logger.error('[WalletController] resolveAccount:', err.message);
-        res.status(400).json({ success: false, message: err.message || 'Account resolution failed' });
+        clientError(res, err, 'Account resolution failed');
     }
 };
 
@@ -219,7 +220,7 @@ exports.updateAutoWithdrawalConfig = async (req, res) => {
         res.json({ success: true, message: 'Auto-withdrawal configuration updated successfully', config });
     } catch (err) {
         logger.error('[WalletController] updateAutoWithdrawalConfig:', err.message);
-        res.status(400).json({ success: false, message: err.message || 'Failed to update auto-withdrawal settings' });
+        clientError(res, err, 'Failed to update auto-withdrawal settings');
     }
 };
 

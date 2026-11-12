@@ -6,7 +6,12 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..');
+// The gate lives in scripts/ but the backend code lives in backend/, so the
+// targets below must be resolved against backend/, not the repo root. They
+// previously were not: the root of this repo has a server.js but no
+// controllers/services/routes directories, so the walk silently found nothing
+// for every directory target and the "gate" validated a single file.
+const ROOT = path.resolve(__dirname, '..', 'backend');
 const TARGETS = [
   'server.js',
   'seed-data.js',

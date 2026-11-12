@@ -2,6 +2,7 @@ const pool = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 const webpush = require('web-push');
 const logger = require('../utils/logger');
+const { clampPage, clampLimit, clampOffset } = require('../utils/pagination');
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
     webpush.setVapidDetails(
@@ -34,12 +35,25 @@ const notificationController = {
             // Check if exists for this user
             const [existing] = await pool.query('SELECT id FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [userId, subscription.endpoint]);
             if (existing.length === 0) {
-                await pool.query('INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)', [
-                    userId,
-                    subscription.endpoint,
-                    subscription.keys?.p256dh,
-                    subscription.keys?.auth
-                ]);
+                try {
+                    await pool.query('INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)', [
+                        userId,
+                        subscription.endpoint,
+                        subscription.keys?.p256dh,
+                        subscription.keys?.auth
+                    ]);
+                } catch (insertError) {
+                    // The browser re-registers the same endpoint on every launch,
+                    // and two tabs can race this SELECT so neither sees the other's
+                    // row. The unique key then rejects the second insert. The row
+                    // the caller wanted already exists, which is a success, not a
+                    // failure - so only a real error propagates.
+                    const dup = insertError && (
+                        insertError.code === 'ER_DUP_ENTRY' ||
+                        String(insertError.message).includes('Duplicate entry')
+                    );
+                    if (!dup) throw insertError;
+                }
             }
             res.status(201).json({ message: 'Subscribed' });
         } catch (error) {
@@ -91,8 +105,8 @@ const notificationController = {
     getNotifications: async (req, res) => {
         try {
             const userId = req.user.userId || req.user.user_id;
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 20;
+            const page = clampPage(req.query.page);
+            const limit = clampLimit(req.query.limit, { max: 50, fallback: 20 });
             const offset = (page - 1) * limit;
 
             const unreadOnly = req.query.unreadOnly === 'true' || req.query.unreadOnly === '1';
@@ -236,6 +250,21 @@ const notificationController = {
                     isRead: !!n.is_read,
                     is_read: n.is_read ? 1 : 0,
                     createdAt: n.created_at,
+
+                    // The related entity, under both names the frontend reads.
+                    // The SELECT already aliases related_id AS related_post_id
+                    // (line 131), but this mapper never copied either name into
+                    // the response, so the client's target-resolution fallback
+                    // always saw undefined and navigation fell through to the
+                    // actor's profile. Any notification created without an
+                    // action_url — mention rows at Post.js:1225/1249/1265/1485
+                    // and share rows at Post.js:1461 — therefore opened the
+                    // wrong page.
+                    related_id: n.related_id ?? n.related_post_id ?? null,
+                    related_post_id: n.related_post_id ?? null,
+                    target: n.related_id || n.related_post_id
+                      ? { entity_id: n.related_id ?? n.related_post_id, entity_type: 'post' }
+                      : null,
 
                     // Backwards compatibility keys
                     notification_id: n.notification_id,

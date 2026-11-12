@@ -5,6 +5,7 @@
 
 const crypto = require('crypto');
 const MediaModel = require('../models/media.model');
+const { apiError: serverError } = require('../utils/serverError');
 
 // Secret key for HMAC signed download tokens (same source of truth as JWT auth;
 // config/constants throws at boot if JWT_SECRET is missing)
@@ -43,7 +44,7 @@ class MediaController {
       });
     } catch (err) {
       console.error('[MediaController] Upload init error:', err);
-      return res.status(500).json({ success: false, error: err.message });
+      return serverError(res, err);
     }
   }
 
@@ -59,7 +60,7 @@ class MediaController {
       return res.json({ success: true, mediaId, status: 'AVAILABLE' });
     } catch (err) {
       console.error('[MediaController] Upload complete error:', err);
-      return res.status(500).json({ success: false, error: err.message });
+      return serverError(res, err);
     }
   }
 
@@ -104,7 +105,7 @@ class MediaController {
       });
     } catch (err) {
       console.error('[MediaController] Download token error:', err);
-      return res.status(500).json({ success: false, error: err.message });
+      return serverError(res, err);
     }
   }
 
@@ -134,7 +135,7 @@ class MediaController {
       return res.json({ success: true, mediaId, allDownloaded });
     } catch (err) {
       console.error('[MediaController] Record download ACK error:', err);
-      return res.status(500).json({ success: false, error: err.message });
+      return serverError(res, err);
     }
   }
 
@@ -159,7 +160,7 @@ class MediaController {
       });
     } catch (err) {
       console.error('[MediaController] Request redelivery error:', err);
-      return res.status(500).json({ success: false, error: err.message });
+      return serverError(res, err);
     }
   }
 }

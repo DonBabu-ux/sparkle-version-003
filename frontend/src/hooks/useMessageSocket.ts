@@ -7,6 +7,7 @@ import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import api from '../api/api';
 import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
 import { reconcilePrivacySettings } from '../services/privacyReconcile';
+import { transmitMessage } from '../services/chatSendTransport';
 import { logger } from '../utils/logger';
 
 let isSyncInProgress = false;
@@ -38,39 +39,37 @@ export const useMessageSocket = () => {
               batch.map((item) => {
                 return new Promise<void>((resolve) => {
                   logger.log(`🚀 [SyncCoordinator:MESSAGE_SEND_ATTEMPT] Attempting send for messageId=${item.messageId}`);
-                  
-                  // Start individual 10-second timer for this specific message
-                  PersistentOfflineQueue.startMessageTimeout(item.messageId, () => {
-                    logger.warn(`⏰ [SyncCoordinator:MESSAGE_SYNC_TIMEOUT] 10s timeout for messageId=${item.messageId}`);
-                    getChatStore().updateMessage(item.chatId, item.messageId, { status: 'failed' });
-                    window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: item.chatId } }));
-                  });
 
-                  socket.emit('send-message', item, (ackRes: any) => {
-                    if (ackRes && ackRes.success) {
+                  // The 10s window, the acknowledge, the failure reconciliation
+                  // and the blocked case all live in the shared transport. What
+                  // is specific to a flush is the per-item logging and the sync
+                  // event that re-renders the open chat list.
+                  //
+                  // onSettled, not the ack callback, is what releases the batch
+                  // slot. Resolving only from the ack left this whole sequence
+                  // pinned forever whenever socket.io dropped an acknowledgement:
+                  // isSyncInProgress was never cleared, so every later reconnect,
+                  // focus and visibilitychange returned early at the top and the
+                  // app stopped syncing until a reload.
+                  transmitMessage(socket, item, {
+                    clientMessageId: item.messageId,
+                    chatId: item.chatId,
+                    onSettled: () => resolve(),
+                    onTimeout: () => {
+                      logger.warn(`⏰ [SyncCoordinator:MESSAGE_SYNC_TIMEOUT] 10s timeout for messageId=${item.messageId}`);
+                      window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: item.chatId } }));
+                    },
+                    onAck: () => {
                       logger.log(`✅ [SyncCoordinator:MESSAGE_SERVER_ACK] Message ACKed: ${item.messageId}`);
-                      PersistentOfflineQueue.acknowledge(item.messageId);
-                      getChatStore().updateMessage(item.chatId, item.messageId, {
-                        status: 'sent',
-                        sent_at: ackRes.sentAt || new Date().toISOString(),
-                      });
                       window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: item.chatId } }));
-                    } else if (ackRes?.isBlocked || ackRes?.code === 'MESSAGE_BLOCKED' || ackRes?.error?.includes('blocked')) {
-                      logger.warn(`⛔ [SyncCoordinator] Outbox message permanently BLOCKED: ${item.messageId}`);
-                      PersistentOfflineQueue.markBlocked(item.messageId);
-                      getChatStore().updateMessage(item.chatId, item.messageId, { status: 'blocked' });
-                      getChatStore().setConversationBlockState(item.chatId, {
-                        is_blocked: true,
-                        conversation_status: 'blocked',
-                        can_send_messages: false
-                      });
+                    },
+                    onBlocked: () => {
+                      logger.log(`⛔ [SyncCoordinator] Outbox message permanently BLOCKED: ${item.messageId}`);
                       window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: item.chatId } }));
-                    } else {
+                    },
+                    onFailure: () => {
                       logger.warn(`⚠️ [SyncCoordinator] Outbox message ACK failed for ${item.messageId}`);
-                      PersistentOfflineQueue.markFailed(item.messageId);
-                      getChatStore().updateMessage(item.chatId, item.messageId, { status: 'failed' });
-                    }
-                    resolve();
+                    },
                   });
                 });
               })

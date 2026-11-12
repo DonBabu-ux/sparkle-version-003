@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const cloudinary = require('cloudinary').v2;
+const logger = require('../utils/logger');
 
 exports.getStorageStats = async (req, res) => {
     try {
@@ -67,7 +68,11 @@ exports.executeSafeCleanup = async (req, res) => {
                 await pool.query(`DELETE FROM media_registry WHERE media_id = ?`, [row.media_id]);
                 deletedCount++;
             } catch (err) {
-                errors.push({ id: row.media_id, error: err.message });
+                // Keep the row id so an operator can see which assets failed,
+                // but stop returning the raw Cloudinary/DB message: this endpoint
+                // is admin-only, which lowers the exposure, it does not remove it.
+                logger.error('[media-admin] cleanup failed for ' + row.media_id + ':', err);
+                errors.push({ id: row.media_id, error: 'Cleanup failed' });
             }
         }
 

@@ -40,7 +40,7 @@ export default function ListingDetail() {
           if (sellerId) {
             api.get(`/marketplace/sellers/${sellerId}/alert`)
               .then(alertRes => {
-                if (alertRes.data.success) setIsAlerted(alertRes.data.alerted);
+                if (alertRes.data.success) setIsAlerted(alertRes.data.isAlerted);
               })
               .catch(() => {});
             api.get(`/marketplace/sellers/${sellerId}/favorite`)
@@ -91,8 +91,8 @@ export default function ListingDetail() {
     try {
       const res = await api.post(`/marketplace/sellers/${listing.seller_id}/alert`);
       if (res.data.success) {
-        setIsAlerted(res.data.alerted);
-        showInfo(res.data.alerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
+        setIsAlerted(res.data.isAlerted);
+        showInfo(res.data.isAlerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
       }
     } catch (err) {
       logger.error("Alert toggle failed:", err);

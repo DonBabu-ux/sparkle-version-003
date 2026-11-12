@@ -277,10 +277,10 @@ const posts = orderedPostIds.map(id => postsById[id]);
     <AppScreen immersive={true} className="flex min-h-dvh font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
 
-      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(4rem+var(--safe-area-inset-top))] md:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(3.5rem+var(--safe-area-inset-top))] md:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 md:gap-6 items-start">
           <section className="flex flex-col gap-1.5">
-        <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl shadow-sm p-4 sm:p-6 animate-fade-in border border-[#e6d8e1] dark:border-zinc-700">
+        <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-2xl shadow-sm p-4 sm:p-5 animate-fade-in border border-[#e6d8e1] dark:border-zinc-700">
           <div className="flex gap-4 items-center mb-4">
             <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shadow-sm" alt="" />
             <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-[#f6eef3] dark:bg-zinc-900 hover:bg-[#f0e5ec] dark:hover:bg-zinc-700 text-[#18181b] dark:text-zinc-100 rounded-2xl px-5 text-left transition-colors font-medium text-sm">

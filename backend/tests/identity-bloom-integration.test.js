@@ -424,3 +424,35 @@ test('a rebuild validates its filter before it is marked ready', async () => {
         config.filterMetaKey('username', version)
     ], 10000).catch(() => {});
 });
+
+test('claiming outbox events never blocks a concurrent signup enqueue', async () => {
+    const entityId = `lock_${RUN_ID}`;
+    const events = outbox.buildIdentityEvents({
+        entityType: 'lock_probe',
+        entityId,
+        identities: [{ identityType: 'email', value: `lock_${RUN_ID}@sparkle.test` }]
+    });
+
+    const enqueue = async () => {
+        await transaction(async (conn) => {
+            await outbox.enqueueIdentityEvents(conn, events);
+        });
+    };
+
+    await enqueue();
+
+    const claim = outbox.claimPendingEvents(`worker-${RUN_ID}`, 50);
+    const startedAt = Date.now();
+    await enqueue();
+    const elapsed = Date.now() - startedAt;
+
+    const claimed = await claim;
+    assert.ok(claimed.length >= 1, 'the worker must claim the pending event');
+    for (const event of claimed) {
+        await outbox.markProcessed(event.outbox_id);
+    }
+
+    assert.ok(elapsed < 5000, `a signup enqueue must not wait for the worker (took ${elapsed}ms)`);
+
+    await pool.query('DELETE FROM identity_bloom_outbox WHERE entity_id = ?', [entityId]).catch(() => {});
+});

@@ -38,6 +38,7 @@ router.post('/streams/start', authMiddleware, campusController.createStream);   
 router.post('/streams/:id/updates', authMiddleware, campusController.postStreamUpdate);         // NEW — post update to stream
 router.post('/streams/:id/follow', authMiddleware, campusController.followStream);              // NEW — follow stream for updates
 router.post('/streams/:id/join', authMiddleware, campusController.followStream);                // DashboardAPI Alias
+router.post('/streams/:id/leave', authMiddleware, (req, res) => res.json({ success: true }));
 router.post('/streams/:id/end', authMiddleware, campusController.endStream);                     // NEW
 
 module.exports = router;

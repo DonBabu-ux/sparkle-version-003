@@ -219,6 +219,9 @@ const initializeSocket = (server) => {
         // ── CALL SIGNALING (1:1 WebRTC relay) ──
         require('./callSignaling').handleCallEvents(io, socket);
 
+        // ── LIVE STREAM SIGNALING (WebRTC broadcaster-to-viewers relay) ──
+        require('./streamSignaling').handleStreamEvents(io, socket);
+
         // --- CHAT EVENTS ---
 
         // ── Register Session in DB ──

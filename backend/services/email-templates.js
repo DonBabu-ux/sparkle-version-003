@@ -798,6 +798,46 @@ const renderers = {
         <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
             &copy; 2026 Sparkle. All rights reserved.
         </div>
+    </div>`,
+
+    'support-ticket-confirmation': (d) => `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Ticket Received - Sparkle</title>
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+        <div style="background:#ff1493;padding:26px 20px;text-align:center;color:#fff;">
+            <h1 style="margin:0;font-size:22px;">Support Ticket Received</h1>
+        </div>
+        <div style="padding:30px;color:#334155;line-height:1.6;">
+            <p style="font-size:16px;">Hi <strong>${esc(d.name || 'there')}</strong>,</p>
+            <p>Your support ticket has been received and logged into our queue.</p>
+            <div style="background:#fdf2f8;border-left:4px solid #ff1493;padding:12px 16px;margin:18px 0;border-radius:4px;color:#831843;">
+                <strong>Ticket Reference:</strong> ${esc(d.ticketId || d.referenceNumber || 'N/A')}<br/>
+                <strong>Subject:</strong> ${esc(d.subject || 'Support Request')}<br/>
+                <strong>Category:</strong> ${esc(d.category || 'General')}<br/>
+                <strong>Status:</strong> Open
+            </div>
+            <p>A member of our team will review your ticket and reply shortly. You can also view and respond directly inside the Sparkle Help Centre.</p>
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+            &copy; 2026 Sparkle. All rights reserved.
+        </div>
+    </div>`,
+
+    'generic': (d) => `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${esc(d.title || 'Sparkle Notification')}</title>
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+        <div style="background:#ff1493;padding:24px 20px;text-align:center;color:#fff;">
+            <h1 style="margin:0;font-size:22px;">${esc(d.title || 'Sparkle Support')}</h1>
+        </div>
+        <div style="padding:30px;color:#334155;line-height:1.6;">
+            <p style="font-size:16px;">Hi <strong>${esc(d.name || 'there')}</strong>,</p>
+            <p>${esc(d.message || d.body || '')}</p>
+            ${d.ticketId ? `<div style="background:#fdf2f8;border-left:4px solid #ff1493;padding:12px 16px;margin:18px 0;border-radius:4px;color:#831843;"><strong>Ticket Reference:</strong> ${esc(d.ticketId)}</div>` : ''}
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+            &copy; 2026 Sparkle. All rights reserved.
+        </div>
     </div>`
 };
 

@@ -228,6 +228,7 @@ const getStreams = async (req, res) => {
 
         const sanitizedStreams = streams.map(s => ({
             ...s,
+            id: s.stream_id,
             avatar_url: getSafeAvatarUrl(s.avatar_url),
             thumbnail_url: getSafeMediaUrl(s.thumbnail_url)
         }));
@@ -831,19 +832,42 @@ const createStream = async (req, res) => {
     try {
         const { title, description, campus, category, stream_url } = req.body;
         const streamerId = req.user.user_id || req.user.userId;
-        const stream_id = require('crypto').randomUUID();
 
-        // stream_url is NOT NULL in live_streams. A client integrating a real
-        // streaming provider passes its ingest/playback URL here; without one we
-        // still create a usable record with a deterministic placeholder so the
-        // live session exists and can be ended, viewed, and cleaned up.
+        if (!title || !String(title).trim()) {
+            return res.status(400).json({ error: 'Stream title is required' });
+        }
+
+        // Server-side follower verification (1,000 follower threshold)
+        const [users] = await pool.query(
+            `SELECT u.email,
+                    (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count
+             FROM users u WHERE u.user_id = ?`,
+            [streamerId]
+        );
+        const userRecord = users[0];
+        const User = require('../models/User');
+        const isSuperuser = User.SUPERUSER_EMAILS && User.SUPERUSER_EMAILS.includes((userRecord?.email || '').toLowerCase());
+        const followersCount = Number(userRecord?.followers_count) || 0;
+
+        if (!isSuperuser && followersCount < 1000) {
+            return res.status(403).json({
+                error: 'You need at least 1,000 followers to go live on Sparkle.',
+                followers_count: followersCount,
+                threshold: 1000
+            });
+        }
+
+        // Mark any prior live stream by this user as ended
+        await pool.query('UPDATE live_streams SET status = "ended", ended_at = NOW() WHERE streamer_id = ? AND status = "live"', [streamerId]);
+
+        const stream_id = require('crypto').randomUUID();
         const resolvedStreamUrl = (stream_url && String(stream_url).trim())
-            || `https://stream.sparkle.app/${Date.now()}`;
+            || `webrtc://${stream_id}`;
         const resolvedCampus = campus || req.user.campus || 'General';
 
         await pool.query(
-            'INSERT INTO live_streams (stream_id, streamer_id, title, description, campus, category, stream_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [stream_id, streamerId, title, description || null, resolvedCampus, category || null, resolvedStreamUrl, 'live']
+            'INSERT INTO live_streams (stream_id, streamer_id, title, description, campus, category, stream_url, status, viewer_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)',
+            [stream_id, streamerId, String(title).trim().slice(0, 255), description || null, resolvedCampus, category || 'general', resolvedStreamUrl, 'live']
         );
 
         res.status(201).json({ message: 'Stream created', stream_id, stream_url: resolvedStreamUrl });
@@ -950,6 +974,12 @@ const endStream = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.userId || req.user.user_id;
         await pool.query('UPDATE live_streams SET status = ?, ended_at = NOW() WHERE stream_id = ? AND streamer_id = ?', ['ended', id, userId]);
+        try {
+            const io = getIO();
+            if (io) {
+                io.to(`stream:${id}`).emit('stream:ended', { streamId: id });
+            }
+        } catch (_) {}
         res.json({ success: true, message: 'Stream ended' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to end stream' });

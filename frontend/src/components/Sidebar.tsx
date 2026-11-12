@@ -97,7 +97,11 @@ export default function Sidebar() {
       animate={{ width: isHovered ? 240 : 72 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="fixed left-0 top-0 h-dvh bg-[#f6eef3] dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 border-r border-slate-200 dark:border-zinc-800 flex flex-col py-6 z-(--z-chrome) overflow-hidden transition-all duration-300 shadow-[2px_0_12px_rgba(0,0,0,0.03)]"
+      className="fixed left-0 top-0 h-dvh bg-[#f6eef3] dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 border-r border-slate-200 dark:border-zinc-800 flex flex-col z-(--z-chrome) overflow-hidden transition-all duration-300 shadow-[2px_0_12px_rgba(0,0,0,0.03)]"
+      style={{
+        paddingTop: 'max(1.5rem, var(--safe-area-inset-top, 0px))',
+        paddingBottom: 'max(1.5rem, var(--safe-area-inset-bottom, 0px))',
+      }}
     >
       {/* Logo Section */}
       <div 

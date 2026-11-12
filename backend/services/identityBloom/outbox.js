@@ -27,6 +27,12 @@ const STATUS = Object.freeze({
 });
 
 const MAX_ERROR_LENGTH = 500;
+const ENQUEUE_RETRY_ATTEMPTS = 3;
+const ENQUEUE_RETRY_DELAY_MS = 120;
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function sanitizeError(error) {
     const message = error && error.message ? error.message : String(error || 'unknown error');
@@ -77,6 +83,21 @@ async function enqueueIdentityEvents(conn, events) {
     let inserted = 0;
     for (const event of events) {
         try {
+            await insertEvent(conn, event);
+            inserted += 1;
+        } catch (error) {
+            logger.error(`[IdentityBloom] Failed to enqueue outbox event for ${event.identity_type}: ${error.message}`);
+            throw error;
+        }
+    }
+    metrics.increment('outboxEnqueued', inserted);
+    return inserted;
+}
+
+async function insertEvent(conn, event) {
+    let lastError = null;
+    for (let attempt = 1; attempt <= ENQUEUE_RETRY_ATTEMPTS; attempt += 1) {
+        try {
             await conn.execute(
                 `INSERT INTO ${TABLE}
                     (outbox_id, entity_type, entity_id, identity_type, identity_hmac, operation, status, attempts, created_at, next_attempt_at)
@@ -92,53 +113,56 @@ async function enqueueIdentityEvents(conn, events) {
                     event.status
                 ]
             );
-            inserted += 1;
+            return;
         } catch (error) {
-            logger.error(`[IdentityBloom] Failed to enqueue outbox event for ${event.identity_type}: ${error.message}`);
-            throw error;
+            lastError = error;
+            // A lock wait timeout rolls back only the failed statement, so the
+            // event can be written again once the competing transaction ends.
+            const retryable = error && (error.code === 'ER_LOCK_WAIT_TIMEOUT' || error.code === 'ER_LOCK_DEADLOCK');
+            if (!retryable || attempt === ENQUEUE_RETRY_ATTEMPTS) throw error;
+            await sleep(ENQUEUE_RETRY_DELAY_MS * attempt);
         }
     }
-    metrics.increment('outboxEnqueued', inserted);
-    return inserted;
+    throw lastError;
 }
 
 async function claimPendingEvents(workerId, limit) {
     const batchSize = Math.max(1, Math.min(1000, Number(limit) || 100));
-    const conn = await getPool().getConnection();
-    const claimed = [];
-    try {
-        await conn.beginTransaction();
-        const [rows] = await conn.query(
-            `SELECT outbox_id, entity_type, entity_id, identity_type, identity_hmac, operation, attempts, created_at
-             FROM ${TABLE}
-             WHERE status = '${STATUS.PENDING}' AND next_attempt_at <= NOW()
-             ORDER BY created_at ASC
-             LIMIT ${batchSize}
-             FOR UPDATE SKIP LOCKED`
-        );
+    const pool = getPool();
 
-        if (rows.length > 0) {
-            const ids = rows.map((r) => r.outbox_id);
-            const placeholders = ids.map(() => '?').join(', ');
-            await conn.query(
-                `UPDATE ${TABLE}
-                 SET status = '${STATUS.PROCESSING}', claimed_by = ?, claimed_at = NOW(), attempts = attempts + 1
-                 WHERE outbox_id IN (${placeholders})`,
-                [workerId, ...ids]
-            );
-            for (const row of rows) {
-                claimed.push({ ...row, attempts: Number(row.attempts || 0) + 1 });
-            }
-        }
+    // Optimistic claim. A locking read (`FOR UPDATE`) on the pending range
+    // takes InnoDB gap locks that block every concurrent INSERT into this
+    // table - including the signup transaction that writes the outbox event.
+    // Instead the candidates are read without locks and then claimed with a
+    // conditional UPDATE, which only locks the rows that are actually won.
+    const [candidates] = await pool.query(
+        `SELECT outbox_id
+         FROM ${TABLE}
+         WHERE status = '${STATUS.PENDING}' AND next_attempt_at <= NOW()
+         ORDER BY created_at ASC
+         LIMIT ${batchSize}`
+    );
+    if (candidates.length === 0) return [];
 
-        await conn.commit();
-        return claimed;
-    } catch (error) {
-        try { await conn.rollback(); } catch (_) { /* already rolled back */ }
-        throw error;
-    } finally {
-        conn.release();
-    }
+    const claimToken = `${String(workerId || 'worker').slice(0, 50)}:${crypto.randomBytes(3).toString('hex')}`;
+    const ids = candidates.map((row) => row.outbox_id);
+    const placeholders = ids.map(() => '?').join(', ');
+
+    await pool.query(
+        `UPDATE ${TABLE}
+         SET status = '${STATUS.PROCESSING}', claimed_by = ?, claimed_at = NOW(), attempts = attempts + 1
+         WHERE outbox_id IN (${placeholders}) AND status = '${STATUS.PENDING}'`,
+        [claimToken, ...ids]
+    );
+
+    const [rows] = await pool.query(
+        `SELECT outbox_id, entity_type, entity_id, identity_type, identity_hmac, operation, attempts, created_at
+         FROM ${TABLE}
+         WHERE outbox_id IN (${placeholders}) AND status = '${STATUS.PROCESSING}' AND claimed_by = ?`,
+        [...ids, claimToken]
+    );
+
+    return rows.map((row) => ({ ...row, attempts: Number(row.attempts || 0) }));
 }
 
 async function markProcessed(outboxId) {

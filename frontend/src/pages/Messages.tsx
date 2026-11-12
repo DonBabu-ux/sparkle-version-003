@@ -7,6 +7,7 @@ import { useChatStore, sortMessagesChronologically } from '../store/chatStore';
 import toast from 'react-hot-toast';
 import { ReplyPreview } from '../components/chat/ReplyPreview';
 import { queueOutgoingMessage } from '../services/chatSendPipeline';
+import { transmitMessage } from '../services/chatSendTransport';
 import { PrivacyProtection } from '../services/privacyProtection';
 import LiveRecordingBar from '../components/chat/LiveRecordingBar';
 import VoiceNotePlayer from '../components/chat/VoiceNotePlayer';
@@ -1520,34 +1521,19 @@ export default function Messages() {
                 })
             };
 
-        if (socket?.connected) {
-          socket.emit('send-message', payload, (response: any) => {
-            if (response?.success) {
-              const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
-              updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                ? {
-                    ...m,
-                    status: 'sent',
-                    sent_at: response.sentAt || m.sent_at,
-                    server_sequence: serverSeq ?? m.server_sequence,
-                    media_url: finalMediaUrl,
-                    mediaUrl: finalMediaUrl,
-                    message_id: response.messageId || m.message_id,
-                    id: response.messageId || m.id,
-                  }
-                : m
-              ));
-              uploadPayloadsRef.current.delete(tempMessageId);
-            } else {
-              updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                ? { ...m, status: 'failed' }
-                : m
-              ));
-            }
-          });
-        } else {
-          queueOutgoingMessage(payload);
-        }
+        // The upload is already on Cloudinary, so this path only needs the
+        // transport's acknowledgement reconciliation. It used to carry none:
+        // no 10s timeout, so an upload the server never acked sat at
+        // "sending" forever with no retry and no failure state.
+        const outcome = transmitMessage(socket, payload, {
+          clientMessageId: tempMessageId,
+          chatId: selectedChat.chat_id,
+          ackFields: { media_url: finalMediaUrl, mediaUrl: finalMediaUrl },
+          onAck: () => {
+            uploadPayloadsRef.current.delete(tempMessageId);
+          },
+        });
+        if (outcome === 'offline') queueOutgoingMessage(payload);
       }
     } catch (err: any) {
       if (err?.name === 'AbortError' || err?.message?.includes('aborted') || controller.signal.aborted) {
@@ -3042,14 +3028,7 @@ export default function Messages() {
 
     // Start individual 10-second delivery timeout timer ONLY when we can actually transmit.
     // Offline messages sit in the outbox as 'queued' and flush automatically on reconnect.
-    if (socket?.connected) {
-      PersistentOfflineQueue.startMessageTimeout(messageId, () => {
-        updateMessages(prev => prev.map(m => (m.message_id === messageId || m.id === messageId ? { ...m, status: 'failed' } : m)));
-        if (selectedChat) {
-          useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, { status: 'failed' });
-        }
-      });
-    } else {
+    if (!socket?.connected) {
       updateMessages(prev => prev.map(m => (m.message_id === messageId || m.id === messageId ? { ...m, status: 'queued' } : m)));
       if (selectedChat) {
         useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, { status: 'queued' });
@@ -3058,70 +3037,31 @@ export default function Messages() {
 
     // ── Step 3: Transmit via WebSocket if connected ──
     const emitStartTime = performance.now();
-    if (socket?.connected) {
-      socket.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string, server_sequence?: number }) => {
+    transmitMessage(socket, payload, {
+      clientMessageId: messageId,
+      chatId: selectedChat.chat_id,
+      // The reply fields were put on the optimistic bubble before the first
+      // render; re-assert them on ack so a late re-fetch cannot drop them.
+      ackFields: currentReplyTo
+        ? {
+            reply_to_message_id: currentReplyTo.message_id,
+            reply_content: currentReplyTo.content,
+            reply_type: currentReplyTo.type || 'text',
+            reply_sender_name: currentReplyTo.sender_name || currentReplyTo.sender_username || 'User',
+          }
+        : undefined,
+      onAck: () => {
         const serverAckMs = Math.round(performance.now() - emitStartTime);
         const totalMs = Math.round(performance.now() - sendStartTime);
-        logger.log(`[SPARKLE_MESSAGE_PERFORMANCE] messageId=${messageId} localRenderMs=${localRenderMs}ms serverAckMs=${serverAckMs}ms totalMs=${totalMs}ms STATUS:${response?.success ? 'PASS' : 'FAIL'}`);
-        if (response && response.success && response.messageId) {
-          PersistentOfflineQueue.acknowledge(messageId);
-          if (selectedChat) {
-            useChatStore.getState().setDraft(selectedChat.chat_id, '');
-          }
-          const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
-          updateMessages(prev => prev.map(m => m.message_id === messageId || m.id === messageId
-            ? {
-              ...m,
-              message_id: response.messageId!,
-              id: response.messageId!,
-              status: 'sent',
-              sent_at: response.sentAt || m.sent_at,
-              server_sequence: serverSeq ?? m.server_sequence,
-              reply_to_message_id: currentReplyTo?.message_id || m.reply_to_message_id || null,
-              reply_content: currentReplyTo?.content || m.reply_content || null,
-              reply_type: currentReplyTo?.type || m.reply_type || null,
-              reply_sender_name: currentReplyTo?.sender_name || currentReplyTo?.sender_username || m.reply_sender_name || null
-            }
-            : m
-          ));
-          if (selectedChat) {
-            useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, {
-              message_id: response.messageId!,
-              id: response.messageId!,
-              status: 'sent',
-              sent_at: response.sentAt,
-              server_sequence: serverSeq,
-            });
-          }
-          setConversations((prev: any[]) => {
-            const chatIndex = prev.findIndex(c => c.chat_id === selectedChat.chat_id);
-            if (chatIndex >= 0) {
-              const newConvs = [...prev];
-              const chat = { ...newConvs[chatIndex] };
-              const preview = specialType === 'location'
-                ? '📍 Location'
-                : specialType === 'live_location'
-                  ? '📍 Live Location'
-                  : (content || (specialType ? `Shared ${specialType}` : ''));
-              chat.last_message = preview;
-              chat.last_message_type = specialType || 'text';
-              chat.last_message_content = preview;
-              chat.last_message_status = 'sent';
-              chat.last_message_sender_id = user?.id || user?.user_id;
-              chat.last_message_time = response.sentAt || chat.last_message_time;
-              newConvs.splice(chatIndex, 1);
-              newConvs.unshift(chat);
-              return newConvs;
-            }
-            return prev;
-          });
-        } else {
-          logger.warn('[Sparkle] Socket emit unacknowledged, message remains in outbox:', response?.error);
+        logger.log(`[SPARKLE_MESSAGE_PERFORMANCE] messageId=${messageId} localRenderMs=${localRenderMs}ms serverAckMs=${serverAckMs}ms totalMs=${totalMs}ms STATUS:PASS`);
+        if (selectedChat) {
+          // Clearing the draft again here is what the old inline handler did;
+          // setMessages inside the transport already refreshed the chat list
+          // and moved this conversation to the top.
+          useChatStore.getState().setDraft(selectedChat.chat_id, '');
         }
-      });
-    } else {
-      logger.log('[Sparkle] Offline — message safely persisted in local outbox:', messageId);
-    }
+      },
+    });
   };
 
   const handleSendMessageWrapper = (e: any, content: string, specialType?: string, mediaUrl?: string) => handleSendMessage(e, content, specialType, mediaUrl);
@@ -3150,12 +3090,6 @@ export default function Messages() {
     useChatStore.getState().updateMessage(selectedChat.chat_id, msgId, { status: 'sending' });
     PersistentOfflineQueue.updateStatus(msgId, 'sending');
 
-    // Start individual 10-second timer for manual resend attempt
-    PersistentOfflineQueue.startMessageTimeout(msgId, () => {
-      updateMessages(prev => prev.map(m => (m.message_id === msgId || m.id === msgId ? { ...m, status: 'failed' } : m)));
-      useChatStore.getState().updateMessage(selectedChat.chat_id, msgId, { status: 'failed' });
-    });
-
             const payload: any = {
                 messageId: msgId,  // same UUID — server deduplicates
                 chatId: selectedChat.chat_id,
@@ -3172,21 +3106,14 @@ export default function Messages() {
             };
     if (failedMsg.reply_to_message_id) payload.replyToId = failedMsg.reply_to_message_id;
 
+    // The transport owns the 10s window, the acknowledge and the failure
+    // reconciliation — this path used to start its own timer and then drop the
+    // server's `server_sequence` on a successful ack, so a resent message lost
+    // its ordering key and could land out of place after the next re-sort.
     if (socket?.connected) {
-      socket.emit('send-message', payload, (response: any) => {
-        if (response?.success && response.messageId) {
-          PersistentOfflineQueue.acknowledge(msgId);
-          updateMessages(prev => prev.map(m =>
-            (m.message_id === msgId || m.id === msgId)
-              ? { ...m, message_id: response.messageId, id: response.messageId, status: 'sent', sent_at: response.sentAt || m.sent_at }
-              : m
-          ));
-        } else {
-          PersistentOfflineQueue.markFailed(msgId);
-          updateMessages(prev => prev.map(m =>
-            (m.message_id === msgId || m.id === msgId) ? { ...m, status: 'failed' } : m
-          ));
-        }
+      transmitMessage(socket, payload, {
+        clientMessageId: msgId,
+        chatId: selectedChat.chat_id,
       });
     } else {
       logger.log('[Sparkle] Retry queued offline, will sync when connection returns:', msgId);
@@ -3274,33 +3201,14 @@ export default function Messages() {
         };
         if (replyToMessage) payload.replyToId = replyToMessage.message_id;
 
-        if (socket && socket.connected) {
-          socket.emit('send-message', payload, (response: any) => {
-            if (response?.success) {
-              const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
-              updateMessages(prev => prev.map(m =>
-                (m.message_id === clientMessageId || m.id === clientMessageId)
-                  ? {
-                      ...m,
-                      status: 'sent',
-                      sent_at: response.sentAt || m.sent_at,
-                      server_sequence: serverSeq ?? m.server_sequence,
-                      message_id: response.messageId || m.message_id,
-                      id: response.messageId || m.id,
-                    }
-                  : m
-              ));
-            } else {
-              updateMessages(prev => prev.map(m =>
-                (m.message_id === clientMessageId || m.id === clientMessageId)
-                  ? { ...m, status: 'failed' }
-                  : m
-              ));
-            }
-          });
-        } else {
-          queueOutgoingMessage(payload);
-        }
+        // The voice path had no delivery timer at all, so a recording the server
+        // never acked stayed at "sending" indefinitely. The transport supplies
+        // the timer, the acknowledge, and the failure reconciliation.
+        const outcome = transmitMessage(socket, payload, {
+          clientMessageId,
+          chatId: selectedChat.chat_id,
+        });
+        if (outcome === 'offline') queueOutgoingMessage(payload);
       } else {
         updateMessages(prev => prev.map(m =>
           (m.message_id === clientMessageId || m.id === clientMessageId) ? { ...m, status: 'failed' } : m

@@ -202,10 +202,29 @@ export default function SparkleHub({ onClose, embedded = false }: SparkleHubProp
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
 
   useEffect(() => {
-    // Check local store first
-    const fromCounts = Object.values(storeUnreadCounts || {}).reduce((acc, c) => acc + (Number(c) || 0), 0);
-    const fromConvs = (storeConversations || []).reduce((acc, c) => acc + (Number(c.unread_count) || 0), 0);
-    const initialCount = Math.max(fromCounts, fromConvs);
+    // Two independent views of the same quantity: unreadCounts is the live
+    // per-chat counter (socket arrivals, reads), conversations[].unread_count
+    // is the server's total from the last inbox load. They drift because
+    // neither sees the other's events.
+    //
+    // This used to take Math.max(sum(live), sum(server)) — the max of two
+    // separately-computed totals, which over-reports whenever either total is
+    // stale-high. Resolve per chat and sum that instead: max-of-sums is not
+    // sum-of-maxes, and a 3-chat/0-message flag set against a stale 20-message
+    // server total reported 20 for an empty inbox.
+    let initialCount = 0;
+    (storeConversations || []).forEach((c) => {
+      const live = storeUnreadCounts?.[c.chat_id];
+      const server = Number(c.unread_count) || 0;
+      // A live entry means the store has seen an event the server snapshot has
+      // not (or vice versa), so the larger figure is the closer one.
+      initialCount += typeof live === 'number' ? Math.max(live, server) : server;
+    });
+    // Chats the store has counted but the inbox snapshot has not loaded yet.
+    Object.entries(storeUnreadCounts || {}).forEach(([chatId, n]) => {
+      const known = (storeConversations || []).some((c) => c.chat_id === chatId);
+      if (!known) initialCount += Number(n) || 0;
+    });
     setUnreadMessagesCount(initialCount);
 
     // Refresh from official inbox endpoint
@@ -214,8 +233,14 @@ export default function SparkleHub({ onClose, embedded = false }: SparkleHubProp
       .then((res) => {
         if (!isMounted) return;
         const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-        const total = list.reduce((acc: number, c: { unread_count?: number }) => acc + (Number(c.unread_count) || 0), 0);
-        setUnreadMessagesCount(total);
+        // The server's total is authoritative for what it just returned; the
+        // live map still wins for any chat it has counted since.
+        const serverTotal = list.reduce((acc: number, c: { unread_count?: number }) => acc + (Number(c.unread_count) || 0), 0);
+        const liveExtra = Object.entries(storeUnreadCounts || {}).reduce((acc: number, [chatId, n]) => {
+          const row = list.find((c: any) => c.chat_id === chatId);
+          return acc + (row ? Math.max(Number(n) || 0, Number(row.unread_count) || 0) : (Number(n) || 0));
+        }, 0);
+        setUnreadMessagesCount(Math.max(serverTotal, liveExtra));
       })
       .catch((err) => {
         console.warn('[SparkleHub] Could not refresh inbox unread count', err);

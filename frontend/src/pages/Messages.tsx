@@ -664,23 +664,34 @@ export default function Messages() {
   // `conversations` as a dependency (which would cause infinite refetch loops).
   conversationsRef.current = Array.isArray(conversations) ? conversations : [];
   const referenceTime = useTimeTick(30000);
+  /**
+   * Badge shown on a sidebar tab. A badge means "there are unread things in
+   * this filter", so every tab reports its unread message total — never a raw
+   * item count.
+   *
+   * "All" deliberately reports 0 and renders no badge: it is the whole inbox,
+   * not a subset, so the number there was the total chat count, which is noise
+   * on every render (the Chat equivalent carries none either). The unread
+   * number belongs to the Unread filter.
+   *
+   * "Unread" also excludes archived, matching what the list itself renders —
+   * the old badge summed archived messages too, so it read 5 above a list of 3.
+   */
   const getTabBadgeCount = (tabId: string) => {
     const safeConvs = Array.isArray(conversations) ? conversations : [];
-    if (tabId === 'all') return safeConvs.length;
-    if (tabId === 'unread') {
-      return safeConvs.reduce((acc, cv) => acc + (cv.unread_count || 0), 0);
-    }
-    if (tabId === 'groups') {
-      return safeConvs.filter(cv => !!(cv.is_group || cv.chat_type === 'group')).length;
-    }
-    if (tabId === 'archived') {
-      return safeConvs.filter(cv => !!(cv as any).is_archived).length;
-    }
-    const list = customLists.find(l => l.id === tabId);
-    if (list) {
-      return safeConvs.filter(cv => list.chatIds.includes(cv.chat_id)).length;
-    }
-    return 0;
+    if (tabId === 'all') return 0;
+
+    const inTab = (cv: any) => {
+      if (tabId === 'unread') return (cv.unread_count || 0) > 0 && !cv.is_archived;
+      if (tabId === 'groups') return !!(cv.is_group || cv.chat_type === 'group');
+      if (tabId === 'archived') return !!cv.is_archived;
+      const list = customLists.find(l => l.id === tabId);
+      return !!list && list.chatIds.includes(cv.chat_id);
+    };
+
+    return safeConvs
+      .filter(inTab)
+      .reduce((acc, cv) => acc + (cv.unread_count || 0), 0);
   };
   const [selectedChat, setSelectedChat] = useState<ChatConversation | null>(null);
 

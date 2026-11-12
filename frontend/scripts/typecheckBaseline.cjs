@@ -38,7 +38,8 @@ while ((match = ERROR_RE.exec(out)) !== null) {
  * them made every such error look brand new on CI and failed the gate while
  * the identical 161 errors were present locally.
  */
-const key = match[1] + ' :: ' + match[4];
+const normPath = match[1].replace(/\\/g, '/');
+const key = normPath + ' :: ' + match[4];
 counts.set(key, (counts.get(key) || 0) + 1);
 }
 

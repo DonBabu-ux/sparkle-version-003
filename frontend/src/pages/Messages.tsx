@@ -49,7 +49,6 @@ import { SparklePeopleHubModal } from '../components/chat/SparklePeopleHubModal'
 import { NewChatModal, type ContactUser } from '../components/chat/NewChatModal';
 import { SparklyListingCard } from '../components/marketplace/SparklyListingCard';
 import { SparklyAvatar } from '../components/sparkly/SparklyAvatar';
-import { SparklyMarkdown } from '../components/sparkly/SparklyMarkdown';
 import { ExpandableMessageText } from '../components/chat/ExpandableMessageText';
 import { InAppBrowserModal } from '../components/browser/InAppBrowserModal';
 import { LinkPreviewCard } from '../components/chat/LinkPreviewCard';

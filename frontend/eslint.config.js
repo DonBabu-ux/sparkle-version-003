@@ -5,7 +5,19 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist', 'dev-dist'] },
+  {
+    ignores: [
+      'dist',
+      'dev-dist',
+      // Android / Capacitor build artifacts — generated, minified, not source
+      'android/app/build/**',
+      'android/.gradle/**',
+      '.gradle/**',
+      // capacitor-bundled web runtime copied into android assets
+      'android/app/src/main/assets/public/**',
+      'android/app/src/main/assets/native-bridge.js',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

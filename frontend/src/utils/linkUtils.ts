@@ -41,6 +41,7 @@ export function normalizeUrl(url: string): string {
 // 2. www. prefixed URLs
 // 3. Confident bare domains (e.g. google.com, example.org)
 // Excludes email addresses (foo@bar.com) by checking for preceding @
+// eslint-disable-next-line no-control-regex, no-useless-escape
 const URL_REGEX = /(?<![a-zA-Z0-9._%-@])(?:(?:https?:\/\/)(?:[^\s<>"'(){}\[\]|\\^`\x00-\x1F]+)|(?:www\.)(?:[^\s<>"'(){}\[\]|\\^`\x00-\x1F]+)|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.(?:com|org|net|edu|gov|io|co|app|dev|ai|me|info|biz|tv|fm|pm|so|sh|ly|gg|vc|xyz|club|store|online|site|web|tech|space|live|news|wiki|blog|link|press|works|studio|design|media|social|chat|app|cloud|run)(?:\/[^\s<>"'(){}\[\]|\\^`\x00-\x1F]*)?))(?![a-zA-Z0-9._-])/g;
 
 /**

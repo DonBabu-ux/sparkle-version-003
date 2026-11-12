@@ -234,3 +234,64 @@ describe('transmitMessage — blocked conversation', () => {
     expect(onFailure).not.toHaveBeenCalled();
   });
 });
+
+describe('transmitMessage — onSettled', () => {
+  it('releases the caller once per transmit, whichever route lands first', () => {
+    const { socket, acks } = makeSocket();
+    const onSettled = vi.fn();
+    seedMessages('chat-1', [{ message_id: CLIENT_ID, id: CLIENT_ID, status: 'sending' }]);
+
+    transmitMessage(socket, {}, { clientMessageId: CLIENT_ID, chatId: 'chat-1', onSettled });
+    acks.at(-1)!({ success: true, messageId: 'server-1', sentAt: 't', server_sequence: 1 });
+
+    expect(onSettled).toHaveBeenCalledTimes(1);
+
+    // A late duplicate callback must not release the slot twice.
+    acks.at(-1)!({ success: true, messageId: 'server-1' });
+    expect(onSettled).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases the caller on a failed ack', () => {
+    const { socket, acks } = makeSocket();
+    const onSettled = vi.fn();
+    seedMessages('chat-1', [{ message_id: CLIENT_ID, id: CLIENT_ID, status: 'sending' }]);
+
+    transmitMessage(socket, {}, { clientMessageId: CLIENT_ID, chatId: 'chat-1', onSettled });
+    acks.at(-1)!({ success: false, error: 'db down' });
+
+    expect(onSettled).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases the caller on a blocked ack', () => {
+    const { socket, acks } = makeSocket();
+    const onSettled = vi.fn();
+    seedMessages('chat-1', [{ message_id: CLIENT_ID, id: CLIENT_ID, status: 'sending' }]);
+
+    transmitMessage(socket, {}, { clientMessageId: CLIENT_ID, chatId: 'chat-1', onSettled });
+    acks.at(-1)!({ success: false, isBlocked: true });
+
+    expect(onSettled).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * The reconnect flush awaits this per message. Before this existed it
+   * resolved only inside the ack callback, so a transmit socket.io never
+   * answered left `isSyncInProgress` stuck at true and every later reconnect,
+   * focus and visibilitychange bailed out at the top of the sequence — the app
+   * stopped syncing until a reload.
+   */
+  it('releases the caller when the server never answers at all', () => {
+    const { socket } = makeSocket();
+    const onSettled = vi.fn();
+    const onTimeout = vi.fn();
+    seedMessages('chat-1', [{ message_id: CLIENT_ID, id: CLIENT_ID, status: 'sending' }]);
+
+    transmitMessage(socket, {}, { clientMessageId: CLIENT_ID, chatId: 'chat-1', onSettled, onTimeout });
+
+    h.queue.startMessageTimeout.mock.calls[0][1]();
+
+    expect(onTimeout).toHaveBeenCalledTimes(1);
+    expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(writtenMessages('chat-1')[0].status).toBe('failed');
+  });
+});

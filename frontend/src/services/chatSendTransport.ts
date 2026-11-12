@@ -31,6 +31,13 @@ export interface TransmitMessageOptions {
   onAck?: (ack: SendMessageAck) => void;
   onFailure?: (ack?: SendMessageAck) => void;
   onBlocked?: (ack: SendMessageAck) => void;
+  /**
+   * Runs once, after the acknowledgement OR the 10s timeout, whichever comes
+   * first. The outbox flush awaits this to release its batch slot.
+   */
+  onSettled?: () => void;
+  /** Runs in the timeout callback, after the bubble has been failed. */
+  onTimeout?: () => void;
 }
 
 export type TransmitOutcome = 'transmitted' | 'offline';
@@ -78,6 +85,13 @@ function patchOptimisticMessage(chatId: string, clientMessageId: string, updates
  * the durable outbox (they filter by messageId), so calling them
  * unconditionally is safe for the paths that only queue when offline.
  *
+ * `onSettled` fires exactly once — whichever of the acknowledgement or the
+ * timeout arrives first. This matters for the reconnect flush, which awaits it
+ * per message: resolving it only from the ack callback left the whole sync
+ * sequence pinned forever whenever socket.io dropped an acknowledgement (server
+ * crash mid-flight, or a socket that still reports connected on a dead link),
+ * because `isSyncInProgress` was never released.
+ *
  * Returns whether the message was actually transmitted; the caller keeps its
  * own offline policy, which legitimately differs per site.
  */
@@ -90,11 +104,20 @@ export function transmitMessage(
 
   if (!socket || !socket.connected) return 'offline';
 
+  let settled = false;
+  const settle = () => {
+    if (settled) return;
+    settled = true;
+    options.onSettled?.();
+  };
+
   // Every live send gets the 10s acknowledgement window. For a message that was
   // never enqueued the timer's internal markFailed is a no-op, so this only
   // fails the bubble — which is exactly what the upload paths were missing.
   PersistentOfflineQueue.startMessageTimeout(clientMessageId, () => {
     patchOptimisticMessage(chatId, clientMessageId, { status: 'failed' });
+    options.onTimeout?.();
+    settle();
   });
 
   socket.emit('send-message', payload, (ack: SendMessageAck) => {
@@ -119,6 +142,7 @@ export function transmitMessage(
       patchOptimisticMessage(chatId, clientMessageId, updates);
 
       options.onAck?.(ack);
+      settle();
       return;
     }
 
@@ -134,6 +158,7 @@ export function transmitMessage(
         can_send_messages: false,
       });
       options.onBlocked?.(ack as SendMessageAck);
+      settle();
       return;
     }
 
@@ -145,6 +170,7 @@ export function transmitMessage(
 
     logger.warn('[ChatSend] Server did not acknowledge the message, it stays in the outbox:', ack?.error);
     options.onFailure?.(ack);
+    settle();
   });
 
   return 'transmitted';

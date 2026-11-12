@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const logger = require('../../utils/logger');
 const router = express.Router();
 const pool = require('../../config/database');
@@ -6,8 +7,15 @@ const { optionalAuthMiddleware } = require('../../middleware/auth.middleware');
 
 const getRequesterId = (req) => req.user?.user_id || req.user?.id || null;
 
+// A reference number the user quotes, not a secret. crypto.randomInt rather than
+// Math.random() for consistency with the verification-code paths, but it does NOT
+// fix the real weakness: 900,000 values collide quickly once thousands of
+// tickets exist, and if support_tickets has a unique key on this column the
+// collision surfaces as a 500 on filing a ticket. A DB-assigned id, or a wider
+// space, is what actually fixes that — flagged rather than changed here because
+// it depends on the column's constraint, which is not checked.
 const generateTicketId = () =>
-    'SPK-TKT-' + Math.floor(100000 + Math.random() * 900000);
+    'SPK-TKT-' + crypto.randomInt(100000, 999999);
 
 const extractDescription = (message) => {
     const text = String(message || '').trim();

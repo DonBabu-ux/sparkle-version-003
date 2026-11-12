@@ -1500,14 +1500,24 @@ export default function Messages() {
 
       const finalMediaUrl = uploadedUrl;
       if (selectedChat) {
-        const payload = {
-          messageId: tempMessageId,
-          chatId: selectedChat.chat_id,
-          partnerId: selectedChat.partner_id,
-          content: caption || '',
-          type: mediaType,
-          mediaUrl: finalMediaUrl
-        };
+            const payload = {
+                messageId: tempMessageId,
+                chatId: selectedChat.chat_id,
+                partnerId: selectedChat.partner_id,
+                content: caption || '',
+                type: mediaType,
+                mediaUrl: finalMediaUrl,
+                // `name` and `filePayload` are both parameters of this function,
+                // so the file identity was in scope and simply not sent. The
+                // recipient's client has no way to recover a filename from a URL
+                // alone, and mimeType from the object was the one thing that let
+                // it decide how to present the attachment.
+                metadata: JSON.stringify({
+                    fileName: name,
+                    mimeType: filePayload?.type,
+                    fileSize: filePayload?.size
+                })
+            };
 
         if (socket?.connected) {
           socket.emit('send-message', payload, (response: any) => {

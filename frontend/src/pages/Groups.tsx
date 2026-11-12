@@ -37,7 +37,7 @@ export default function Groups() {
   return (
     <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-zinc-100 font-sans">
 
-      <main className="flex-1 px-4 lg:px-10 relative z-10 max-w-7xl mx-auto w-full pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <main className="flex-1 px-4 lg:px-10 relative z-10 max-w-7xl mx-auto w-full pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[calc(var(--safe-area-inset-top)+1rem)]">
 
         {/* Header */}
         <header className="mb-10" style={{ animation: 'grpSlideUp 0.6s ease both' }}>

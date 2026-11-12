@@ -5,16 +5,22 @@ const logger = require('../../utils/logger');
 const metrics = require('./metrics');
 const filterStore = require('./filterStore');
 const { PROBE_STATE } = require('./filterStore');
-const { assertIdentityType } = require('../../utils/identity/identity');
+const { assertIdentityType, normalizeUsername, normalizeEmail } = require('../../utils/identity/identity');
 
 const ABSENT_STATES = new Set([PROBE_STATE.ABSENT]);
 
-async function verifyIdentityInDatabase(identityType, normalizedValue) {
+function canonicalize(identityType, value) {
+    const raw = typeof value === 'string' ? value : '';
+    return identityType === 'username' ? normalizeUsername(raw) : normalizeEmail(raw);
+}
+
+async function verifyIdentityInDatabase(identityType, value) {
     const type = assertIdentityType(identityType);
+    const canonicalValue = canonicalize(type, value);
     const sql = type === 'username'
         ? 'SELECT user_id FROM users WHERE username_normalized = ? LIMIT 1'
         : 'SELECT user_id FROM users WHERE email = ? LIMIT 1';
-    const rows = await safeQuery(sql, [normalizedValue]);
+    const rows = await safeQuery(sql, [canonicalValue]);
     return rows.length > 0;
 }
 
@@ -27,9 +33,10 @@ async function verifyIdentityInDatabase(identityType, normalizedValue) {
  * lookup, which matches every identity-reserving record regardless of the
  * account's verification, onboarding or lifecycle status.
  */
-async function checkIdentity(identityType, normalizedValue, options = {}) {
+async function checkIdentity(identityType, value, options = {}) {
     const type = assertIdentityType(identityType);
-    const probe = await filterStore.probeIdentity(type, normalizedValue, {
+    const canonicalValue = canonicalize(type, value);
+    const probe = await filterStore.probeIdentity(type, canonicalValue, {
         reserve: options.reserve === true
     });
 
@@ -40,7 +47,7 @@ async function checkIdentity(identityType, normalizedValue, options = {}) {
 
     let taken;
     try {
-        taken = await verifyIdentityInDatabase(type, normalizedValue);
+        taken = await verifyIdentityInDatabase(type, canonicalValue);
     } catch (error) {
         logger.error(`[IdentityBloom] MySQL verification failed for ${type}: ${error.message}`);
         throw error;

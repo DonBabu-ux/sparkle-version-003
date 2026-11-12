@@ -209,9 +209,9 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-[env(safe-area-inset-bottom)] transition-colors">
+    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-[calc(env(safe-area-inset-bottom)+6rem)] transition-colors">
 
-      <main className="max-w-2xl mx-auto px-4 pt-4 sm:pt-6">
+      <main className="max-w-2xl mx-auto px-4 pt-[calc(var(--safe-area-inset-top)+1rem)] sm:pt-[calc(var(--safe-area-inset-top)+1.5rem)]">
         {/* Navigation Header */}
         <div className="flex items-center gap-3 mb-6">
               <button

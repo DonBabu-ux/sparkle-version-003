@@ -2668,6 +2668,36 @@ const RECOVERED_TABLES = [
             INDEX idx_sr_created (created_at),
             INDEX idx_sr_user (user_id, created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+    },
+    {
+        name: 'support_ticket_messages',
+        sql: `CREATE TABLE IF NOT EXISTS support_ticket_messages (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            ticket_id VARCHAR(64) NOT NULL,
+            sender_id VARCHAR(36) NOT NULL,
+            sender_name VARCHAR(100) NULL,
+            is_admin TINYINT(1) NOT NULL DEFAULT 0,
+            message TEXT NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_stm_ticket (ticket_id),
+            INDEX idx_stm_sender (sender_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+    },
+    {
+        name: 'support_faqs',
+        sql: `CREATE TABLE IF NOT EXISTS support_faqs (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            question VARCHAR(500) NOT NULL,
+            answer TEXT NOT NULL,
+            category VARCHAR(100) NOT NULL DEFAULT 'general',
+            is_published TINYINT(1) NOT NULL DEFAULT 1,
+            helpful_count INT UNSIGNED NOT NULL DEFAULT 0,
+            sort_order INT NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_sf_cat (category),
+            INDEX idx_sf_pub (is_published)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
     }
 ];
 

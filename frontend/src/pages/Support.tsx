@@ -126,16 +126,16 @@ export default function Support() {
               <ChevronRight size={18} className="sup-quick-arrow" />
             </Link>
 
-            <a href="https://docs.sparkle.campus" target="_blank" rel="noopener noreferrer" className="sup-quick-card">
+            <Link to="/help" className="sup-quick-card">
               <div className="sup-quick-icon">
                 <BookOpen size={22} />
               </div>
               <div>
                 <div className="sup-quick-title">Documentation</div>
-                <div className="sup-quick-sub">Browse all guides</div>
+                <div className="sup-quick-sub">Browse Help Centre guides</div>
               </div>
               <ChevronRight size={18} className="sup-quick-arrow" />
-            </a>
+            </Link>
           </div>
 
           {/* My Tickets Section */}
@@ -277,7 +277,7 @@ export default function Support() {
       <style>{`
         .page-wrapper { display: flex; background: var(--bg-main); min-height: 100dvh; }
         .sup-content { flex: 1; overflow-y: auto; }
-        .sup-container { max-width: 820px; margin: 0 auto; padding: 30px 24px 100px; }
+        .sup-container { max-width: 820px; margin: 0 auto; padding: calc(var(--safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 6rem); }
 
         .sup-hero { display: flex; align-items: center; gap: 20px; background: #fdf8fa; color: #18181b; padding: 32px; border-radius: 32px; margin-bottom: 28px; border: 1px solid #e6d8e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .sup-hero-icon { color: #ff1493; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }

@@ -2,7 +2,7 @@ import { showInfo, showSuccess, showError } from '../utils/toast';
 import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, type FormEvent } from 'react';
 import api, { getAdminSessionExpires, getAdminClockOffset, clearAdminSession } from '../api/api';
-import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, ArrowLeft, Database, Mail, X, Search, Flag, ShoppingBag, KeyRound, Activity } from 'lucide-react';
+import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, ArrowLeft, Database, Mail, X, Search, Flag, ShoppingBag, KeyRound, Activity, MessageSquare, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/ui/Spinner';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -47,6 +47,19 @@ interface AppealItem {
     post_excerpt?: string;
 }
 
+interface AdminTicket {
+    ticket_id: string;
+    reference_no: string;
+    user_id: string;
+    user_name?: string;
+    email?: string;
+    subject: string;
+    category: string;
+    priority: string;
+    status: 'open' | 'in_progress' | 'resolved' | 'closed';
+    created_at: string;
+}
+
 interface AdminStats {
   users?: { total: number };
   posts?: { total: number };
@@ -83,6 +96,9 @@ export default function AdminDashboard() {
   const [verifications, setVerifications] = useState<VerificationRequest[]>([]);
   const [appeals, setAppeals] = useState<AppealItem[]>([]);
   const [queueBusy, setQueueBusy] = useState<string | null>(null);
+  const [supportTickets, setSupportTickets] = useState<AdminTicket[]>([]);
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<string>('all');
+  const [updatingTicketId, setUpdatingTicketId] = useState<string | null>(null);
   const filteredContent = content.filter(item => {
     const q = listQuery.trim().toLowerCase();
     if (!q) return true;
@@ -299,6 +315,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchSupportTickets = async (status?: string) => {
+    try {
+      const url = status && status !== 'all' ? `/support/admin/tickets?status=${status}` : '/support/admin/tickets';
+      const res = await api.get(url);
+      if (res.data?.success) {
+        setSupportTickets(res.data.tickets || []);
+      }
+    } catch (err) {
+      if (onAdminCallError(err)) return;
+      logger.error('Failed to fetch support tickets:', err);
+    }
+  };
+
+  const handleUpdateTicketStatus = async (ticketId: string, newStatus: AdminTicket['status']) => {
+    setUpdatingTicketId(ticketId);
+    try {
+      await api.put(`/support/admin/tickets/${ticketId}/status`, { status: newStatus });
+      setSupportTickets(prev => prev.map(t => t.ticket_id === ticketId ? { ...t, status: newStatus } : t));
+      showSuccess(`Ticket status updated to ${newStatus}`);
+    } catch (err: unknown) {
+      const e = err as AdminApiErr;
+      showError(e.response?.data?.message || 'Failed to update ticket status');
+    } finally {
+      setUpdatingTicketId(null);
+    }
+  };
+
   const exportLogs = async () => {
     try {
       const res = await api.get('/admin/logs/export', { responseType: 'blob' });
@@ -440,14 +483,15 @@ export default function AdminDashboard() {
         logger.error(`Failed to fetch ${activeTab}:`, err);
       }
     };
-    if (activeTab !== 'overview') fetchTabData();
+    if (activeTab !== 'overview' && activeTab !== 'support') fetchTabData();
     if (activeTab === 'analytics') fetchAnalytics();
     if (activeTab === 'reviews') fetchQueues();
+    if (activeTab === 'support') fetchSupportTickets(ticketStatusFilter);
     // Dep-light by design: fetchAnalytics/fetchQueues/onAdminCallError are
     // recreated every render, so listing them would re-fetch on each render.
     // The tab switch is the intentional trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, ticketStatusFilter]);
 
   // ── Admin access gate ─────────────────────────────────────────────────────
   // The dashboard is behind the second password: set it once, then unlock
@@ -574,6 +618,7 @@ export default function AdminDashboard() {
             { key: 'users', label: 'Users', icon: Users },
             { key: 'reports', label: 'Reports', icon: AlertCircle },
             { key: 'reviews', label: 'Reviews', icon: Shield },
+            { key: 'support', label: 'Support Tickets', icon: MessageSquare },
             { key: 'logs', label: 'Activity log', icon: Clock },
           ].map(tab => (
             <button
@@ -842,6 +887,103 @@ export default function AdminDashboard() {
                   <div className="py-12 text-center">
                     <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">No pending requests</p>
                     <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">Verification requests appear here for review.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'support' ? (
+          <div className="space-y-4 mb-16">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                {['all', 'open', 'in_progress', 'resolved', 'closed'].map(st => (
+                  <button
+                    key={st}
+                    onClick={() => setTicketStatusFilter(st)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-colors border ${
+                      ticketStatusFilter === st
+                        ? 'bg-primary border-primary text-white'
+                        : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:text-[#18181b]'
+                    }`}
+                  >
+                    {st.replace('_', ' ')}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => fetchSupportTickets(ticketStatusFilter)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-primary transition-colors"
+              >
+                <RefreshCw size={13} />
+                Refresh
+              </button>
+            </div>
+
+            <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl overflow-hidden">
+              <div className="divide-y divide-[#ede3e9] dark:divide-zinc-900">
+                {supportTickets.map(ticket => (
+                  <div key={ticket.ticket_id} className="p-4 hover:bg-[#f6eef3]/50 dark:hover:bg-zinc-700/30 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs font-bold text-primary">
+                          {ticket.reference_no || ticket.ticket_id.slice(0, 8)}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 font-medium capitalize">
+                          {ticket.category || 'General'}
+                        </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                          ticket.priority === 'urgent' ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
+                          ticket.priority === 'high' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
+                          'bg-slate-500/10 text-slate-500'
+                        }`}>
+                          {ticket.priority || 'Normal'}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400">
+                        {new Date(ticket.created_at).toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="mb-3">
+                      <h4 className="text-sm font-bold text-[#18181b] dark:text-zinc-100">{ticket.subject}</h4>
+                      <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                        User: {ticket.user_name || ticket.email || ticket.user_id}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#ede3e9]/60 dark:border-zinc-900">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-500">Status:</span>
+                        <select
+                          value={ticket.status}
+                          disabled={updatingTicketId === ticket.ticket_id}
+                          onChange={e => handleUpdateTicketStatus(ticket.ticket_id, e.target.value as any)}
+                          className="h-7 text-xs font-bold rounded-lg border border-[#e6d8e1] dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 px-2 outline-none focus:border-primary cursor-pointer disabled:opacity-50"
+                        >
+                          <option value="open">Open</option>
+                          <option value="in_progress">In Progress</option>
+                          <option value="resolved">Resolved</option>
+                          <option value="closed">Closed</option>
+                        </select>
+                      </div>
+
+                      <button
+                        onClick={() => navigate(`/support/ticket/${ticket.ticket_id}`)}
+                        className="px-3 h-7 rounded-full bg-primary text-white text-xs font-bold hover:bg-[#e01283] transition-colors"
+                      >
+                        View Conversation
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {supportTickets.length === 0 && (
+                  <div className="py-12 text-center">
+                    <MessageSquare size={32} className="mx-auto text-slate-300 dark:text-zinc-600 mb-2" />
+                    <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">No support tickets found</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                      {ticketStatusFilter !== 'all' ? `No tickets currently marked as "${ticketStatusFilter}".` : 'When users submit issues, tickets will appear here.'}
+                    </p>
                   </div>
                 )}
               </div>

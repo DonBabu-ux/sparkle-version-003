@@ -120,6 +120,9 @@ const Gallery = lazyWithRetry(() => import('./pages/Gallery'));
 const Verified = lazyWithRetry(() => import('./pages/Verified'));
 const Invite = lazyWithRetry(() => import('./pages/Invite'));
 const Help = lazyWithRetry(() => import('./pages/Help'));
+const HelpCategory = lazyWithRetry(() => import('./pages/HelpCategory'));
+const HelpArticle = lazyWithRetry(() => import('./pages/HelpArticle'));
+const ReportIssue = lazyWithRetry(() => import('./pages/ReportIssue'));
 const Onboarding = lazyWithRetry(() => import('./pages/Onboarding'));
 import OnboardingSheet from './components/onboarding/OnboardingSheet';
 const Developer = lazyWithRetry(() => import('./pages/Developer'));
@@ -679,6 +682,9 @@ function App() {
                     <Route path="/invite" element={isAuthenticated ? <Invite /> : <Navigate to="/login" />} />
                     <Route path="/invite/:code" element={<InviteLandingPage />} />
                     <Route path="/help" element={isAuthenticated ? <Help /> : <Navigate to="/login" />} />
+                    <Route path="/help/category/:categoryId" element={isAuthenticated ? <HelpCategory /> : <Navigate to="/login" />} />
+                    <Route path="/help/article/:articleId" element={isAuthenticated ? <HelpArticle /> : <Navigate to="/login" />} />
+                    <Route path="/report-issue" element={isAuthenticated ? <ReportIssue /> : <Navigate to="/login" />} />
                     </Route>
 
                     </Routes>

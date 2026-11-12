@@ -44,7 +44,7 @@ const REQUIRED_FOR_FEATURE = [
   { key: 'EMAIL_HOST', feature: 'email delivery' },
   { key: 'PIXABAY_API_KEY', feature: 'music search' },
   { key: 'GIPHY_API_KEY', feature: 'GIF picker in chat' },
-  { key: 'PAYSTACK_WEBHOOK_SECRET', feature: 'payment webhooks' },
+  { key: 'PAYSTACK_WEBHOOK_SECRET', fallbackKey: 'PAYSTACK_SECRET_KEY', feature: 'payment webhooks' },
 ];
 
 // Values that mean "a human never filled this in".
@@ -61,7 +61,7 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const check = (list, bucket) => {
   for (const spec of list) {
-    const v = process.env[spec.key];
+    const v = process.env[spec.key] || (spec.fallbackKey ? process.env[spec.fallbackKey] : undefined);
     if (v === undefined || v.trim() === '') {
       problems[bucket].push(`${spec.key} is not set${spec.why ? ' — ' + spec.why : ''}${spec.feature ? ' — breaks ' + spec.feature : ''}`);
       continue;

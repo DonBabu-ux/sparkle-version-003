@@ -49,7 +49,10 @@ import { SparklePeopleHubModal } from '../components/chat/SparklePeopleHubModal'
 import { NewChatModal, type ContactUser } from '../components/chat/NewChatModal';
 import { SparklyListingCard } from '../components/marketplace/SparklyListingCard';
 import { SparklyAvatar } from '../components/sparkly/SparklyAvatar';
-import { SparklyMarkdown } from '../components/sparkly/SparklyMarkdown';
+import { ExpandableMessageText } from '../components/chat/ExpandableMessageText';
+import { InAppBrowserModal } from '../components/browser/InAppBrowserModal';
+import { LinkPreviewCard } from '../components/chat/LinkPreviewCard';
+import { detectUrls } from '../utils/linkUtils';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import 'lodash.debounce';
@@ -1234,6 +1237,18 @@ export default function Messages() {
   const [tempTabOrder, setTempTabOrder] = useState<string[]>([]);
   const [tempHiddenTabs, setTempHiddenTabs] = useState<string[]>([]);
   const [showDevConsole, setShowDevConsole] = useState(false);
+  const [inAppBrowserUrl, setInAppBrowserUrl] = useState<string | null>(null);
+  const [linkPreviews, setLinkPreviews] = useState<Map<string, any>>(new Map());
+
+  // Listen for in-app browser link open events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const url = (e as CustomEvent).detail?.url;
+      if (url) setInAppBrowserUrl(url);
+    };
+    window.addEventListener('sparkle:open-link', handler);
+    return () => window.removeEventListener('sparkle:open-link', handler);
+  }, []);
 
   // Hide bottom nav when viewing someone's note or using camera
   useEffect(() => {
@@ -3936,7 +3951,7 @@ export default function Messages() {
                           </button>
                         )}
 
-                        <div className={clsx((window as any).__sparkleIsOfficialChat && !isMe ? "max-w-[95%]" : "max-w-[72%]", "flex flex-col", isMe ? 'items-end' : 'items-start')}>
+                        <div className={clsx((window as any).__sparkleIsOfficialChat && !isMe ? "max-w-[95%]" : "max-w-[75%]", "flex flex-col", isMe ? 'items-end' : 'items-start')}>
                           <MessageBubbleWrapper
                             onLongPress={() => {
                               if (isSelectionMode) return;
@@ -4197,11 +4212,64 @@ export default function Messages() {
                                               </div>
                                             )}
                                             {isSparklyBot ? (
-                                              <SparklyMarkdown content={textContent} className="text-white" />
+                                              <ExpandableMessageText text={textContent} isSparkly={true} className="text-white" />
                                             ) : (
-                                              <span className="whitespace-pre-wrap break-words text-white leading-relaxed font-normal" style={{ color: '#ffffff' }}>
-                                                {textContent}
-                                              </span>
+                                              <>
+                                                <ExpandableMessageText text={textContent} isSparkly={false} className="text-white leading-relaxed font-normal" />
+                                                {/* Link preview card for first URL detected */}
+                                                {(() => {
+                                                  const urls = detectUrls(textContent);
+                                                  if (urls.length === 0) return null;
+                                                  const firstUrl = urls[0].url;
+                                                  const msgId = msg.message_id || msg.id || '';
+                                                  const preview = linkPreviews.get(msgId);
+                                                  if (preview === undefined) {
+                                                    // Fetch preview asynchronously
+                                                    const normalized = firstUrl.startsWith('http') ? firstUrl : 'https://' + firstUrl;
+                                                    api.get(`/link-preview?url=${encodeURIComponent(normalized)}`)
+                                                      .then((res: any) => {
+                                                        if (res.data?.success) {
+                                                          setLinkPreviews((prev) => {
+                                                            const next = new Map(prev);
+                                                            next.set(msgId, res.data);
+                                                            return next;
+                                                          });
+                                                        } else {
+                                                          setLinkPreviews((prev) => {
+                                                            const next = new Map(prev);
+                                                            next.set(msgId, null);
+                                                            return next;
+                                                          });
+                                                        }
+                                                      })
+                                                      .catch(() => {
+                                                        setLinkPreviews((prev) => {
+                                                          const next = new Map(prev);
+                                                          next.set(msgId, null);
+                                                          return next;
+                                                        });
+                                                      });
+                                                    // Mark as pending so we don't re-fetch
+                                                    setLinkPreviews((prev) => {
+                                                      if (prev.has(msgId)) return prev;
+                                                      const next = new Map(prev);
+                                                      next.set(msgId, 'loading');
+                                                      return next;
+                                                    });
+                                                    return null;
+                                                  }
+                                                  if (!preview || preview === 'loading') return null;
+                                                  return (
+                                                    <LinkPreviewCard
+                                                      url={firstUrl}
+                                                      title={preview.title}
+                                                      description={preview.description}
+                                                      image={preview.image}
+                                                      domain={preview.siteName}
+                                                    />
+                                                  );
+                                                })()}
+                                              </>
                                             )}
                                             {cardsList.length > 0 && (
                                               <div className="mt-2.5 space-y-2">
@@ -6733,6 +6801,10 @@ export default function Messages() {
       </AnimatePresence>
 
       <DeveloperEmergencyConsoleModal isOpen={showDevConsole} onClose={() => setShowDevConsole(false)} />
+
+      {inAppBrowserUrl && (
+        <InAppBrowserModal url={inAppBrowserUrl} onClose={() => setInAppBrowserUrl(null)} />
+      )}
 
       <style>{`
         

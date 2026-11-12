@@ -61,10 +61,36 @@ function parseInline(text: string): React.ReactNode[] {
   return parts.length > 0 ? parts : [<span key="full-text" className="text-white" style={{ color: '#ffffff' }}>{text}</span>];
 }
 
+/**
+ * Strip raw JSON blocks that may leak tool/action payloads into the UI.
+ * Removes lines that look like JSON objects with tool/action/function/type keys,
+ * or entire fenced JSON blocks.
+ */
+function suppressJsonBlocks(input: string): string {
+  // Remove fenced ```json ... ``` blocks that contain tool/action keys
+  let result = input.replace(/```(?:json)?\s*\n([\s\S]*?)\n```/g, (match, body) => {
+    if (/"\s*(tool|action|function|type)\s*"\s*:/.test(body)) return '';
+    return match;
+  });
+
+  // Remove individual lines that look like raw JSON objects with tool/action keys
+  const lines = result.split('\n');
+  const filtered = lines.filter((line) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('{') && /"\s*(tool|action|function|type)\s*"\s*:/.test(trimmed)) {
+      return false;
+    }
+    return true;
+  });
+
+  return filtered.join('\n');
+}
+
 export const SparklyMarkdown: React.FC<Props> = ({ content, streaming = false, className = '' }) => {
   if (!content) return null;
 
-  const lines = content.split('\n');
+  const sanitized = suppressJsonBlocks(content);
+  const lines = sanitized.split('\n');
   const elements: React.ReactNode[] = [];
   let i = 0;
   let keyIdx = 0;

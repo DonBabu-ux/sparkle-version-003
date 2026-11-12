@@ -32,15 +32,24 @@ public class MainActivity extends BridgeActivity {
 }
 
 /**
- * The chat keyboard squeeze is implemented by SparkleInsetsPlugin, which pads
- * the WebView by the IME height so the CSS layout viewport shrinks from the
- * bottom: the message list compresses, the header stays put, and the composer
- * rides just above the keys.
+ * The chat keyboard squeeze is NOT done natively. The WebView is never padded
+ * and the window is never resized for it — this plugin's own note in
+ * SparkleInsetsPlugin.java explains why setPadding was removed (it clips
+ * content on some devices instead of shrinking the CSS layout viewport, which
+ * is the "keyboard covers the input box" symptom).
  *
- * That only works if the Android window itself does NOT also react to the
- * keyboard. With adjustResize the system resizes the window *and* the plugin
- * pads the WebView, which is a double adjustment — the observed symptom was
- * the whole page being pushed up out of the screen when the keyboard opened.
+ * The real mechanism is entirely on the JS side: something publishes the real
+ * keyboard height as the `--ime-height` CSS variable and KeyboardSafeContainer
+ * subtracts it (see components/SafeLayout.tsx), so the message list compresses,
+ * the header stays put and the composer rides above the keys.
+ *
+ * What this method actually guarantees is the precondition for that to work:
+ * the Android window must not also react to the keyboard. With adjustResize the
+ * system shrinks the window *and* the JS shrinks the layout, which is a double
+ * adjustment — the observed symptom was the whole page being pushed up out of
+ * the screen when the keyboard opened. Note that @capacitor/keyboard's
+ * `resizeOnFullScreen` flag resizes the WebView container natively for the same
+ * reason, which is why it is false in capacitor.config.json.
  *
  * So the mode is set here, in code, rather than trusted to the manifest: this
  * runs after the manifest merge and cannot be overridden by a library theme.

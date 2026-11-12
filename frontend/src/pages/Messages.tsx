@@ -6,6 +6,7 @@ import { useUserStore } from '../store/userStore';
 import { useChatStore, sortMessagesChronologically } from '../store/chatStore';
 import toast from 'react-hot-toast';
 import { ReplyPreview } from '../components/chat/ReplyPreview';
+import { queueOutgoingMessage } from '../services/chatSendPipeline';
 import { PrivacyProtection } from '../services/privacyProtection';
 import LiveRecordingBar from '../components/chat/LiveRecordingBar';
 import VoiceNotePlayer from '../components/chat/VoiceNotePlayer';
@@ -1545,7 +1546,7 @@ export default function Messages() {
             }
           });
         } else {
-          PersistentOfflineQueue.enqueue({ ...payload, senderId: user?.id || user?.user_id || '' });
+          queueOutgoingMessage(payload);
         }
       }
     } catch (err: any) {
@@ -3028,17 +3029,16 @@ export default function Messages() {
     }
 
     // ── Step 2: Enqueue to Durable Local Outbox FIRST ──
-    PersistentOfflineQueue.enqueue({
-      messageId,
-      chatId: selectedChat.chat_id,
-      recipientId: selectedChat.partner_id,
-      senderId: user?.id || user?.user_id || '',
-      content: content || (specialType ? `Shared ${specialType}` : ''),
-      type: toServerMessageType(specialType),
-      mediaUrl: mediaUrl,
-      replyToId: currentReplyTo?.message_id,
-      context: 'chat'
-    }).catch((err) => logger.warn('[Sparkle] Outbox persistence warning:', err));
+        queueOutgoingMessage({
+            messageId,
+            chatId: selectedChat.chat_id,
+            recipientId: selectedChat.partner_id,
+            content: content || (specialType ? `Shared ${specialType}` : ''),
+            type: toServerMessageType(specialType),
+            mediaUrl,
+            replyToId: currentReplyTo?.message_id,
+            context: 'chat'
+        });
 
     // Start individual 10-second delivery timeout timer ONLY when we can actually transmit.
     // Offline messages sit in the outbox as 'queued' and flush automatically on reconnect.
@@ -3299,7 +3299,7 @@ export default function Messages() {
             }
           });
         } else {
-          PersistentOfflineQueue.enqueue(payload);
+          queueOutgoingMessage(payload);
         }
       } else {
         updateMessages(prev => prev.map(m =>

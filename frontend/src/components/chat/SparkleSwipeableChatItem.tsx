@@ -115,9 +115,22 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   const chatAvatar = isSelfChat
     ? null
     : (chat.avatar_url || chat.partner_avatar || chat.partner_photo || chat.profile_photo || itemIdentity.avatar);
-  // Live unread counter (standby on load; raised by socket new-message events).
-  const liveUnread = useChatStore((s) => s.unreadCounts[chat.chat_id] || 0);
-  const unreadCount = liveUnread;
+  // Unread for THIS chat, from two sources.
+  //
+  // `unreadCounts` is the live map: it starts empty on every app load and is
+  // only written by socket arrivals, mark-unread, and mark-read. It carries
+  // nothing on first paint.
+  //
+  // `chat.unread_count` is the server's count, carried on the inbox row.
+  //
+  // Reading only the live map meant every card showed 0 on a fresh load while
+  // the hub badge — which sums the server value — reported 18. Same precedence
+  // rule as components/SparkleHub.tsx: the live value wins where the store has
+  // one for this chat, otherwise the server's row is the answer.
+  const liveUnreadRaw = useChatStore((s) => s.unreadCounts[chat.chat_id]);
+  const liveUnread = typeof liveUnreadRaw === 'number' ? liveUnreadRaw : null;
+  const serverUnread = Math.max(0, Number(chat.unread_count) || 0);
+  const unreadCount = liveUnread !== null ? Math.max(liveUnread, serverUnread) : serverUnread;
 
   return (
     <div ref={containerRef} id={domId} className="relative overflow-hidden group select-none">
@@ -239,7 +252,10 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
               {Boolean(chat.is_muted) && <VolumeX size={12} className="text-purple-400 shrink-0" />}
             </h4>
 
-            {liveUnread > 0 && (
+            {/* Gate on the resolved count, not the live map: the live map is
+                empty until the first socket event, which is why a card with 9
+                unread on the server showed no pill at all. */}
+            {unreadCount > 0 && (
               <span
                 className="shrink-0 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#ff1493] text-white text-[11px] font-black leading-none ml-2"
                 aria-label={`${unreadCount} unread messages`}

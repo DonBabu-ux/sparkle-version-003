@@ -914,6 +914,48 @@ const createStream = async (req, res) => {
             [stream_id, streamerId, String(title).trim().slice(0, 255), description || null, resolvedCampus, category || 'general', resolvedStreamUrl, 'live']
         );
 
+        // Broadcast global stream-started event across Socket.IO
+        try {
+            const io = getIO();
+            if (io) {
+                io.emit('global:stream-started', {
+                    streamId: stream_id,
+                    streamerId,
+                    title: String(title).trim().slice(0, 255),
+                    category: category || 'general',
+                    username: userRecord?.username || req.user.username || 'Sparkle Creator',
+                    avatar_url: getSafeAvatarUrl(userRecord?.avatar_url || req.user.avatar_url)
+                });
+            }
+        } catch (_) {}
+
+        // Notify followers about the new live broadcast
+        try {
+            const NotificationService = require('../services/notification.service');
+            const [followerRows] = await pool.query(
+                'SELECT follower_id FROM follows WHERE following_id = ? LIMIT 200',
+                [streamerId]
+            );
+            const followerIds = followerRows.map(r => String(r.follower_id));
+            if (followerIds.length > 0) {
+                const streamerName = req.user.name || req.user.username || 'Someone you follow';
+                await NotificationService.send({
+                    type: 'live_stream',
+                    priority: 'HIGH',
+                    recipients: followerIds,
+                    data: {
+                        title: `${streamerName} is LIVE now! 🔴`,
+                        content: `${String(title).trim().slice(0, 80)}`,
+                        url: `/streams?streamId=${stream_id}`,
+                        streamId: stream_id,
+                        streamerId: String(streamerId)
+                    }
+                });
+            }
+        } catch (notifErr) {
+            logger.warn(`Live stream follower notification failed: ${notifErr.message}`);
+        }
+
         res.status(201).json({ message: 'Stream created', stream_id, stream_url: resolvedStreamUrl });
     } catch (error) {
         serverError(res, error);
@@ -1202,6 +1244,181 @@ exports.trackPollInteraction = async (req, res) => {
     }
 };
 
+const getActiveStreamers = async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT s.stream_id, s.streamer_id, s.title, s.category, s.viewer_count, s.started_at,
+                   u.username, u.name, u.avatar_url
+            FROM live_streams s
+            JOIN users u ON s.streamer_id = u.user_id
+            WHERE s.status = 'live'
+            ORDER BY s.viewer_count DESC
+        `);
+        res.json({
+            activeStreams: rows.map(r => ({
+                stream_id: r.stream_id,
+                streamer_id: r.streamer_id,
+                title: r.title,
+                category: r.category,
+                viewer_count: r.viewer_count,
+                started_at: r.started_at,
+                username: r.username,
+                name: r.name,
+                avatar_url: getSafeAvatarUrl(r.avatar_url)
+            }))
+        });
+    } catch (err) {
+        serverError(res, err, 'getActiveStreamers');
+    }
+};
+
+const getStreamComments = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [comments] = await pool.query(`
+            SELECT c.id, c.content, c.is_pinned, c.created_at,
+                   u.user_id, u.username, u.name, u.avatar_url,
+                   (s.streamer_id = c.user_id) AS is_host,
+                   EXISTS(SELECT 1 FROM live_stream_moderators WHERE stream_id = c.stream_id AND user_id = c.user_id) AS is_moderator
+            FROM live_stream_comments c
+            JOIN users u ON c.user_id = u.user_id
+            JOIN live_streams s ON c.stream_id = s.stream_id
+            WHERE c.stream_id = ? AND c.is_deleted = 0
+            ORDER BY c.created_at DESC
+            LIMIT 50
+        `, [id]);
+        res.json({ comments: comments.reverse() });
+    } catch (err) {
+        serverError(res, err, 'getStreamComments');
+    }
+};
+
+const sendStreamGift = async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        const { id } = req.params;
+        const { giftName, coins, icon } = req.body;
+        const senderId = req.user.user_id || req.user.userId;
+        const coinAmount = Number(coins) || 10;
+
+        const [streams] = await conn.query('SELECT streamer_id, title FROM live_streams WHERE stream_id = ? AND status = "live"', [id]);
+        if (streams.length === 0) {
+            conn.release();
+            return res.status(404).json({ error: 'Stream not found or has ended' });
+        }
+        const streamerId = streams[0].streamer_id;
+        if (String(streamerId) === String(senderId)) {
+            conn.release();
+            return res.status(400).json({ error: 'You cannot send a gift to your own stream' });
+        }
+
+        await conn.beginTransaction();
+
+        // 1. Check sender wallet balance with FOR UPDATE
+        const [senderWallets] = await conn.query(
+            'SELECT available_balance FROM wallets WHERE user_id = ? FOR UPDATE',
+            [senderId]
+        );
+        const centsNeeded = coinAmount * 100;
+        const currentBalance = senderWallets.length ? Number(senderWallets[0].available_balance) : 0;
+
+        if (currentBalance < centsNeeded) {
+            await conn.rollback();
+            conn.release();
+            return res.status(400).json({
+                error: 'Insufficient wallet balance to send gift.',
+                requiredCoins: coinAmount,
+                currentBalanceCents: currentBalance
+            });
+        }
+
+        // Deduct from sender
+        await conn.query(
+            'UPDATE wallets SET available_balance = available_balance - ? WHERE user_id = ?',
+            [centsNeeded, senderId]
+        );
+
+        // Credit to streamer (create wallet if not exists)
+        await conn.query(
+            `INSERT INTO wallets (user_id, available_balance) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE available_balance = available_balance + ?`,
+            [streamerId, centsNeeded, centsNeeded]
+        );
+
+        // Record gift in ledger
+        await conn.query(
+            `INSERT INTO live_stream_gifts (stream_id, sender_id, recipient_id, gift_name, coins)
+             VALUES (?, ?, ?, ?, ?)`,
+            [id, senderId, streamerId, String(giftName || 'Gift').slice(0, 100), coinAmount]
+        );
+
+        await conn.commit();
+        conn.release();
+
+        // Broadcast real-time gift event over Socket.IO
+        try {
+            const io = getIO();
+            if (io) {
+                io.to(`stream:${id}`).emit('stream:gift-received', {
+                    streamId: id,
+                    giftName: giftName || 'Sparkle Gift',
+                    coins: coinAmount,
+                    icon: icon || '🎁',
+                    sender: {
+                        userId: senderId,
+                        username: req.user.username || 'User',
+                        name: req.user.name || req.user.username || 'User',
+                        avatar_url: getSafeAvatarUrl(req.user.avatar_url)
+                    },
+                    timestamp: Date.now()
+                });
+            }
+        } catch (_) {}
+
+        res.json({
+            success: true,
+            message: 'Gift sent successfully',
+            giftName,
+            coins: coinAmount,
+            remainingBalanceCents: currentBalance - centsNeeded
+        });
+    } catch (err) {
+        await conn.rollback().catch(() => {});
+        conn.release();
+        serverError(res, err, 'sendStreamGift');
+    }
+};
+
+const getStreamStats = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [streams] = await pool.query('SELECT * FROM live_streams WHERE stream_id = ?', [id]);
+        if (streams.length === 0) return res.status(404).json({ error: 'Stream not found' });
+        const s = streams[0];
+
+        const [commentCount] = await pool.query('SELECT COUNT(*) as count FROM live_stream_comments WHERE stream_id = ?', [id]);
+        const [giftStats] = await pool.query('SELECT COUNT(*) as gift_count, COALESCE(SUM(coins), 0) as total_coins FROM live_stream_gifts WHERE stream_id = ?', [id]);
+
+        const startMs = new Date(s.started_at).getTime();
+        const endMs = s.ended_at ? new Date(s.ended_at).getTime() : Date.now();
+        const durationSecs = Math.max(0, Math.floor((endMs - startMs) / 1000));
+
+        res.json({
+            stream_id: s.stream_id,
+            title: s.title,
+            category: s.category,
+            status: s.status,
+            viewer_count: s.viewer_count || 0,
+            duration_seconds: durationSecs,
+            total_comments: commentCount[0]?.count || 0,
+            total_gifts: giftStats[0]?.gift_count || 0,
+            total_coins: giftStats[0]?.total_coins || 0
+        });
+    } catch (err) {
+        serverError(res, err, 'getStreamStats');
+    }
+};
+
 module.exports = {
     getPolls,
     getEvents,
@@ -1232,4 +1449,8 @@ module.exports = {
     predictPollWinner: exports.predictPollWinner,
     trackPollInteraction: exports.trackPollInteraction,
     checkLiveEligibility,
+    getActiveStreamers,
+    getStreamComments,
+    sendStreamGift,
+    getStreamStats,
 };

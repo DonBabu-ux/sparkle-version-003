@@ -8,7 +8,8 @@ import AppScreen, { scrollTopTo } from '../components/AppScreen';
 import { useModalStore } from '../store/modalStore';
 import { useFeedStore } from '../store/feedStore';
 import { storyCache, consumeStoryPostedFlag } from '../utils/storyCache';
-import { Image, Video, Smile, Plus, TrendingUp, ChevronRight } from 'lucide-react';
+import { Image, Video, Smile, Plus, TrendingUp, ChevronRight, Eye } from 'lucide-react';
+import { useLiveStore } from '../store/liveStore';
 import VirtualizedFeed from '../components/VirtualizedFeed';
 import Spinner from '../components/ui/Spinner';
 import { useDeviceSeed } from '../hooks/useDeviceSeed';
@@ -98,6 +99,7 @@ function DashboardContent() {
   const navigate = useNavigate();
   const { setActiveModal } = useModalStore();
   const { stories, suggestions, setPosts, appendPosts, prependPosts, setStories, setSuggestions, lastFetched, orderedPostIds, postsById } = useFeedStore();
+  const activeStreams = useLiveStore((s) => s.activeStreams);
   usePullToRefresh('dashboard', () => fetchDashboardData(true, true));
 const posts = orderedPostIds.map(id => postsById[id]);
 
@@ -367,6 +369,40 @@ const posts = orderedPostIds.map(id => postsById[id]);
                     </div>
                   );
                 })()}
+
+                {/* Active LIVE Broadcast Cards in Feed Strip */}
+                {activeStreams.map(stream => (
+                  <div
+                    key={`live_strip_${stream.stream_id}`}
+                    onClick={() => navigate(`/streams?streamId=${stream.stream_id}`)}
+                    className="flex-shrink-0 w-[118px] h-[210px] bg-zinc-950 rounded-xl shadow-lg cursor-pointer group relative overflow-hidden transition-all hover:brightness-105 active:scale-[0.98] border-2 border-[#ff1493] shadow-[0_0_15px_rgba(255,20,147,0.35)]"
+                  >
+                    <div className="h-[158px] w-full overflow-hidden relative bg-black flex items-center justify-center">
+                      <img
+                        src={stream.avatar_url || getAvatarUrl(null, stream.username)}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-75"
+                        alt={stream.username}
+                        onError={(e) => { e.currentTarget.src = getAvatarUrl(null, stream.username); }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+                      <div className="absolute top-2 left-2 bg-[#ff1493] text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        LIVE
+                      </div>
+                      <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md text-white px-1.5 py-0.5 rounded text-[8px] font-bold flex items-center gap-1">
+                        <Eye size={10} className="text-[#ff1493]" />
+                        {stream.viewer_count || 0}
+                      </div>
+                      <div className="absolute bottom-2 left-2 right-2">
+                        <p className="text-[10px] font-black text-white truncate drop-shadow">{stream.title}</p>
+                      </div>
+                    </div>
+                    <div className="h-[52px] w-full flex flex-col items-center justify-center p-2 bg-[#141420] text-center border-t border-white/5">
+                      <span className="text-[10px] font-bold text-white/90 truncate w-full">@{stream.username}</span>
+                      <span className="text-[8px] font-black text-[#ff1493] uppercase tracking-wider">Watch LIVE</span>
+                    </div>
+                  </div>
+                ))}
 
                 {/* Uploading "You" Card — 118×210 */}
                 {activeUploads.length > 0 && (

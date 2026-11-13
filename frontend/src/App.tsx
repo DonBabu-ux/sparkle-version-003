@@ -31,6 +31,7 @@ import UploadNotificationCenter from './components/notifications/UploadNotificat
 import { useSocket } from './hooks/useSocket';
 import { useFeedStore } from './store/feedStore';
 import { useNotificationStore } from './store/notificationStore';
+import { useLiveStore } from './store/liveStore';
 import api from './api/api';
 
 // Phase 1 — Core
@@ -433,6 +434,43 @@ function App() {
     socket.on('new-notification', onNotification);
     return () => {
       socket.off('new-notification', onNotification);
+    };
+  }, [socket]);
+
+  // ── Global Live Stream Presence Synchronization ──
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    useLiveStore.getState().fetchActiveStreams();
+    const interval = setInterval(() => {
+      useLiveStore.getState().fetchActiveStreams();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const onStreamStarted = (data: any) => {
+      useLiveStore.getState().addOrUpdateStream({
+        stream_id: data.streamId,
+        streamer_id: data.streamerId,
+        title: data.title || 'Live Broadcast',
+        category: data.category || 'general',
+        viewer_count: 0,
+        started_at: new Date().toISOString(),
+        username: data.username || 'User',
+        avatar_url: data.avatar_url
+      });
+    };
+    const onStreamEnded = (data: any) => {
+      useLiveStore.getState().removeStream(data.streamId, data.streamerId);
+    };
+
+    socket.on('global:stream-started', onStreamStarted);
+    socket.on('global:stream-ended', onStreamEnded);
+
+    return () => {
+      socket.off('global:stream-started', onStreamStarted);
+      socket.off('global:stream-ended', onStreamEnded);
     };
   }, [socket]);
 

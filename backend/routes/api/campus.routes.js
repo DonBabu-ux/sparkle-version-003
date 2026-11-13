@@ -30,16 +30,20 @@ router.patch('/events/:id', authMiddleware, campusController.updateEvent);      
 router.get('/events/:id/analytics', authMiddleware, campusController.getEventAnalytics);        // NEW - View stats
 router.post('/events/:id/notify', authMiddleware, campusController.notifyAttendees);           // NEW - Send announcement
 
-// ---- Streams (Live Text Updates) ----
+// ---- Streams (Live Video & Audio) ----
 router.get('/streams', campusController.getStreams);                                            // Browse live streams
 router.get('/streams/active', campusController.getStreams);                                     // DashboardAPI Alias
+router.get('/streams/active-users', campusController.getActiveStreamers);                       // Active live streamer IDs for avatars
 router.get('/streams/eligibility', authMiddleware, campusController.checkLiveEligibility);     // Live eligibility check
-router.post('/streams', authMiddleware, campusController.createStream);                         // NEW — create live stream
+router.post('/streams', authMiddleware, campusController.createStream);                         // Create live stream
 router.post('/streams/start', authMiddleware, campusController.createStream);                  // DashboardAPI Alias
-router.post('/streams/:id/updates', authMiddleware, campusController.postStreamUpdate);         // NEW — post update to stream
-router.post('/streams/:id/follow', authMiddleware, campusController.followStream);              // NEW — follow stream for updates
+router.get('/streams/:id/comments', optionalAuthMiddleware, campusController.getStreamComments); // Get stream comments
+router.post('/streams/:id/gift', authMiddleware, campusController.sendStreamGift);              // Send stream gift with wallet
+router.get('/streams/:id/stats', optionalAuthMiddleware, campusController.getStreamStats);      // Get stream statistics
+router.post('/streams/:id/updates', authMiddleware, campusController.postStreamUpdate);         // Post update to stream
+router.post('/streams/:id/follow', authMiddleware, campusController.followStream);              // Follow stream for updates
 router.post('/streams/:id/join', authMiddleware, campusController.followStream);                // DashboardAPI Alias
 router.post('/streams/:id/leave', authMiddleware, (req, res) => res.json({ success: true }));
-router.post('/streams/:id/end', authMiddleware, campusController.endStream);                     // NEW
+router.post('/streams/:id/end', authMiddleware, campusController.endStream);                     // End stream
 
 module.exports = router;

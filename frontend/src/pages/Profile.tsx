@@ -9,9 +9,10 @@ import FollowListModal from '../components/modals/FollowListModal';
 import { useModalStore } from '../store/modalStore';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
-import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera, ShieldCheck, LayoutGrid,
+import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera, ShieldCheck, LayoutGrid, Radio,
 List, FileText, MoreHorizontal, Pin, Layers
 } from 'lucide-react';
+import { useLiveStore } from '../store/liveStore';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import SparkleHub from '../components/SparkleHub';
@@ -96,6 +97,12 @@ export default function Profile() {
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
   const identity = IdentityManager.resolveIdentity(profile);
+
+  const isUserLive = useLiveStore(state => state.isUserLive);
+  const getStreamForUser = useLiveStore(state => state.getStreamForUser);
+  const targetProfileId = profile?.user_id || profile?.id;
+  const isProfileLive = isUserLive(targetProfileId);
+  const profileLiveStream = getStreamForUser(targetProfileId);
 
   const handleOpenChat = async () => {
     const targetId = profile?.user_id || profile?.id;
@@ -547,22 +554,32 @@ export default function Profile() {
               {/* Avatar Column */}
               <div className="relative shrink-0">
                 <div
-                  className={`w-24 h-24 md:w-36 md:h-36 rounded-full shadow-2xl cursor-pointer ${profile?.has_story ? 'p-1 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : ''}`}
+                  className={`w-24 h-24 md:w-36 md:h-36 rounded-full shadow-2xl cursor-pointer ${isProfileLive ? 'p-1 ring-4 ring-[#ff1493] ring-offset-4 ring-offset-white dark:ring-offset-zinc-900 shadow-[0_0_25px_rgba(255,20,147,0.6)] animate-pulse' : profile?.has_story ? 'p-1 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : ''}`}
                   onClick={() => {
-                    if (profile?.has_story) setShowAvatarMenu(true);
-                    else setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
+                    if (isProfileLive) {
+                      navigate(`/streams?streamId=${profileLiveStream?.stream_id || ''}`);
+                    } else if (profile?.has_story) {
+                      setShowAvatarMenu(true);
+                    } else {
+                      setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
+                    }
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      if (profile?.has_story) setShowAvatarMenu(true);
-                      else setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
+                      if (isProfileLive) {
+                        navigate(`/streams?streamId=${profileLiveStream?.stream_id || ''}`);
+                      } else if (profile?.has_story) {
+                        setShowAvatarMenu(true);
+                      } else {
+                        setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
+                      }
                     }
                   }}
                   role="button"
                   tabIndex={0}
                 >
-                  <div className={`w-full h-full rounded-full ${profile?.has_story ? 'p-1 bg-white dark:bg-zinc-900' : ''}`}>
+                  <div className={`w-full h-full rounded-full ${isProfileLive ? 'p-0.5 bg-white dark:bg-zinc-900' : profile?.has_story ? 'p-1 bg-white dark:bg-zinc-900' : ''}`}>
                     <img
                       src={identity.avatar}
                       alt={profile?.username ? `${profile.username}'s profile picture` : 'Profile picture'}
@@ -570,6 +587,14 @@ export default function Profile() {
                     />
                   </div>
                 </div>
+
+                {/* Pulsing LIVE Pill Overlay */}
+                {isProfileLive && (
+                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#ff1493] text-white text-[9px] font-black px-3 py-0.5 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1.5 border-2 border-white dark:border-zinc-900 pointer-events-none z-20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                    LIVE
+                  </span>
+                )}
 
                 {/* Avatar Quick Edit Badge for Owner */}
                 {showOwnerActions && (
@@ -704,7 +729,16 @@ export default function Profile() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isProfileLive && (
+                        <button
+                          onClick={() => navigate(`/streams?streamId=${profileLiveStream?.stream_id || ''}`)}
+                          className="px-6 py-3 bg-[#ff1493] hover:bg-[#ff2d87] active:scale-95 rounded-lg text-xs font-black text-white transition-all shadow-lg shadow-[#ff1493]/30 uppercase tracking-widest flex items-center gap-2 animate-pulse"
+                        >
+                          <Radio size={14} className="text-white" />
+                          <span>Watch LIVE</span>
+                        </button>
+                      )}
                       {isFollowing ? (
                         <button onClick={handleFollowToggle} className="px-6 py-3 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-[#18181b] dark:text-white transition-all uppercase tracking-widest border border-black/5 dark:border-white/5">
                           Following

@@ -45,6 +45,48 @@ const handleCallEvents = (io, socket) => {
             const target = String(targetId);
             if (target === uid) return;
 
+            // 1. Check user blocks (blocking privacy restriction)
+            try {
+                const [blocks] = await pool.query(
+                    'SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)',
+                    [target, uid, uid, target]
+                );
+                if (blocks.length > 0) {
+                    socket.emit('call:unavailable', { callId, targetId: target, reason: 'blocked' });
+                    return;
+                }
+            } catch (err) {
+                logger.warn(`Block check failed: ${err.message}`);
+            }
+
+            // 2. Check callee call privacy settings (e.g. silence unknown callers)
+            try {
+                const [targetUser] = await pool.query(
+                    'SELECT settings FROM users WHERE user_id = ?',
+                    [target]
+                );
+                if (targetUser.length && targetUser[0].settings) {
+                    let s = targetUser[0].settings;
+                    if (typeof s === 'string') {
+                        try { s = JSON.parse(s); } catch (_) {}
+                    }
+                    if (s.silence_unknown_callers) {
+                        // Check if callee follows the caller
+                        const [follows] = await pool.query(
+                            'SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?',
+                            [target, uid]
+                        );
+                        if (follows.length === 0) {
+                            socket.emit('call:unavailable', { callId, targetId: target, reason: 'silenced' });
+                            return;
+                        }
+                    }
+                }
+            } catch (err) {
+                logger.warn(`Privacy check failed: ${err.message}`);
+            }
+
+            // 3. Busy check
             if (userCall.has(uid) || userCall.has(target)) {
                 socket.emit('call:busy', { callId, targetId: target });
                 return;
@@ -59,7 +101,7 @@ const handleCallEvents = (io, socket) => {
                 startedAt: Date.now(),
             });
 
-            // Persist call session to database
+            // 4. Persist call session to database
             try {
                 await pool.query(
                     `INSERT INTO call_sessions (call_id, caller_id, callee_id, mode, status)
@@ -71,6 +113,7 @@ const handleCallEvents = (io, socket) => {
                 logger.warn(`call_sessions insert failed: ${dbErr.message}`);
             }
 
+            // 5. Emit real-time invite to callee
             io.to(`user:${target}`).emit('call:invite', {
                 callId,
                 callerId: uid,
@@ -80,10 +123,7 @@ const handleCallEvents = (io, socket) => {
                 callerAvatar: callerAvatar || null,
             });
 
-            // FCM fallback so the callee rings when the app is backgrounded
-            // (the socket event only reaches a live connection).
-            // Include full call metadata so the client can display the native
-            // incoming-call notification with caller info and deep-link back.
+            // 6. FCM push notification fallback for backgrounded devices
             try {
                 await NotificationService.send({
                     type: 'incoming_call',
@@ -93,14 +133,13 @@ const handleCallEvents = (io, socket) => {
                         title: `${callerName || socket.user?.username || 'Someone'} is calling`,
                         content: mode === 'video' ? '📹 Incoming video call' : '📞 Incoming voice call',
                         url: '/messages',
-                        // Call metadata for client-side native call handling
                         callId: String(callId),
                         callerId: uid,
                         callerName: callerName || socket.user?.username || 'Sparkle User',
                         callerAvatar: callerAvatar || '',
                         callMode: mode === 'video' ? 'video' : 'voice',
                         callType: mode === 'video' ? 'video' : 'voice',
-                        expiresAt: String(Date.now() + 35000), // 35s expiry matches OUTGOING_NO_ANSWER_MS
+                        expiresAt: String(Date.now() + 35000),
                     },
                 });
             } catch (pushErr) {
@@ -111,13 +150,22 @@ const handleCallEvents = (io, socket) => {
         }
     });
 
+    // Callee alerts caller that the incoming call is ringing on device
+    socket.on('call:ringing', ({ callId, targetId }) => {
+        if (!isValidId(callId) || !isValidId(targetId)) return;
+        io.to(`user:${String(targetId)}`).emit('call:ringing', { callId });
+    });
+
+    // Callee accepts the call
     socket.on('call:accept', async (data) => {
         try {
             const { callId, targetId, sdp } = data || {};
             if (!isValidId(callId) || !sdp) return;
             const call = activeCalls.get(callId);
             if (!call || String(call.calleeId) !== uid) return;
+
             io.to(`user:${String(targetId)}`).emit('call:accept', { callId, calleeId: uid, sdp });
+
             // Persist accepted state
             try {
                 await pool.query(
@@ -132,6 +180,7 @@ const handleCallEvents = (io, socket) => {
         }
     });
 
+    // WebRTC ICE Candidate relay
     socket.on('call:ice', (data) => {
         try {
             const { callId, targetId, candidate } = data || {};
@@ -144,19 +193,21 @@ const handleCallEvents = (io, socket) => {
         }
     });
 
+    // Callee rejects call
     socket.on('call:reject', async (data) => {
         try {
-            const { callId, targetId } = data || {};
+            const { callId, targetId, reason } = data || {};
             if (!isValidId(callId) || !isValidId(targetId)) return;
             const call = activeCalls.get(callId);
             if (!call) return;
-            io.to(`user:${String(targetId)}`).emit('call:reject', { callId, reason: 'declined' });
+            io.to(`user:${String(targetId)}`).emit('call:reject', { callId, reason: reason || 'declined' });
             releaseCall(callId);
+
             // Persist rejected state
             try {
                 await pool.query(
-                    `UPDATE call_sessions SET status='rejected', ended_at=NOW() WHERE call_id=?`,
-                    [String(callId)]
+                    `UPDATE call_sessions SET status='rejected', ended_at=NOW(), end_reason=? WHERE call_id=?`,
+                    [reason || 'declined', String(callId)]
                 );
             } catch (dbErr) {
                 logger.warn(`call_sessions reject update failed: ${dbErr.message}`);
@@ -166,13 +217,39 @@ const handleCallEvents = (io, socket) => {
         }
     });
 
+    // Caller cancels call before callee answers
+    socket.on('call:cancel', async (data) => {
+        try {
+            const { callId, targetId } = data || {};
+            if (!isValidId(callId) || !isValidId(targetId)) return;
+            const call = activeCalls.get(callId);
+            if (!call) return;
+
+            io.to(`user:${String(targetId)}`).emit('call:cancel', { callId });
+            releaseCall(callId);
+
+            try {
+                await pool.query(
+                    `UPDATE call_sessions SET status='cancelled', ended_at=NOW() WHERE call_id=?`,
+                    [String(callId)]
+                );
+            } catch (dbErr) {
+                logger.warn(`call_sessions cancel update failed: ${dbErr.message}`);
+            }
+        } catch (err) {
+            logger.error(`call:cancel error: ${err.message}`);
+        }
+    });
+
+    // Active call end / termination
     socket.on('call:end', async (data) => {
         try {
             const { callId, targetId } = data || {};
             if (!isValidId(callId) || !isValidId(targetId)) return;
             io.to(`user:${String(targetId)}`).emit('call:end', { callId });
             releaseCall(callId);
-            // Persist ended state: if call was accepted/active → ended with duration;
+
+            // Persist ended state: if accepted/active → ended with duration;
             // if still ringing → missed (caller hung up before answer).
             try {
                 await pool.query(
@@ -195,6 +272,39 @@ const handleCallEvents = (io, socket) => {
         }
     });
 
+    // Microphone mute sync
+    socket.on('call:mute', ({ callId, targetId, isMuted }) => {
+        if (!isValidId(callId) || !isValidId(targetId)) return;
+        io.to(`user:${String(targetId)}`).emit('call:mute', { callId, isMuted: Boolean(isMuted) });
+    });
+
+    // Camera on/off sync
+    socket.on('call:camera', ({ callId, targetId, isCameraOn }) => {
+        if (!isValidId(callId) || !isValidId(targetId)) return;
+        io.to(`user:${String(targetId)}`).emit('call:camera', { callId, isCameraOn: Boolean(isCameraOn) });
+    });
+
+    // Voice-to-Video upgrade request
+    socket.on('call:upgrade-video', ({ callId, targetId }) => {
+        if (!isValidId(callId) || !isValidId(targetId)) return;
+        io.to(`user:${String(targetId)}`).emit('call:upgrade-video', { callId, requesterId: uid });
+    });
+
+    // Voice-to-Video upgrade response
+    socket.on('call:upgrade-response', async ({ callId, targetId, accepted, sdp }) => {
+        if (!isValidId(callId) || !isValidId(targetId)) return;
+        io.to(`user:${String(targetId)}`).emit('call:upgrade-response', { callId, accepted: Boolean(accepted), sdp });
+        if (accepted) {
+            try {
+                await pool.query(
+                    `UPDATE call_sessions SET mode='video' WHERE call_id=?`,
+                    [String(callId)]
+                );
+            } catch (_) {}
+        }
+    });
+
+    // Disconnect cleanup
     socket.on('disconnect', async () => {
         try {
             const callId = userCall.get(uid);
@@ -204,7 +314,6 @@ const handleCallEvents = (io, socket) => {
                 const peer = String(call.callerId) === uid ? String(call.calleeId) : String(call.callerId);
                 io.to(`user:${peer}`).emit('call:end', { callId, reason: 'peer-disconnected' });
                 logger.info(`📞 Call ${callId} released on disconnect of ${uid}`);
-                // Persist terminal state: active call → ended, ringing call → missed
                 try {
                     await pool.query(
                         `UPDATE call_sessions

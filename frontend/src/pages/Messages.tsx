@@ -375,7 +375,8 @@ export default function Messages() {
   const appThemeMode = useUserStore((s) => s.theme);
   useModalStore();
   const socket = useSocket();
-  const { startCall } = useCall();
+  const { startCall, callHistory } = useCall();
+  const [callsSubFilter, setCallsSubFilter] = useState<'all' | 'missed'>('all');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { targetId: routeTargetId } = useParams();
@@ -1213,9 +1214,16 @@ export default function Messages() {
   const [tabOrder, setTabOrder] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('sparkle_tab_order');
-      return saved ? JSON.parse(saved) : ['all', 'unread', 'groups', 'archived'];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && !parsed.includes('calls')) {
+          parsed.splice(parsed.includes('archived') ? parsed.indexOf('archived') : parsed.length, 0, 'calls');
+        }
+        return parsed;
+      }
+      return ['all', 'unread', 'groups', 'calls', 'archived'];
     } catch {
-      return ['all', 'unread', 'groups', 'archived'];
+      return ['all', 'unread', 'groups', 'calls', 'archived'];
     }
   });
   const [hiddenTabs, setHiddenTabs] = useState<string[]>(() => {
@@ -3149,6 +3157,7 @@ export default function Messages() {
       all: 'All',
       unread: 'Unread',
       groups: 'Groups',
+      calls: 'Calls',
       archived: 'Archived'
     };
 
@@ -3425,6 +3434,110 @@ export default function Messages() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : activeFilter === 'calls' ? (
+              <div className="py-2 px-1 space-y-3">
+                {/* Sub filter tabs: All vs Missed */}
+                <div className="flex items-center gap-2 px-2 pb-1">
+                  <button
+                    onClick={() => setCallsSubFilter('all')}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                      callsSubFilter === 'all'
+                        ? 'bg-[#ff1493] text-white shadow-sm'
+                        : 'bg-white/5 text-white/60 hover:text-white'
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setCallsSubFilter('missed')}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                      callsSubFilter === 'missed'
+                        ? 'bg-red-500 text-white shadow-sm'
+                        : 'bg-white/5 text-white/60 hover:text-white'
+                    }`}
+                  >
+                    Missed
+                  </button>
+                </div>
+
+                {/* Calls list */}
+                {(() => {
+                  const filteredCalls = (callHistory || []).filter(c =>
+                    callsSubFilter === 'all' || c.state === 'missed'
+                  );
+                  if (filteredCalls.length === 0) {
+                    return (
+                      <div className="py-16 text-center text-white/40 text-xs flex flex-col items-center gap-2">
+                        <Phone size={28} className="text-white/20 mb-1" />
+                        <p className="font-bold text-white/60">No call history</p>
+                        <p className="text-[11px] text-white/40">Calls you make or receive will appear here.</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="space-y-1">
+                      {filteredCalls.map(entry => {
+                        const isMissed = entry.state === 'missed';
+                        const isVideo = entry.mode === 'video';
+                        const isOut = entry.direction === 'outgoing';
+                        const timeStr = new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const dateStr = new Date(entry.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                        return (
+                          <div
+                            key={entry.id}
+                            onClick={() => {
+                              const matchedChat = conversations.find(c => c.partner_id === entry.partnerId || c.user_id === entry.partnerId);
+                              if (matchedChat) {
+                                setSelectedChat(matchedChat);
+                                navigate(`/messages?chat=${matchedChat.chat_id}`);
+                              }
+                            }}
+                            className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/[0.05] transition-colors cursor-pointer group"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <img
+                                src={getAvatarUrl(entry.partnerAvatar || null, entry.partnerName)}
+                                className="w-11 h-11 rounded-full object-cover border border-white/10 shrink-0"
+                                alt=""
+                              />
+                              <div className="min-w-0">
+                                <p className={`text-sm font-bold truncate ${isMissed ? 'text-red-400' : 'text-white'}`}>
+                                  {entry.partnerName}
+                                </p>
+                                <div className="flex items-center gap-1.5 text-xs text-white/50 mt-0.5">
+                                  <span className={isMissed ? 'text-red-400 font-bold' : isOut ? 'text-emerald-400' : 'text-cyan-400'}>
+                                    {isOut ? '↗' : '↙'}
+                                  </span>
+                                  <span>{entry.mode === 'video' ? 'Video' : 'Voice'}</span>
+                                  <span>·</span>
+                                  <span>{dateStr}, {timeStr}</span>
+                                  {entry.duration > 0 && entry.state === 'ended' && (
+                                    <>
+                                      <span>·</span>
+                                      <span>{Math.floor(entry.duration / 60)}:{String(entry.duration % 60).padStart(2, '0')}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startCall(entry.partnerId, entry.mode, entry.partnerName, entry.partnerAvatar);
+                              }}
+                              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 hover:text-[#ff1493] transition-colors shrink-0"
+                              title={`Call back (${entry.mode})`}
+                            >
+                              {isVideo ? <Video size={16} /> : <Phone size={16} />}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               Array.isArray(filteredConversations) && filteredConversations.map((chat) => (
@@ -3908,27 +4021,54 @@ export default function Messages() {
                         failed: isVoice ? 'Failed voice call' : 'Failed video call',
                       };
 
+                      const partnerTargetId = isMineCall
+                        ? (msg.recipient_id || msg.recipientId || selectedChat?.user_id)
+                        : (msg.sender_id || msg.senderId);
+                      const isMissed = outcome === 'missed';
+
                       const callBubble = (
                         <div
                           key={msgId || `call-${i}`}
                           className={clsx('flex items-center my-1.5', marginTopClass, isMineCall ? 'justify-end' : 'justify-start')}
                         >
-                          <div className={clsx(
-                            'flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-semibold max-w-[220px] shadow-sm border',
-                            isMineCall
-                              ? 'bg-[#ff1493]/10 border-[#ff1493]/20 text-white/90 rounded-br-sm'
-                              : 'bg-white/[0.08] border-white/[0.12] text-white/80 rounded-bl-sm'
-                          )}>
-                            {isVoice
-                              ? <Phone size={14} className={colorMap[outcome] || 'text-emerald-400'} />
-                              : <Video size={14} className={colorMap[outcome] || 'text-emerald-400'} />
-                            }
-                            <span className="flex flex-col leading-tight">
-                              <span className={clsx('font-bold', colorMap[outcome] || 'text-emerald-400')}>
+                          <div
+                            onClick={() => {
+                              if (partnerTargetId) {
+                                startCall(
+                                  String(partnerTargetId),
+                                  isVoice ? 'voice' : 'video',
+                                  selectedChat?.user_name || selectedChat?.name,
+                                  selectedChat?.avatar_url
+                                );
+                              }
+                            }}
+                            className={clsx(
+                              'flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-semibold max-w-[240px] shadow-sm border cursor-pointer active:scale-95 transition-all',
+                              isMineCall
+                                ? 'bg-[#ff1493]/10 border-[#ff1493]/20 hover:border-[#ff1493]/40 text-white/90 rounded-br-sm'
+                                : isMissed
+                                ? 'bg-red-500/10 border-red-500/30 hover:border-red-500/60 text-white/90 rounded-bl-sm'
+                                : 'bg-white/[0.08] border-white/[0.12] hover:border-white/25 text-white/80 rounded-bl-sm'
+                            )}
+                          >
+                            <div className={clsx(
+                              'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                              isMissed ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-emerald-400'
+                            )}>
+                              {isVoice
+                                ? <Phone size={14} className={colorMap[outcome] || 'text-emerald-400'} />
+                                : <Video size={14} className={colorMap[outcome] || 'text-emerald-400'} />
+                              }
+                            </div>
+                            <span className="flex flex-col leading-tight min-w-0">
+                              <span className={clsx('font-bold truncate', colorMap[outcome] || 'text-emerald-400')}>
                                 {isMineCall ? '↗ ' : '↙ '}{labelMap[outcome] || (isVoice ? 'Voice call' : 'Video call')}
                               </span>
                               {durationSec > 0 && outcome === 'completed' && (
-                                <span className="text-[10px] text-white/50 font-normal">{formatDur(durationSec)}</span>
+                                <span className="text-[10px] text-white/50 font-normal mt-0.5">{formatDur(durationSec)}</span>
+                              )}
+                              {isMissed && (
+                                <span className="text-[9px] text-red-400/90 font-bold mt-0.5 uppercase tracking-wider">Tap to call back</span>
                               )}
                             </span>
                           </div>

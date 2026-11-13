@@ -55,6 +55,7 @@ router.get('/health', async (req, res) => {
 });
 router.use('/users', userRoutes);
 router.use('/messages', messagesRoutes);
+router.use('/calls', require('./calls.routes'));
 router.use('/groupChat', groupChatRoutes);
 router.use('/posts', postsRoutes);
 router.use('/stories', storiesRoutes);

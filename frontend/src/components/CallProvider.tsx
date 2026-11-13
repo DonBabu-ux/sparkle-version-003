@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode, useCallback } from 'react';
 import type { Socket } from 'socket.io-client';
 import { useSocket } from '../hooks/useSocket';
 import { useUserStore } from '../store/userStore';
@@ -19,6 +19,8 @@ export type CallState =
   | 'missed'
   | 'ended';
 
+export type AudioRouteType = 'speaker' | 'earpiece' | 'bluetooth' | 'headphones';
+
 export interface CallHistoryEntry {
   id: string;
   partnerId: string;
@@ -29,6 +31,15 @@ export interface CallHistoryEntry {
   state: CallState;
   timestamp: number;
   duration: number;
+}
+
+export interface CallWaitingInfo {
+  callId: string;
+  callerId: string;
+  callerName: string;
+  callerAvatar?: string;
+  mode: CallMode;
+  sdp: RTCSessionDescriptionInit;
 }
 
 interface CallContextProps {
@@ -54,12 +65,27 @@ interface CallContextProps {
   isBluetoothOn: boolean;
   isCameraOn: boolean;
   isFrontCamera: boolean;
+  isRemoteMuted: boolean;
+  isRemoteCameraOn: boolean;
   isMinimized: boolean;
   setMinimized: (minimized: boolean) => void;
   callHistory: CallHistoryEntry[];
   clearHistory: () => void;
   remoteStream: MediaStream | null;
   localStream: MediaStream | null;
+  // Audio routing & devices
+  availableAudioDevices: MediaDeviceInfo[];
+  selectedAudioDeviceId: string | null;
+  audioRoute: AudioRouteType;
+  selectAudioDevice: (deviceId: string) => Promise<void>;
+  // Call upgrade
+  videoUpgradeRequested: boolean;
+  requestVideoUpgrade: () => void;
+  respondVideoUpgrade: (accepted: boolean) => void;
+  // Call waiting
+  callWaiting: CallWaitingInfo | null;
+  acceptCallWaiting: () => void;
+  declineCallWaiting: () => void;
 }
 
 const CallContext = createContext<CallContextProps | null>(null);
@@ -67,6 +93,7 @@ const CallContext = createContext<CallContextProps | null>(null);
 const ICE_CONFIG: RTCConfiguration = {
   iceServers: [
     { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+    { urls: ['stun:stun.cloudflare.com:3478'] },
   ],
 };
 
@@ -118,13 +145,24 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
   const [isBluetoothOn, setBluetooth] = useState(false);
   const [isCameraOn, setCamera] = useState(true);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const [isRemoteMuted, setIsRemoteMuted] = useState(false);
+  const [isRemoteCameraOn, setIsRemoteCameraOn] = useState(true);
   const [isMinimized, setMinimized] = useState(false);
   const [callHistory, setCallHistory] = useState<CallHistoryEntry[]>([]);
+
+  // Audio Device Routing
+  const [availableAudioDevices, setAvailableAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState<string | null>(null);
+  const [audioRoute, setAudioRoute] = useState<AudioRouteType>('speaker');
+
+  // Video Upgrade & Call Waiting
+  const [videoUpgradeRequested, setVideoUpgradeRequested] = useState(false);
+  const [callWaiting, setCallWaiting] = useState<CallWaitingInfo | null>(null);
 
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
-  // ── Refs (read by socket handlers without stale closures) ──
+  // ── Refs ──
   const stateRef = useRef<CallState>('idle');
   const callRef = useRef<ActiveCall | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -149,13 +187,55 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const emit = (event: string, payload: Record<string, unknown>) => {
+  const emit = useCallback((event: string, payload: Record<string, unknown>) => {
     socketRef.current?.emit(event, payload);
-  };
+  }, []);
 
   const applyState = (next: CallState) => {
     stateRef.current = next;
     setState(next);
+  };
+
+  // ── Audio Devices Enumeration ──
+  const enumerateAudioDevices = useCallback(async () => {
+    try {
+      if (navigator.mediaDevices?.enumerateDevices) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+        setAvailableAudioDevices(audioOutputs);
+      }
+    } catch (_) {}
+  }, []);
+
+  useEffect(() => {
+    enumerateAudioDevices();
+    navigator.mediaDevices?.addEventListener?.('devicechange', enumerateAudioDevices);
+    return () => {
+      navigator.mediaDevices?.removeEventListener?.('devicechange', enumerateAudioDevices);
+    };
+  }, [enumerateAudioDevices]);
+
+  const selectAudioDevice = async (deviceId: string) => {
+    setSelectedAudioDeviceId(deviceId);
+    const dev = availableAudioDevices.find(d => d.deviceId === deviceId);
+    const label = (dev?.label || '').toLowerCase();
+    if (label.includes('bluetooth') || label.includes('bt') || label.includes('airpod')) {
+      setAudioRoute('bluetooth');
+      setBluetooth(true);
+      setSpeaker(false);
+    } else if (label.includes('speaker')) {
+      setAudioRoute('speaker');
+      setSpeaker(true);
+      setBluetooth(false);
+    } else if (label.includes('headphone') || label.includes('headset')) {
+      setAudioRoute('headphones');
+      setSpeaker(false);
+      setBluetooth(false);
+    } else {
+      setAudioRoute('earpiece');
+      setSpeaker(false);
+      setBluetooth(false);
+    }
   };
 
   const teardownMedia = () => {
@@ -190,6 +270,8 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     pendingOfferRef.current = null;
     pendingIceRef.current = [];
     callRef.current = null;
+    setVideoUpgradeRequested(false);
+    setCallWaiting(null);
   };
 
   const finish = (nextState: CallState, tone: 'completed' | 'hangup' | 'busy') => {
@@ -270,7 +352,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     return pc;
   };
 
-  // ── Apply mute/camera flags to live tracks whenever they change ──
+  // ── Apply mute/camera flags to live tracks ──
   useEffect(() => {
     localStreamRef.current?.getAudioTracks().forEach((t) => {
       t.enabled = !isMuted;
@@ -278,18 +360,45 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     localStreamRef.current?.getVideoTracks().forEach((t) => {
       t.enabled = isCameraOn;
     });
-  }, [isMuted, isCameraOn, localStream]);
+    // Emit real-time status to peer
+    if (callRef.current && stateRef.current === 'connected') {
+      emit('call:mute', { callId: callRef.current.callId, targetId: callRef.current.peerId, isMuted });
+      emit('call:camera', { callId: callRef.current.callId, targetId: callRef.current.peerId, isCameraOn });
+    }
+  }, [isMuted, isCameraOn, localStream, emit]);
 
-  // ── Load history from localStorage ──
+  // ── Load history from backend & localStorage ──
   useEffect(() => {
     try {
       const stored = localStorage.getItem('sparkle_call_history');
       if (stored) {
         setCallHistory(JSON.parse(stored));
       }
-    } catch (e) {
-      logger.error('Failed to load call history', e);
-    }
+    } catch (_) {}
+
+    // Also fetch authoritative backend call history
+    api.get('/calls/history')
+      .then(res => {
+        if (res.data?.success && Array.isArray(res.data.history)) {
+          const backendEntries: CallHistoryEntry[] = res.data.history.map((h: any) => ({
+            id: h.call_id || h.id,
+            partnerId: h.partner?.user_id || '',
+            partnerName: h.partner?.name || h.partner?.username || 'User',
+            partnerAvatar: h.partner?.avatar_url,
+            mode: h.mode === 'video' ? 'video' : 'voice',
+            direction: h.direction || 'outgoing',
+            state: h.status === 'ended' ? 'ended' : h.status === 'missed' ? 'missed' : h.status === 'rejected' ? 'declined' : 'ended',
+            timestamp: new Date(h.started_at).getTime(),
+            duration: h.duration_seconds || 0,
+          }));
+          setCallHistory(prev => {
+            const combined = [...backendEntries, ...prev];
+            const deduped = Array.from(new Map(combined.map(item => [item.id, item])).values());
+            return deduped.slice(0, 100);
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const saveCallToLog = (finalState: CallState, durationSecs: number) => {
@@ -300,9 +409,9 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     const callMode = mode || 'voice';
     const callDir = direction || 'outgoing';
     const entry: CallHistoryEntry = {
-      id: Math.random().toString(36).slice(2, 11),
+      id: callRef.current?.callId || Math.random().toString(36).slice(2, 11),
       partnerId: pid,
-      partnerName: partnerName || 'Unknown User',
+      partnerName: partnerName || 'Sparkle User',
       partnerAvatar: partnerAvatar || undefined,
       mode: callMode,
       direction: callDir,
@@ -310,8 +419,9 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       timestamp: Date.now(),
       duration: durationSecs,
     };
+
     setCallHistory((prev) => {
-      const updated = [entry, ...prev].slice(0, 50);
+      const updated = [entry, ...prev.filter(e => e.id !== entry.id)].slice(0, 100);
       try {
         localStorage.setItem('sparkle_call_history', JSON.stringify(updated));
       } catch (e) {
@@ -320,8 +430,6 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       return updated;
     });
 
-    // Persist call log bubble to chat via backend message API
-    // so both participants see it in their conversation history
     const outcome = finalState === 'ended' ? 'completed'
       : finalState === 'missed' ? 'missed'
       : finalState === 'declined' ? 'declined'
@@ -345,7 +453,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('sparkle_call_history');
   };
 
-  // ── State-machine side effects (real transitions only — no simulation) ──
+  // ── State machine timer & duration side effects ──
   useEffect(() => {
     if (transitionTimerRef.current !== null) {
       window.clearTimeout(transitionTimerRef.current);
@@ -376,7 +484,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       transitionTimerRef.current = window.setTimeout(() => {
         transitionTimerRef.current = null;
         if (stateRef.current === state) applyState('ended');
-      }, 2000);
+      }, 2500);
       return;
     }
 
@@ -392,7 +500,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  // ── Socket signaling listeners ──
+  // ── Socket Signaling Handlers ──
   useEffect(() => {
     if (!socket) return;
 
@@ -408,8 +516,19 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       const callerId = data?.callerId !== undefined && data?.callerId !== null ? String(data.callerId) : null;
       if (!callId || !callerId || !data?.sdp) return;
 
-      // Already in a call (or mid-transition) → auto-reject so the caller
-      // gets an immediate busy instead of a silent ring.
+      // Call Waiting handling if already in a call:
+      if (stateRef.current === 'connected') {
+        setCallWaiting({
+          callId,
+          callerId,
+          callerName: data.callerName || 'Someone',
+          callerAvatar: data.callerAvatar || undefined,
+          mode: data.mode === 'video' ? 'video' : 'voice',
+          sdp: data.sdp,
+        });
+        return;
+      }
+
       if (stateRef.current !== 'idle' || pcRef.current || callRef.current) {
         emit('call:reject', { callId, targetId: callerId, reason: 'busy' });
         return;
@@ -432,8 +551,14 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       setBluetooth(false);
       setCamera(callMode === 'video');
       setIsFrontCamera(true);
+      setIsRemoteMuted(false);
+      setIsRemoteCameraOn(true);
       setMinimized(false);
       applyState('ringing');
+
+      // Alert caller that call is ringing
+      emit('call:ringing', { callId, targetId: callerId });
+
       try {
         AudioSessionManager.startIncomingCall();
       } catch (e) {
@@ -448,6 +573,14 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
           finish('missed', 'hangup');
         }
       }, INCOMING_RING_MS);
+    };
+
+    const onRinging = (data: { callId?: string }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      if (stateRef.current === 'calling') {
+        applyState('ringing');
+      }
     };
 
     const onAccept = (data: { callId?: string; calleeId?: string | number; sdp?: RTCSessionDescriptionInit }) => {
@@ -491,10 +624,28 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
+    const onCancel = (data: { callId?: string }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      finish('missed', 'hangup');
+    };
+
     const onBusy = (data: { callId?: string }) => {
       const call = callRef.current;
       if (!call || !data?.callId || String(data.callId) !== call.callId) return;
       failCall('User is busy', 'busy');
+    };
+
+    const onUnavailable = (data: { callId?: string; reason?: string }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      if (data.reason === 'blocked') {
+        failCall('Call unavailable');
+      } else if (data.reason === 'silenced') {
+        failCall('User has silenced unknown callers');
+      } else {
+        failCall('User is currently unavailable');
+      }
     };
 
     const onEnd = (data: { callId?: string; reason?: string }) => {
@@ -504,22 +655,68 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       finish('ended', wasConnected ? 'completed' : 'hangup');
     };
 
+    const onPeerMute = (data: { callId?: string; isMuted?: boolean }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      setIsRemoteMuted(Boolean(data.isMuted));
+    };
+
+    const onPeerCamera = (data: { callId?: string; isCameraOn?: boolean }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      setIsRemoteCameraOn(Boolean(data.isCameraOn));
+    };
+
+    const onUpgradeVideo = (data: { callId?: string }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      setVideoUpgradeRequested(true);
+    };
+
+    const onUpgradeResponse = async (data: { callId?: string; accepted?: boolean; sdp?: RTCSessionDescriptionInit }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      if (data.accepted) {
+        setMode('video');
+        setCamera(true);
+        if (data.sdp && pcRef.current) {
+          try {
+            await pcRef.current.setRemoteDescription(data.sdp);
+          } catch (_) {}
+        }
+      }
+    };
+
     socket.on('call:invite', onInvite);
+    socket.on('call:ringing', onRinging);
     socket.on('call:accept', onAccept);
     socket.on('call:ice', onIce);
     socket.on('call:reject', onReject);
+    socket.on('call:cancel', onCancel);
     socket.on('call:busy', onBusy);
+    socket.on('call:unavailable', onUnavailable);
     socket.on('call:end', onEnd);
+    socket.on('call:mute', onPeerMute);
+    socket.on('call:camera', onPeerCamera);
+    socket.on('call:upgrade-video', onUpgradeVideo);
+    socket.on('call:upgrade-response', onUpgradeResponse);
 
     return () => {
       socket.off('call:invite', onInvite);
+      socket.off('call:ringing', onRinging);
       socket.off('call:accept', onAccept);
       socket.off('call:ice', onIce);
       socket.off('call:reject', onReject);
+      socket.off('call:cancel', onCancel);
       socket.off('call:busy', onBusy);
+      socket.off('call:unavailable', onUnavailable);
       socket.off('call:end', onEnd);
+      socket.off('call:mute', onPeerMute);
+      socket.off('call:camera', onPeerCamera);
+      socket.off('call:upgrade-video', onUpgradeVideo);
+      socket.off('call:upgrade-response', onUpgradeResponse);
     };
-  }, [socket]);
+  }, [socket, emit]);
 
   // ── Actions ──
   const startCall = (userId: string, callMode: CallMode, name?: string, avatar?: string) => {
@@ -543,24 +740,25 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     setBluetooth(false);
     setCamera(callMode === 'video');
     setIsFrontCamera(true);
+    setIsRemoteMuted(false);
+    setIsRemoteCameraOn(true);
     setMinimized(false);
     applyState('calling');
+
     try {
       AudioSessionManager.startOutgoingCall();
     } catch (e) {
       logger.warn('Outgoing call tone failed', e);
     }
 
-    // Cosmetic "Calling…" → "Ringing…" swap while we wait for the callee.
     clearTimer(ringSwapTimerRef);
     ringSwapTimerRef.current = window.setTimeout(() => {
       ringSwapTimerRef.current = null;
       if (stateRef.current === 'calling' && callRef.current?.callId === callId) {
         applyState('ringing');
       }
-    }, 900);
+    }, 1200);
 
-    // No answer → missed.
     clearTimer(answerTimeoutRef);
     answerTimeoutRef.current = window.setTimeout(() => {
       answerTimeoutRef.current = null;
@@ -670,14 +868,30 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     const call = callRef.current;
     const wasConnected = stateRef.current === 'connected';
     if (call) {
-      emit('call:end', { callId: call.callId, targetId: call.peerId });
+      if (stateRef.current === 'calling' || (stateRef.current === 'ringing' && direction === 'outgoing')) {
+        emit('call:cancel', { callId: call.callId, targetId: call.peerId });
+      } else {
+        emit('call:end', { callId: call.callId, targetId: call.peerId });
+      }
     }
     finish('ended', wasConnected ? 'completed' : 'hangup');
   };
 
   const toggleMute = () => setMuted((v) => !v);
-  const toggleSpeaker = () => setSpeaker((v) => !v);
-  const toggleBluetooth = () => setBluetooth((v) => !v);
+  const toggleSpeaker = () => {
+    setSpeaker(prev => {
+      const next = !prev;
+      setAudioRoute(next ? 'speaker' : 'earpiece');
+      return next;
+    });
+  };
+  const toggleBluetooth = () => {
+    setBluetooth(prev => {
+      const next = !prev;
+      setAudioRoute(next ? 'bluetooth' : 'speaker');
+      return next;
+    });
+  };
   const toggleCamera = () => setCamera((v) => !v);
 
   const switchCamera = async () => {
@@ -699,7 +913,6 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       oldTracks.forEach((t) => {
         if (t !== newVideo) t.stop();
       });
-      newVideo.enabled = !isMuted ? !isCameraOn ? false : true : false;
       newVideo.enabled = isCameraOn;
       const merged = new MediaStream([newVideo, ...audioTracks]);
       localStreamRef.current = merged;
@@ -710,7 +923,80 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ── Cleanup on unmount (App-lifetime, but stay safe) ──
+  // Video Upgrade Request & Response
+  const requestVideoUpgrade = async () => {
+    if (!callRef.current || mode === 'video') return;
+    emit('call:upgrade-video', { callId: callRef.current.callId, targetId: callRef.current.peerId });
+  };
+
+  const respondVideoUpgrade = async (accepted: boolean) => {
+    setVideoUpgradeRequested(false);
+    if (!callRef.current) return;
+    if (!accepted) {
+      emit('call:upgrade-response', { callId: callRef.current.callId, targetId: callRef.current.peerId, accepted: false });
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack && pcRef.current && localStreamRef.current) {
+        localStreamRef.current.addTrack(videoTrack);
+        setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+        pcRef.current.addTrack(videoTrack, localStreamRef.current);
+        const offer = await pcRef.current.createOffer();
+        await pcRef.current.setLocalDescription(offer);
+
+        setMode('video');
+        setCamera(true);
+        emit('call:upgrade-response', {
+          callId: callRef.current.callId,
+          targetId: callRef.current.peerId,
+          accepted: true,
+          sdp: offer,
+        });
+      }
+    } catch (err: any) {
+      logger.error('Video upgrade permission error:', err);
+      emit('call:upgrade-response', { callId: callRef.current.callId, targetId: callRef.current.peerId, accepted: false });
+    }
+  };
+
+  // Call Waiting Actions
+  const acceptCallWaiting = () => {
+    if (!callWaiting) return;
+    // End current call
+    endCall();
+    // Answer the waiting call
+    const waiting = { ...callWaiting };
+    setCallWaiting(null);
+    setTimeout(() => {
+      callRef.current = {
+        callId: waiting.callId,
+        peerId: waiting.callerId,
+        mode: waiting.mode,
+        direction: 'incoming'
+      };
+      pendingOfferRef.current = waiting.sdp;
+      setMode(waiting.mode);
+      setDirection('incoming');
+      setPartnerId(waiting.callerId);
+      setPartnerName(waiting.callerName);
+      setPartnerAvatar(waiting.callerAvatar || null);
+      acceptCall();
+    }, 500);
+  };
+
+  const declineCallWaiting = () => {
+    if (!callWaiting) return;
+    emit('call:reject', { callId: callWaiting.callId, targetId: callWaiting.callerId, reason: 'busy' });
+    setCallWaiting(null);
+  };
+
+  // ── Cleanup on unmount ──
   useEffect(() => {
     return () => {
       const call = callRef.current;
@@ -755,12 +1041,24 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
         isBluetoothOn,
         isCameraOn,
         isFrontCamera,
+        isRemoteMuted,
+        isRemoteCameraOn,
         isMinimized,
         setMinimized,
         callHistory,
         clearHistory,
         remoteStream,
         localStream,
+        availableAudioDevices,
+        selectedAudioDeviceId,
+        audioRoute,
+        selectAudioDevice,
+        videoUpgradeRequested,
+        requestVideoUpgrade,
+        respondVideoUpgrade,
+        callWaiting,
+        acceptCallWaiting,
+        declineCallWaiting,
       }}
     >
       {children}

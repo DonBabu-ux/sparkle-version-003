@@ -106,4 +106,8 @@
          restrict apps that are not dedicated call/alarm apps from using this. Add the
          declaration so the runtime-request path works; do not assume delivery universally. -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- Android Telecom calling integration -->
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+    <!-- Proximity sensor and screen wake lock for voice calls -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>

@@ -28,7 +28,7 @@ export const SPARKLE_CHANNELS: SparkleChannel[] = [
   { id: 'stories', name: 'Stories updates', importance: 4, sound: 'story' },
   { id: 'moments', name: 'Moments updates', importance: 4, sound: 'like' },
   { id: 'social', name: 'Social Activity', importance: 4, sound: 'follow' },
-  { id: 'calls', name: 'Incoming Calls', importance: 5, sound: 'ringtone' },
+  { id: 'calls', name: 'Incoming Calls', importance: 5, sound: 'hangouts_ringtone' },
   { id: 'sparkle_ai', name: 'Sparkle AI Assistant', importance: 4, sound: 'comment' },
   { id: 'system', name: 'System updates', importance: 3, sound: 'notification' },
 ];
@@ -40,7 +40,7 @@ export const SPARKLE_CHANNELS: SparkleChannel[] = [
  * changes above would reach only fresh installs and every existing device
  * would keep the old sounds forever.
  */
-const CHANNEL_SCHEMA_VERSION = 2;
+const CHANNEL_SCHEMA_VERSION = 3;
 const CHANNEL_VERSION_KEY = 'sparkle_channel_schema_version';
 
 // Maps backend notification `type` (createNotification / worker / FCM data

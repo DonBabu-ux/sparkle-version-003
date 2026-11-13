@@ -91,4 +91,19 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Video calls (@capacitor/camera also declares this; kept explicit for WebView getUserMedia) -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Audio routing control: switch between earpiece, speaker and wired/BT headset -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Bluetooth audio for headsets. Android 12+ requires BLUETOOTH_CONNECT at runtime;
+         declare here so it appears in the manifest for the runtime-request flow. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Keep the call service alive when the app goes to the background -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Android 14+: declare the specific foreground service types used during calls -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <!-- Full-screen incoming-call UI on the lock screen.
+         Android 14+ requires a runtime permission grant; Google Play policy may also
+         restrict apps that are not dedicated call/alarm apps from using this. Add the
+         declaration so the runtime-request path works; do not assume delivery universally. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 </manifest>

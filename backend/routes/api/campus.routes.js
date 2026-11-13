@@ -33,6 +33,7 @@ router.post('/events/:id/notify', authMiddleware, campusController.notifyAttende
 // ---- Streams (Live Text Updates) ----
 router.get('/streams', campusController.getStreams);                                            // Browse live streams
 router.get('/streams/active', campusController.getStreams);                                     // DashboardAPI Alias
+router.get('/streams/eligibility', authMiddleware, campusController.checkLiveEligibility);     // Live eligibility check
 router.post('/streams', authMiddleware, campusController.createStream);                         // NEW — create live stream
 router.post('/streams/start', authMiddleware, campusController.createStream);                  // DashboardAPI Alias
 router.post('/streams/:id/updates', authMiddleware, campusController.postStreamUpdate);         // NEW — post update to stream

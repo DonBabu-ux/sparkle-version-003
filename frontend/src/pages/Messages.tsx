@@ -3882,6 +3882,61 @@ export default function Messages() {
                     const msgId = msg.message_id || msg.id;
                     const isSelected = isSelectionMode && selectedMessageIds.has(msgId);
 
+                    // ── Call log bubbles: voice_call / video_call ──
+                    if (msg.type === 'voice_call' || msg.type === 'video_call') {
+                      const isVoice = msg.type === 'voice_call';
+                      const meta = (() => {
+                        try { return typeof msg.metadata === 'string' ? JSON.parse(msg.metadata) : (msg.metadata || {}); } catch { return {}; }
+                      })();
+                      const outcome: string = meta.outcome || msg.call_outcome || (msg.content?.includes('missed') ? 'missed' : msg.content?.includes('declined') ? 'declined' : msg.content?.includes('cancelled') ? 'cancelled' : 'completed');
+                      const durationSec: number = meta.duration || msg.call_duration || 0;
+                      const formatDur = (s: number) => { const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}`; };
+                      const isMineCall = msg.sender_id === currentUserId || msg.senderId === currentUserId;
+
+                      const colorMap: Record<string, string> = {
+                        completed: 'text-emerald-400',
+                        missed: 'text-red-400',
+                        declined: 'text-orange-400',
+                        cancelled: 'text-zinc-400',
+                        failed: 'text-red-400',
+                      };
+                      const labelMap: Record<string, string> = {
+                        completed: isVoice ? 'Voice call' : 'Video call',
+                        missed: isVoice ? 'Missed voice call' : 'Missed video call',
+                        declined: isVoice ? 'Declined voice call' : 'Declined video call',
+                        cancelled: isVoice ? 'Cancelled voice call' : 'Cancelled video call',
+                        failed: isVoice ? 'Failed voice call' : 'Failed video call',
+                      };
+
+                      const callBubble = (
+                        <div
+                          key={msgId || `call-${i}`}
+                          className={clsx('flex items-center my-1.5', marginTopClass, isMineCall ? 'justify-end' : 'justify-start')}
+                        >
+                          <div className={clsx(
+                            'flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-semibold max-w-[220px] shadow-sm border',
+                            isMineCall
+                              ? 'bg-[#ff1493]/10 border-[#ff1493]/20 text-white/90 rounded-br-sm'
+                              : 'bg-white/[0.08] border-white/[0.12] text-white/80 rounded-bl-sm'
+                          )}>
+                            {isVoice
+                              ? <Phone size={14} className={colorMap[outcome] || 'text-emerald-400'} />
+                              : <Video size={14} className={colorMap[outcome] || 'text-emerald-400'} />
+                            }
+                            <span className="flex flex-col leading-tight">
+                              <span className={clsx('font-bold', colorMap[outcome] || 'text-emerald-400')}>
+                                {isMineCall ? '↗ ' : '↙ '}{labelMap[outcome] || (isVoice ? 'Voice call' : 'Video call')}
+                              </span>
+                              {durationSec > 0 && outcome === 'completed' && (
+                                <span className="text-[10px] text-white/50 font-normal">{formatDur(durationSec)}</span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                      return dateSep ? [dateSep, callBubble] : [callBubble];
+                    }
+
                     // ── System messages render as a centred pill, not a bubble ──
                     if (msg.type === 'system') {
                       const isDisappearingNotice = 

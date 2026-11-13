@@ -4,6 +4,7 @@ import { useSocket } from '../hooks/useSocket';
 import { useUserStore } from '../store/userStore';
 import { logger } from '../utils/logger';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
+import api from '../api/api';
 
 export type CallMode = 'voice' | 'video';
 export type CallDirection = 'outgoing' | 'incoming';
@@ -296,13 +297,15 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     const pid = partnerId;
     if (!pid) return;
     loggedRef.current = true;
+    const callMode = mode || 'voice';
+    const callDir = direction || 'outgoing';
     const entry: CallHistoryEntry = {
       id: Math.random().toString(36).slice(2, 11),
       partnerId: pid,
       partnerName: partnerName || 'Unknown User',
       partnerAvatar: partnerAvatar || undefined,
-      mode: mode || 'voice',
-      direction: direction || 'outgoing',
+      mode: callMode,
+      direction: callDir,
       state: finalState,
       timestamp: Date.now(),
       duration: durationSecs,
@@ -316,6 +319,24 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       }
       return updated;
     });
+
+    // Persist call log bubble to chat via backend message API
+    // so both participants see it in their conversation history
+    const outcome = finalState === 'ended' ? 'completed'
+      : finalState === 'missed' ? 'missed'
+      : finalState === 'declined' ? 'declined'
+      : finalState === 'failed' ? 'failed'
+      : 'cancelled';
+
+    const me = useUserStore.getState().user;
+    if (me?.id || me?.user_id) {
+      api.post('/messages/send', {
+        recipient_id: pid,
+        content: `${callDir === 'outgoing' ? 'Outgoing' : 'Incoming'} ${callMode} call · ${outcome}${durationSecs > 0 && outcome === 'completed' ? ` · ${Math.floor(durationSecs / 60)}:${String(durationSecs % 60).padStart(2, '0')}` : ''}`,
+        type: callMode === 'video' ? 'video_call' : 'voice_call',
+        metadata: JSON.stringify({ outcome, duration: durationSecs, direction: callDir }),
+      }).catch((e: Error) => logger.warn('Call log bubble send failed', e.message));
+    }
   };
 
   const clearHistory = () => {

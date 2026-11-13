@@ -828,6 +828,43 @@ const deletePoll = async (req, res) => {
 // Create a live stream. Live streams live in live_streams ONLY — they are never
 // written to moments. That is deliberate: a live is an event, not a post, and
 // persists after the broadcast ends only as an ended stream record (TikTok-style).
+// Live-stream eligibility check shared between createStream and the eligibility endpoint.
+// IMPORTANT: The exception list must NEVER appear in any API response body.
+const LIVE_ELIGIBILITY_EXCEPTIONS = [
+    'lewismwangi990@gmail.com',
+    'evingseglah@gmail.com',
+    'johndoe@example.com',
+];
+
+const checkLiveEligibility = async (req, res) => {
+    try {
+        const userId = req.user.user_id || req.user.userId;
+        const [users] = await pool.query(
+            `SELECT u.email,
+                    (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count
+             FROM users u WHERE u.user_id = ?`,
+            [userId]
+        );
+        const userRecord = users[0];
+        const User = require('../models/User');
+        const isSuperuser = User.SUPERUSER_EMAILS && User.SUPERUSER_EMAILS.includes((userRecord?.email || '').toLowerCase());
+        const followersCount = Number(userRecord?.followers_count) || 0;
+        const userEmail = (req.user?.email || userRecord?.email || '').toLowerCase().trim();
+        const eligible = isSuperuser || LIVE_ELIGIBILITY_EXCEPTIONS.includes(userEmail) || followersCount >= 1000;
+        // Return minimal reason — do not expose the exception list
+        res.json({
+            eligible,
+            followers_count: followersCount,
+            threshold: 1000,
+            reason: eligible
+                ? 'You are eligible to go live.'
+                : `You need at least 1,000 followers to go live. You currently have ${followersCount}.`,
+        });
+    } catch (err) {
+        serverError(res, err, 'checkLiveEligibility');
+    }
+};
+
 const createStream = async (req, res) => {
     try {
         const { title, description, campus, category, stream_url } = req.body;
@@ -849,7 +886,14 @@ const createStream = async (req, res) => {
         const isSuperuser = User.SUPERUSER_EMAILS && User.SUPERUSER_EMAILS.includes((userRecord?.email || '').toLowerCase());
         const followersCount = Number(userRecord?.followers_count) || 0;
 
-        if (!isSuperuser && followersCount < 1000) {
+        // Check server-side eligibility exceptions (module-level constant — never exposed in responses)
+        const userEmail = (req.user?.email || userRecord?.email || '').toLowerCase().trim();
+        const isExceptionAccount = LIVE_ELIGIBILITY_EXCEPTIONS.includes(userEmail);
+        if (isExceptionAccount) {
+            logger.info(`[live] eligibility exception applied for user ${streamerId}`);
+        }
+
+        if (!isSuperuser && !isExceptionAccount && followersCount < 1000) {
             return res.status(403).json({
                 error: 'You need at least 1,000 followers to go live on Sparkle.',
                 followers_count: followersCount,
@@ -1186,5 +1230,6 @@ module.exports = {
     notifyAttendees,
     inviteToPoll,
     predictPollWinner: exports.predictPollWinner,
-    trackPollInteraction: exports.trackPollInteraction
+    trackPollInteraction: exports.trackPollInteraction,
+    checkLiveEligibility,
 };

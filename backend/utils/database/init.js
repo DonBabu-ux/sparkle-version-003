@@ -2698,6 +2698,25 @@ const RECOVERED_TABLES = [
             INDEX idx_sf_cat (category),
             INDEX idx_sf_pub (is_published)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+    },
+    {
+        name: 'call_sessions',
+        sql: `CREATE TABLE IF NOT EXISTS call_sessions (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            call_id VARCHAR(64) NOT NULL UNIQUE,
+            caller_id CHAR(36) NOT NULL,
+            callee_id CHAR(36) NOT NULL,
+            mode ENUM('voice','video') NOT NULL DEFAULT 'voice',
+            status ENUM('initiating','ringing','accepted','connecting','active','ended','missed','rejected','cancelled','failed') NOT NULL DEFAULT 'initiating',
+            started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            answered_at DATETIME NULL,
+            ended_at DATETIME NULL,
+            duration_seconds INT UNSIGNED NOT NULL DEFAULT 0,
+            end_reason VARCHAR(50) NULL,
+            INDEX idx_cs_caller (caller_id, started_at),
+            INDEX idx_cs_callee (callee_id, started_at),
+            INDEX idx_cs_call_id (call_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
     }
 ];
 

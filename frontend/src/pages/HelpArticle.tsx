@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  ArrowLeft, Clock, Calendar, CheckCircle, AlertTriangle,
-  Lightbulb, ChevronRight, Share2, ThumbsUp
+  ArrowLeft, Calendar, AlertTriangle,
+  Lightbulb, ChevronRight
 } from 'lucide-react';
 import { useState } from 'react';
 import { showSuccess } from '../utils/toast';

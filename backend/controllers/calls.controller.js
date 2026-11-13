@@ -29,10 +29,10 @@ const getCallHistory = async (req, res) => {
                    cs.end_reason,
                    u_caller.username as caller_username,
                    COALESCE(u_caller.name, u_caller.username) as caller_name,
-                   COALESCE(u_caller.profile_image, u_caller.avatar_url) as caller_avatar,
+                   u_caller.avatar_url as caller_avatar,
                    u_callee.username as callee_username,
                    COALESCE(u_callee.name, u_callee.username) as callee_name,
-                   COALESCE(u_callee.profile_image, u_callee.avatar_url) as callee_avatar
+                   u_callee.avatar_url as callee_avatar
             FROM call_sessions cs
             LEFT JOIN users u_caller ON u_caller.user_id = cs.caller_id
             LEFT JOIN users u_callee ON u_callee.user_id = cs.callee_id
@@ -74,7 +74,8 @@ const getCallHistory = async (req, res) => {
 
         res.json({ success: true, history });
     } catch (err) {
-        serverError(res, err, 'getCallHistory');
+        logger.error('[calls.controller] getCallHistory error:', err);
+        serverError(res, err);
     }
 };
 
@@ -106,7 +107,8 @@ const getCallSettings = async (req, res) => {
             }
         });
     } catch (err) {
-        serverError(res, err, 'getCallSettings');
+        logger.error('[calls.controller] getCallSettings error:', err);
+        serverError(res, err);
     }
 };
 
@@ -145,7 +147,8 @@ const updateCallSettings = async (req, res) => {
 
         res.json({ success: true, settings: updatedSettings });
     } catch (err) {
-        serverError(res, err, 'updateCallSettings');
+        logger.error('[calls.controller] updateCallSettings error:', err);
+        serverError(res, err);
     }
 };
 

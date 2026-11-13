@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronRight, Search, FileText } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronRight, Search } from 'lucide-react';
 
 interface ArticleSummary {
   id: string;

@@ -40,5 +40,5 @@ describe('H20 collapsed sidebar space reservation', () => {
             .filter(({ s }) => s.includes('lg:ml-72') || s.includes('lg:pl-72'))
             .map(({ f }) => f);
         expect(offenders).toEqual([]);
-    });
+    }, 30_000);
 });

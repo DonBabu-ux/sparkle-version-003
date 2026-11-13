@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShieldAlert } from 'lucide-react';
 import api from '../api/api';
 import { showError } from '../utils/toast';
 import Spinner from '../components/ui/Spinner';

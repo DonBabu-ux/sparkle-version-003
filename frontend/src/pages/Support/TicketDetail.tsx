@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Clock, Send, ShieldCheck, MessageCircle, Bot } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, Send, ShieldCheck, MessageCircle } from 'lucide-react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 import { showError, showSuccess } from '../../utils/toast';

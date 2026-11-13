@@ -1745,7 +1745,7 @@ export default function Messages() {
       const now = Date.now();
       const currentMsgs = useChatStore.getState().messagesByConversation[cid] || [];
       const expiredIds = currentMsgs
-        .filter(m => m.expires_at && !isNaN(new Date(m.expires_at).getTime()) && new Date(m.expires_at).getTime() <= now)
+        .filter(m => m.expiresAt && !isNaN(new Date(m.expiresAt).getTime()) && new Date(m.expiresAt).getTime() <= now)
         .map(m => m.message_id || m.id)
         .filter(Boolean);
       if (expiredIds.length > 0) {
@@ -3487,7 +3487,7 @@ export default function Messages() {
                           <div
                             key={entry.id}
                             onClick={() => {
-                              const matchedChat = conversations.find(c => c.partner_id === entry.partnerId || c.user_id === entry.partnerId);
+                              const matchedChat = conversations.find(c => c.partner_id === entry.partnerId || (c as any).user_id === entry.partnerId);
                               if (matchedChat) {
                                 setSelectedChat(matchedChat);
                                 navigate(`/messages?chat=${matchedChat.chat_id}`);
@@ -4004,7 +4004,7 @@ export default function Messages() {
                       const outcome: string = meta.outcome || msg.call_outcome || (msg.content?.includes('missed') ? 'missed' : msg.content?.includes('declined') ? 'declined' : msg.content?.includes('cancelled') ? 'cancelled' : 'completed');
                       const durationSec: number = meta.duration || msg.call_duration || 0;
                       const formatDur = (s: number) => { const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}`; };
-                      const isMineCall = msg.sender_id === currentUserId || msg.senderId === currentUserId;
+                      const isMineCall = msg.sender_id === (user?.user_id || user?.id) || msg.senderId === (user?.user_id || user?.id);
 
                       const colorMap: Record<string, string> = {
                         completed: 'text-emerald-400',
@@ -4022,7 +4022,7 @@ export default function Messages() {
                       };
 
                       const partnerTargetId = isMineCall
-                        ? (msg.recipient_id || msg.recipientId || selectedChat?.user_id)
+                        ? (msg.recipient_id || msg.recipientId || selectedChat?.partner_id)
                         : (msg.sender_id || msg.senderId);
                       const isMissed = outcome === 'missed';
 
@@ -4037,8 +4037,8 @@ export default function Messages() {
                                 startCall(
                                   String(partnerTargetId),
                                   isVoice ? 'voice' : 'video',
-                                  selectedChat?.user_name || selectedChat?.name,
-                                  selectedChat?.avatar_url
+                                  selectedChat?.partner_name || selectedChat?.name,
+                                  selectedChat?.partner_avatar
                                 );
                               }
                             }}
@@ -4252,7 +4252,7 @@ export default function Messages() {
                                   const refMsg = useChatStore.getState().findMessage(chatIdStr, msg.reply_to_message_id);
                                   if (refMsg) {
                                     isRefDeleted = !!(refMsg.is_deleted_for_everyone || (refMsg as any).is_deleted);
-                                    isRefExpired = !!(refMsg.expires_at && new Date(refMsg.expires_at).getTime() <= Date.now());
+                                    isRefExpired = !!(refMsg.expiresAt && new Date(refMsg.expiresAt).getTime() <= Date.now());
 
                                     const isRefMe = refMsg.sender_id === user?.user_id || refMsg.sender_id === (user as any)?.id;
                                     const senderNick = refMsg.sender_id ? currentNicknames[refMsg.sender_id] : undefined;

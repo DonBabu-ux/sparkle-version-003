@@ -824,7 +824,7 @@ export default function Streams() {
       user: {
         username: user?.username || 'user',
         name: user?.name || user?.username || 'User',
-        avatar_url: user?.avatar_url || user?.profile_image,
+        avatar_url: user?.avatar_url || user?.avatar,
         isHost: isBroadcasting,
         isGuest: isGuest,
       }
@@ -876,7 +876,7 @@ export default function Streams() {
         sender: {
           username: user?.username || 'Supporter',
           name: user?.name || user?.username || 'Supporter',
-          avatar_url: user?.avatar_url || user?.profile_image
+          avatar_url: user?.avatar_url || user?.avatar
         }
       });
     } catch (err: any) {
@@ -896,7 +896,7 @@ export default function Streams() {
       user: {
         username: user?.username || 'Viewer',
         name: user?.name || user?.username,
-        avatar_url: user?.avatar_url || user?.profile_image,
+        avatar_url: user?.avatar_url || user?.avatar,
       }
     });
     setGuestRequestPending(true);

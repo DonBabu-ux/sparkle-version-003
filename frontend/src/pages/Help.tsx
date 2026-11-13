@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Search, Bot, Phone, FileText, AlertTriangle,
   Mail, ChevronRight, ChevronDown, BookOpen, Shield, Users, ShoppingBag,
-  Zap, Video, Bell, Lock, X, MessageSquare, ExternalLink
+  Zap, Video, Lock, X, MessageSquare, ExternalLink
 } from 'lucide-react';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';

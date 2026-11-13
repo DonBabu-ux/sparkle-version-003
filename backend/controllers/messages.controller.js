@@ -327,16 +327,28 @@ class MessageController {
             const { content, media_url, type, partnerId, conversationId, chatId, replyToId, attachment } = req.body;
             const userId = req.user.user_id || req.user.userId;
 
+            const resolvedRecipientId = partnerId || req.body.recipientId || req.body.recipient_id || null;
+            const resolvedChatId = chatId || conversationId || req.body.chat_id || req.body.conversation_id || null;
+
             if (!content && !media_url && !attachment) {
                 return res.status(400).json({ status: 'error', error: 'Content, media, or attachment is required' });
             }
 
-            // Serialize generic attachment (story, post, event, profile, marketplace, etc.)
-            const metadata = attachment ? JSON.stringify({ attachment }) : null;
+            if (!resolvedRecipientId && !resolvedChatId) {
+                return res.status(400).json({ status: 'error', error: 'Recipient or Chat ID is required' });
+            }
+
+            // Serialize generic attachment or forward client-provided metadata
+            let metadata = null;
+            if (attachment) {
+                metadata = JSON.stringify({ attachment });
+            } else if (req.body.metadata) {
+                metadata = typeof req.body.metadata === 'string' ? req.body.metadata : JSON.stringify(req.body.metadata);
+            }
 
             const messageId = await Message.sendMessage({
-                recipientId: partnerId || null,
-                chatId: chatId || conversationId || null,
+                recipientId: resolvedRecipientId,
+                chatId: resolvedChatId,
                 senderId: userId,
                 content: content || '',
                 type: type || 'text',

@@ -329,9 +329,10 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       : 'cancelled';
 
     const me = useUserStore.getState().user;
-    if (me?.id || me?.user_id) {
+    if ((me?.id || me?.user_id) && pid && String(pid).trim()) {
       api.post('/messages/send', {
-        recipient_id: pid,
+        partnerId: String(pid).trim(),
+        recipient_id: String(pid).trim(),
         content: `${callDir === 'outgoing' ? 'Outgoing' : 'Incoming'} ${callMode} call · ${outcome}${durationSecs > 0 && outcome === 'completed' ? ` · ${Math.floor(durationSecs / 60)}:${String(durationSecs % 60).padStart(2, '0')}` : ''}`,
         type: callMode === 'video' ? 'video_call' : 'voice_call',
         metadata: JSON.stringify({ outcome, duration: durationSecs, direction: callDir }),

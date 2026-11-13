@@ -1,6 +1,6 @@
 const express = require('express');
 const logger = require('../../utils/logger');
-const { apiError } = require('../../utils/serverError');
+const pool = require('../../config/database');
 const router = express.Router();
 const fetch = require('node-fetch');
 const dns = require('dns').promises;
@@ -33,6 +33,148 @@ function extractOgTags(html, targetUrl) {
         image:       get('og:image'),
         siteName:    siteName || 'Sparkle',
     };
+}
+
+// Internal Sparkle link resolver (stories, posts, listings)
+// Resolves database metadata directly without making network requests to localhost or app host.
+async function resolveInternalSparklePreview(urlStr) {
+    try {
+        const parsed = new URL(urlStr);
+        const host = (parsed.hostname || '').toLowerCase();
+        const isInternalHost = host === 'localhost' ||
+            host === '127.0.0.1' ||
+            host === '::1' ||
+            host === 'sparkleapp.com' ||
+            host === 'sparklewebapp.vercel.app' ||
+            host.endsWith('.sparkleapp.com');
+
+        if (!isInternalHost) return null;
+
+        const pathname = parsed.pathname;
+
+        // 1. Stories: /stories/:id
+        const storyMatch = pathname.match(/^\/stories\/([a-zA-Z0-9_-]+)/);
+        if (storyMatch) {
+            const storyId = storyMatch[1];
+            try {
+                const [rows] = await pool.query(`
+                    SELECT s.story_id, s.media_url, s.media_type, s.caption,
+                           u.username, u.name AS user_name, u.avatar_url
+                    FROM stories s
+                    JOIN users u ON s.user_id = u.user_id
+                    WHERE s.story_id = ?
+                `, [storyId]);
+                if (rows && rows.length > 0) {
+                    const s = rows[0];
+                    return {
+                        success: true,
+                        url: urlStr,
+                        title: `${s.user_name || s.username}'s Story`,
+                        description: s.caption || 'View this story on Sparkle',
+                        image: s.media_url || s.avatar_url || null,
+                        siteName: 'Sparkle'
+                    };
+                }
+            } catch (err) {
+                logger.warn(`Internal story preview failed: ${err.message}`);
+            }
+            return {
+                success: true,
+                url: urlStr,
+                title: 'Sparkle Story',
+                description: 'View this story on Sparkle',
+                image: null,
+                siteName: 'Sparkle'
+            };
+        }
+
+        // 2. Posts: /posts/:id or /p/:id
+        const postMatch = pathname.match(/^\/(?:posts|p)\/([a-zA-Z0-9_-]+)/);
+        if (postMatch) {
+            const postId = postMatch[1];
+            try {
+                const [rows] = await pool.query(`
+                    SELECT p.post_id, p.content, p.media_url,
+                           u.username, u.name AS user_name, u.avatar_url
+                    FROM posts p
+                    JOIN users u ON p.user_id = u.user_id
+                    WHERE p.post_id = ?
+                `, [postId]);
+                if (rows && rows.length > 0) {
+                    const p = rows[0];
+                    return {
+                        success: true,
+                        url: urlStr,
+                        title: `${p.user_name || p.username} on Sparkle`,
+                        description: (p.content || '').slice(0, 160) || 'View post on Sparkle',
+                        image: p.media_url || p.avatar_url || null,
+                        siteName: 'Sparkle'
+                    };
+                }
+            } catch (err) {
+                logger.warn(`Internal post preview failed: ${err.message}`);
+            }
+            return {
+                success: true,
+                url: urlStr,
+                title: 'Sparkle Post',
+                description: 'View post on Sparkle',
+                image: null,
+                siteName: 'Sparkle'
+            };
+        }
+
+        // 3. Marketplace: /marketplace/:id or /listing/:id
+        const marketMatch = pathname.match(/^\/(?:marketplace|listing)\/([a-zA-Z0-9_-]+)/);
+        if (marketMatch) {
+            const listingId = marketMatch[1];
+            try {
+                const [rows] = await pool.query(`
+                    SELECT title, description, price, currency, images
+                    FROM marketplace_listings
+                    WHERE listing_id = ? OR id = ?
+                `, [listingId, listingId]);
+                if (rows && rows.length > 0) {
+                    const l = rows[0];
+                    let img = null;
+                    try {
+                        const parsedImg = JSON.parse(l.images);
+                        img = Array.isArray(parsedImg) ? parsedImg[0] : parsedImg;
+                    } catch {}
+                    return {
+                        success: true,
+                        url: urlStr,
+                        title: l.title || 'Marketplace Item',
+                        description: l.description ? l.description.slice(0, 160) : `${l.currency || '$'}${l.price || ''}`,
+                        image: img || null,
+                        siteName: 'Sparkle Marketplace'
+                    };
+                }
+            } catch (err) {
+                logger.warn(`Internal marketplace preview failed: ${err.message}`);
+            }
+            return {
+                success: true,
+                url: urlStr,
+                title: 'Sparkle Marketplace',
+                description: 'View item on Sparkle Marketplace',
+                image: null,
+                siteName: 'Sparkle'
+            };
+        }
+
+        // Generic fallback for any other internal route
+        return {
+            success: true,
+            url: urlStr,
+            title: 'Sparkle',
+            description: 'Open in Sparkle',
+            image: null,
+            siteName: 'Sparkle'
+        };
+    } catch {
+        return null;
+    }
 }
 
 // SSRF Guard: Blocks local/private IP ranges
@@ -150,20 +292,16 @@ router.get('/', authMiddleware, async (req, res) => {
         return res.status(400).json({ success: false, message: 'url param required' });
     }
 
-    // SSRF Check (allow external, block internal)
+    // 1. Check for internal Sparkle routes first (avoid network fetch to localhost or app host)
+    const internalPreview = await resolveInternalSparklePreview(url);
+    if (internalPreview) {
+        return res.json(internalPreview);
+    }
+
+    // 2. SSRF Check (allow external, block internal)
     const isSafe = await isSafeUrl(url);
     if (!isSafe) {
-        // Exception: Allow same-origin marketplace links for testing/dev
-        const host = req.get('host');
-        try {
-            const parsed = new URL(url);
-            // Allow if it's the current host or localhost
-            if (parsed.hostname !== host.split(':')[0] && parsed.hostname !== 'localhost') {
-                 return res.status(403).json({ success: false, message: 'URL not allowed' });
-            }
-        } catch (e) {
-             return res.status(403).json({ success: false, message: 'URL not allowed' });
-        }
+        return res.status(200).json({ success: false, message: 'Private or local URLs cannot be previewed' });
     }
 
     try {
@@ -177,7 +315,7 @@ router.get('/', authMiddleware, async (req, res) => {
         });
 
         if (!response.ok) {
-            return res.status(500).json({ success: false, message: `Remote server responded with ${response.status}` });
+            return res.status(200).json({ success: false, message: `Remote server responded with ${response.status}` });
         }
 
         const html = await response.text();
@@ -192,10 +330,10 @@ router.get('/', authMiddleware, async (req, res) => {
             siteName:    meta.siteName || 'External Link',
         });
     } catch (err) {
-        // This catch covers both an unreachable remote host and a parse failure.
-        // `err.message` carries the target URL and often the request path, so it
-        // turns a link preview into an SSRF probe report.
-        apiError(res, err);
+        // Network timeout, DNS failure, connection refused, or HTML parse error
+        // An unreachable remote URL is normal client data, not an internal server crash.
+        logger.debug(`[link-preview] fetch failed for ${url}: ${err.message}`);
+        return res.status(200).json({ success: false, message: 'Link preview unavailable' });
     }
 });
 

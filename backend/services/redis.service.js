@@ -41,6 +41,12 @@ function encode(v) {
  * to stale L1 / their own error paths instead of buffering for seconds.
  */
 function makeTcpClient(url) {
+    // Layerbase (and similar TLS-routed endpoints) reject connections whose TLS
+    // ClientHello carries no SNI server name ("ERR TLS SNI required") — the
+    // shared hostname fronts many databases and routes by SNI, so ioredis must
+    // be told the server name explicitly rather than left to infer it.
+    let servername;
+    try { servername = new URL(url).hostname; } catch { /* malformed URL: let ioredis parse it */ }
     const io = new IORedis(url, {
         connectTimeout: 5000,
         maxRetriesPerRequest: 1,
@@ -48,6 +54,7 @@ function makeTcpClient(url) {
         retryStrategy(times) {
             return Math.min(times * 500, 15000);
         },
+        ...(servername ? { tls: { servername } } : {}),
     });
     io.on('error', (err) => logger.error('Redis Service (TCP):', err.message));
     io.on('ready', () => logger.info('Redis Service (TCP): connected'));
@@ -80,6 +87,7 @@ function makeTcpClient(url) {
         lpush: (key, ...members) => io.lpush(key, ...members.map(encode)),
         lrange: (key, start, stop) => io.lrange(key, start, stop).then((arr) => arr.map(tryParse)),
         ltrim: (key, start, stop) => io.ltrim(key, start, stop),
+        ping: () => io.ping(),
         disconnect: () => io.disconnect(),
     };
 }
@@ -204,6 +212,102 @@ class RedisService {
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
+
+    /**
+     * Liveness probe. Cheap on both providers (the TCP adapter wraps io.ping();
+     * the Upstash REST client exposes ping() natively). Used by the boot
+     * warm-up and the keep-alive loop.
+     */
+    async ping() {
+        if (!this.isEnabled) return false;
+        try {
+            await this.client.ping();
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Wait for a live connection, bounded by maxWaitMs. Never throws.
+     *
+     * Layerbase auto-hibernates idle databases and routes by SNI, so the first
+     * connection after idle (or after a cold boot) can take seconds. Without a
+     * boot warm-up, the first user request would miss Redis on every key and
+     * fall back to MySQL — exactly the "hit the database first" path we avoid.
+     */
+    async warmup(maxWaitMs = 10000) {
+        if (!this.isEnabled) return { ok: false, ms: 0, reason: 'disabled' };
+        const started = Date.now();
+        while (Date.now() - started < maxWaitMs) {
+            if (await this.ping()) {
+                const ms = Date.now() - started;
+                logger.info(`Redis warm in ${ms}ms`);
+                return { ok: true, ms };
+            }
+            await new Promise(r => setTimeout(r, 500));
+        }
+        logger.warn(`Redis warm-up timed out after ${maxWaitMs}ms — requests fall back to DB until it connects`);
+        return { ok: false, ms: maxWaitMs };
+    }
+
+    /**
+     * Keep an auto-hibernating endpoint awake with a bounded ping loop.
+     * Interval is unref'd so it never holds the process open.
+     *
+     * DANGER (Layerbase Free): their free plan REQUIRES ≥25% sleep per rolling
+     * 7 days and explicitly names keep-alive pings/pollers as a violation —
+     * offenders are warned, then the database is paused (connections refused).
+     * Only enable on plans with 6h idle or always-on; see server.js boot.
+     */
+    startWarmKeepAlive(intervalMs = 4 * 60 * 1000) {
+        if (!this.isEnabled || this._warmKeepAlive) return;
+        this._warmKeepAlive = setInterval(() => {
+            this.ping().catch(() => {});
+        }, intervalMs);
+        if (this._warmKeepAlive.unref) this._warmKeepAlive.unref();
+    }
+
+    /**
+     * Get a value, retrying briefly on a null/miss.
+     *
+     * The Redis endpoint auto-hibernates (Layerbase: 15 min idle, 1-5s wake)
+     * and the TCP client fails fast (enableOfflineQueue: false), so a command
+     * issued while the connection is still waking returns null rather than
+     * queueing. A plain get() off that miss makes callers fall back to the
+     * database — for the candidate pool that silently drops the media
+     * top-up and the dashboard renders text-only posts. Retrying the read
+     * for ~1.5s covers the wake window.
+     *
+     * @param {string} key
+     * @param {{ retries?: number, delayMs?: number }} options
+     */
+    async getWithRetry(key, options = {}) {
+        if (!this.isEnabled) return null;
+        const fresh = this._l1Read(key);
+        if (fresh !== undefined) return fresh;
+        const retries = Number.isFinite(options.retries) ? options.retries : 3;
+        const delayMs = Number.isFinite(options.delayMs) ? options.delayMs : 500;
+        for (let attempt = 0; ; attempt++) {
+            let val;
+            let errored = false;
+            try {
+                val = await this.client.get(key);
+            } catch (e) {
+                errored = true;
+                logger.error(`Redis Get Error [${key}]:`, e.message);
+            }
+            if (val !== null && val !== undefined) {
+                this._l1Write(key, key, val);
+                return val;
+            }
+            if (attempt >= retries) {
+                if (!errored) this._l1Write(key, key, null);
+                return null;
+            }
+            await new Promise(r => setTimeout(r, delayMs));
+        }
+    }
 
     /**
      * Get a value from Redis

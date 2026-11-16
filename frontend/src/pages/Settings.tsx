@@ -197,8 +197,13 @@ export default function Settings() {
   const handleLogout = async () => {
     try {
       const refreshToken = useUserStore.getState().refreshToken;
+      // Pass this device's push token so the server purges it in the same
+      // request (userStore.logout also fires a best-effort deregister, but a
+      // failed deregister must not leave the token receiving notifications
+      // for the next account on this device).
+      const fcmToken = localStorage.getItem('sparkle_fcm_token') || undefined;
       if (refreshToken) {
-        await authApi.logout(refreshToken);
+        await authApi.logout(refreshToken, fcmToken ? { fcmToken } : undefined);
       }
     } catch (err) {
       logger.error('Logout error:', err);

@@ -28,6 +28,7 @@ const GroupMember = require('../models/GroupMember');
 const SessionService = require('../services/session.service');
 const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
 const { filterPresenceViewers } = require('../services/presencePrivacy');
+const { resolveOrigins } = require('../config/allowedOrigins');
 
 let io;
 
@@ -45,18 +46,9 @@ const activeTypingSessions = new Map();
 const initializeSocket = (server) => {
     io = socketIO(server, {
         cors: {
-            origin: [
-                'http://localhost:5173',
-                'http://localhost:3000',
-                'http://localhost:5174',
-                'http://localhost',
-                'https://localhost',
-                'capacitor://localhost',
-                'https://sparkleappweb.vercel.app',
-                'https://sparkleappweb1.vercel.app',
-                'https://sparklewebapp.vercel.app',
-                'https://sparkleapp.vercel.app'
-            ],
+            // Shared with the REST app (server.js) — the two lists used to drift,
+            // which silently rejected the production origin for sockets only.
+            origin: resolveOrigins(),
             credentials: true
         },
         transports: ['websocket', 'polling'],
@@ -791,6 +783,24 @@ socket.on('get-rooms', () => {
                                         body: payload.body,
                                         data: payload.data
                                     });
+                                    // Offline recipients also need the realtime
+                                    // bell: queuePushNotification writes the DB row
+                                    // and (via the queue worker) FCM, but nothing
+                                    // emits 'new-notification', so when this user
+                                    // reconnects the badge/sound never fires until
+                                    // the next 30s poll. The emit is a no-op while
+                                    // they are offline (room empty) and reaches the
+                                    // room the moment a socket rejoins.
+                                    try {
+                                        emitNotification(trueRecipientId, {
+                                            type: 'message',
+                                            title: payload.title,
+                                            body: payload.body,
+                                            data: payload.data,
+                                        });
+                                    } catch (emitErr) {
+                                        logger.warn('[Socket emitNotification error]:', emitErr?.message || emitErr);
+                                    }
                                 } catch (pushQueueErr) {
                                     logger.warn('[Socket queuePushNotification error]:', pushQueueErr?.message || pushQueueErr);
                                 }

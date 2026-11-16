@@ -280,7 +280,18 @@ export const authApi = {
   login: (credentials: LoginCredentials) => api.post('/auth/login', credentials),
   signup: (userData: SignupData) => api.post('/auth/signup', userData),
   validateToken: () => api.get('/auth/validate'),
-  logout: (refreshToken?: string) => api.post('/auth/logout', { refreshToken }),
+  // Push notification keys must die with the session (otherwise the next
+  // account on the device receives the previous account's notifications).
+  // The native path deregisters its FCM token via /notifications/deregister-fcm-token;
+  // these params let the server purge the web subscription and any FCM token
+  // the caller holds, in the same request.
+  // Push notification keys must die with the session (otherwise the next
+  // account on the device receives the previous account's notifications).
+  // The native path deregisters its FCM token via /notifications/deregister-fcm-token;
+  // these params let the server purge the web subscription and any FCM token
+  // the caller holds, in the same request.
+  logout: (refreshToken?: string, opts?: { fcmToken?: string; pushEndpoint?: string }) =>
+    api.post('/auth/logout', { refreshToken, ...(opts?.fcmToken ? { fcmToken: opts.fcmToken } : {}), ...(opts?.pushEndpoint ? { pushEndpoint: opts.pushEndpoint } : {}) }),
   checkUsername: (username: string) => api.get(`/auth/check-username?username=${encodeURIComponent(username)}`),
   checkEmail: (email: string) => api.get(`/auth/check-email?email=${encodeURIComponent(email)}`),
 };

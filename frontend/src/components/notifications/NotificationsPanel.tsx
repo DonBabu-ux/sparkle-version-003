@@ -96,6 +96,15 @@ export default function NotificationsPanel({ open, onClose, anchorRect }: Notifi
     if (open) fetchItems();
   }, [open, fetchItems]);
 
+  // Refresh an open panel the moment a notification arrives over sockets
+  // (App.tsx dispatches this on 'new-notification') instead of only on open.
+  useEffect(() => {
+    if (!open) return;
+    const onUpdated = () => fetchItems();
+    window.addEventListener('notifications_updated', onUpdated);
+    return () => window.removeEventListener('notifications_updated', onUpdated);
+  }, [open, fetchItems]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };

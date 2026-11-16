@@ -2,6 +2,7 @@ const pool = require('../config/database');
 const crypto = require('crypto');
 const redisService = require('../services/redis.service');
 const logger = require('../utils/logger');
+const { queryFeedWindowed, hasMediaPost, fetchMediaTopUp, topUpMedia, MEDIA_TOP_UP_MIN } = require('../utils/feedRecency');
 
 /**
  * Deleted authors: the account row is anonymized, never purged, so posts,
@@ -561,7 +562,11 @@ SELECT p.*,
                 this.getCategoryStats(currentUserId),
                 pool.query('SELECT major FROM users WHERE user_id = ?', [currentUserId]).then(([r]) => r).catch(() => []),
                 pool.query('SELECT post_id FROM sparks WHERE user_id = ?', [currentUserId]).then(([r]) => r).catch(() => []),
-                redisService.get('feed:candidate_pool'),
+                // Retry the pool read: the Redis endpoint auto-hibernates and the client
+                // fails fast while waking, so a plain get() can return null on a
+                // live key — which would silently fall back to the DB and drop
+                // the media top-up (text-only dashboard).
+                redisService.getWithRetry('feed:candidate_pool'),
                 pool.query('SELECT following_id FROM follows WHERE follower_id = ?', [currentUserId]).then(([r]) => r).catch(() => []),
                 pool.query('SELECT interest_slug FROM user_interests WHERE user_id = ?', [currentUserId]).then(([r]) => r).catch(() => []),
                 pool.query('SELECT blocked_id, blocker_id FROM user_blocks WHERE blocker_id = ? OR blocked_id = ?', [currentUserId, currentUserId]).then(([r]) => r).catch(() => []),
@@ -575,11 +580,37 @@ SELECT p.*,
             const staticInterests = ((userProfile && userProfile[0]?.major) || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
             const sparkedIds = new Set((sparkedRows || []).map(r => r.post_id));
 
-            // Round 2 (conditional): both redis-miss fallbacks run together
+// Round 2 (conditional): both redis-miss fallbacks run together
             let recentCategories = recentLr;
             let candidatePool = candidatePoolRaw;
             const needRecent = !recentCategories || recentCategories.length === 0;
             const needPool = !candidatePool || candidatePool.length === 0;
+            // Shared spec for the pool-source query and its media top-up.
+            const poolSpec = {
+                select: `p.post_id, p.user_id, p.content, p.media_url, p.media_type, p.post_type, p.campus,
+                        p.group_id, p.location, p.created_at, p.category, p.is_seed,
+                        -- Raw counters alongside the aliased ones. The feed consumer reads spark_count /
+                        -- comment_count / reshare_count / share_count, and this SELECT only ever exposed
+                        -- the Sparks / Comments / Shares aliases, so every post in the feed rendered 0
+                        -- likes and 0 shares even when the rows had real counts.
+                        p.spark_count, p.comment_count, p.reshare_count, p.share_count,
+                        u.username, u.name as user_name, u.avatar_url,
+                        u.campus as user_affiliation, u.is_private, u.profile_visibility,
+                        COALESCE(p.spark_count, 0) as sparks,
+                        COALESCE(p.comment_count, 0) as comments,
+                        COALESCE(p.share_count, 0) as shares,
+                        COALESCE(p.view_count, 0) as views`,
+                from: 'posts p JOIN users u ON p.user_id = u.user_id',
+                extraWhere: `AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
+                    AND p.group_id IS NULL
+                    -- Muted authors never enter the feed. The mute write
+                    -- has existed since social.controller.js but nothing
+                    -- read user_mutes on this path, so muting someone
+                    -- persisted a row that changed nothing.
+                    AND p.user_id NOT IN (SELECT muted_id FROM user_mutes WHERE muter_id = ?)`,
+                tail: 'ORDER BY p.created_at DESC LIMIT 500',
+                params: [currentUserId],
+            };
             if (needRecent || needPool) {
                 const [recentActions, fallbackPosts] = await Promise.all([
                     needRecent
@@ -591,31 +622,10 @@ SELECT p.*,
                         `, [currentUserId]).then(([r]) => r).catch(() => [])
                         : null,
                     needPool
-                        ? pool.query(`
-                SELECT p.post_id, p.user_id, p.content, p.media_url, p.media_type, p.post_type, p.campus,
-                p.group_id, p.location, p.created_at, p.category, p.is_seed,
-                -- Raw counters alongside the aliased ones. The feed consumer reads spark_count /
-                -- comment_count / reshare_count / share_count, and this SELECT only ever exposed the
-                -- Sparks / Comments / Shares aliases, so every post in the feed rendered 0
-                -- likes and 0 shares even when the rows had real counts.
-                p.spark_count, p.comment_count, p.reshare_count, p.share_count,
-                u.username, u.name as user_name, u.avatar_url,
-                                   u.campus as user_affiliation, u.is_private, u.profile_visibility,
-                                   COALESCE(p.spark_count, 0) as sparks,
-                                   COALESCE(p.comment_count, 0) as comments,
-                                   COALESCE(p.share_count, 0) as shares,
-                                   COALESCE(p.view_count, 0) as views
-                            FROM posts p JOIN users u ON p.user_id = u.user_id
-                            WHERE (p.created_at > NOW() - INTERVAL 30 DAY OR p.is_seed = 1 OR u.username LIKE 'seed_user_%')
-                            AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
-                            AND p.group_id IS NULL
-                            -- Muted authors never enter the feed. The mute write
-                            -- has existed since social.controller.js but nothing
-                            -- read user_mutes on this path, so muting someone
-                            -- persisted a row that changed nothing.
-                            AND p.user_id NOT IN (SELECT muted_id FROM user_mutes WHERE muter_id = ?)
-                            ORDER BY p.created_at DESC LIMIT 500
-                        `, [currentUserId]).then(([r]) => r).catch(() => [])
+                        ? queryFeedWindowed(
+                            (sql, params) => pool.query(sql, params).then(([r]) => r).catch(() => []),
+                            poolSpec
+                        )
                         : null,
                 ]);
                 if (needRecent) {
@@ -628,6 +638,17 @@ SELECT p.*,
                 }
                 if (needPool) {
                     candidatePool = fallbackPosts || [];
+                    // Media guarantee — the recency slice can exclude every media post
+                    // (newest media older than the LIMIT cutoff), leaving the dashboard
+                    // text-only. Top up with recent media posts until the minimum is met.
+                    if (candidatePool.filter(hasMediaPost).length < MEDIA_TOP_UP_MIN) {
+                        const mediaTopUp = await fetchMediaTopUp(
+                            (sql, params) => pool.query(sql, params).then(([r]) => r).catch(() => []),
+                            poolSpec,
+                            new Set(candidatePool.map(p => p.post_id))
+                        );
+candidatePool = topUpMedia(candidatePool, mediaTopUp);
+                    }
                 }
             }
 
@@ -713,7 +734,13 @@ SELECT p.*,
                 const ageHours = (Date.now() - new Date(post.created_at).getTime()) / (1000 * 60 * 60);
                 const lambda = 0.1;
                 const isSeeded = post.is_seed === 1 || (post.username && post.username.startsWith('seed_user_'));
-                const timeDecay = isSeeded ? Math.max(0.8, Math.exp(-lambda * (ageHours / 240))) : Math.exp(-lambda * ageHours);
+                // Media-guarantee rows (added by the pool builder to keep the feed
+                // visual) share the seed floor — without it their timeDecay is
+                // exp(-0.1 · ~5000h) ≈ 0 and they never reach any page.
+                const hasMediaFloor = isSeeded || post.media_guarantee === true;
+                const timeDecay = hasMediaFloor
+                    ? Math.max(0.8, isSeeded ? Math.exp(-lambda * (ageHours / 240)) : Math.exp(-lambda * ageHours))
+                    : Math.exp(-lambda * ageHours);
 
                 let dwellScore = 1.0;
                 let skipPenalty = 1.0;
@@ -762,6 +789,49 @@ SELECT p.*,
             scoredPosts.sort((a, b) => b.final_score - a.final_score);
             
             const finalBatch = scoredPosts.slice(offsetNum, offsetNum + limitNum);
+
+            // --- MEDIA VISIBILITY GUARANTEE (first page) ---
+            // The pool builder keeps media posts in the candidate set, but
+            // months-old media still ranks mid-pack behind fresher text posts,
+            // so the first screen can render entirely text-only — which reads
+            // as "images are broken" even though every image URL is alive.
+            // Lift the top-scoring media posts into the first page when none
+            // made the cut naturally. Only fires when the page has no media,
+            // so feeds with fresh image posts (production) are untouched.
+            if (offsetNum === 0 && limitNum > 3) {
+                // Guaranteed media posts (added by the pool builder to keep the
+                // feed visual) must survive into page 0 REGARDLESS of score.
+                // They are months old, so time-decay scores them ~0 and they can
+                // rank past the page cut — lifting the top-scoring media post
+                // only worked when the random discovery score cooperated. The
+                // flag is authoritative: inject them at the top, unconditionally.
+                const guaranteed = scoredPosts.filter(p => p.media_guarantee === true);
+                if (guaranteed.length) {
+                    guaranteed.slice(0, 2).forEach((p) => {
+                        const idx = finalBatch.indexOf(p);
+                        if (idx !== -1) finalBatch.splice(idx, 1);
+                        finalBatch.unshift(p);
+                    });
+                    const seen = new Set();
+                    const deduped = [];
+                    for (const p of finalBatch) {
+                        if (seen.has(p.post_id)) continue;
+                        seen.add(p.post_id);
+                        deduped.push(p);
+                    }
+                    finalBatch.length = 0;
+                    finalBatch.push(...deduped.slice(0, limitNum));
+                } else if (!finalBatch.some(hasMediaPost)) {
+                    // Fallback: no flagged posts (e.g. cold Redis, empty pool
+                    // rebuild) — lift the top-scoring media posts we do have.
+                    const mediaCandidates = scoredPosts.filter(hasMediaPost);
+                    const injectCount = Math.min(2, Math.floor(limitNum / 5));
+                    for (let i = 0; i < injectCount && i < mediaCandidates.length; i++) {
+                        finalBatch.splice(i, 0, mediaCandidates[i]);
+                    }
+                    finalBatch.length = limitNum; // page size stays constant
+                }
+            }
             
             // 3. Hydrate final batch (Fetch media only for what we actually show)
             const finalIds = finalBatch.map(p => p.post_id);

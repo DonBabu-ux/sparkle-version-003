@@ -296,17 +296,24 @@ const updateSettings = async (req, res) => {
         const allowedSettings = [
             'anonymous_enabled',
             'dark_mode_enabled',
-            'email_notifications',
-            'push_notifications',
-            'profile_visibility',
-            'theme',
-            'font_size',
-            'font_scale',
-            'language',
-            'last_seen_privacy',
-            'message_privacy',
-            'dnd_start',
-            'dnd_end',
+'email_notifications',
+    'push_notifications',
+    // Canonical notification gate columns — the gates in
+    // notification.controller.js / deliveryQueueWorker.js read these, so the UI
+    // must be allowed to write them (legacy push_notifications/dnd_* are
+    // aliased to them in User.updateSettings).
+    'push_notifications_enabled',
+    'dnd_start_time',
+    'dnd_end_time',
+    'profile_visibility',
+    'theme',
+    'font_size',
+    'font_scale',
+    'language',
+    'last_seen_privacy',
+    'message_privacy',
+    'dnd_start',
+    'dnd_end',
             'activity_status_enabled',
             'sensitive_content_level',
             'ai_content_opt_out',
@@ -419,6 +426,12 @@ const getAdvancedSettings = async (req, res) => {
                 dark_mode_enabled: !!user.dark_mode_enabled,
                 email_notifications: user.email_notifications !== 0,
                 push_notifications: user.push_notifications !== 0,
+                // Canonical gate columns — what the UI must read/write now.
+                // (legacy keys kept above so older clients keep working)
+                push_notifications_enabled: (user.push_notifications_enabled ?? user.push_notifications) !== 0,
+                // TIME columns store HH:MM:SS; the UI works in HH:MM
+                dnd_start_time: (user.dnd_start_time ? String(user.dnd_start_time).slice(0, 5) : null),
+                dnd_end_time: (user.dnd_end_time ? String(user.dnd_end_time).slice(0, 5) : null),
                 theme: user.theme || 'soft_pink',
                 chat_pin: user.chat_pin || null,
                 chat_theme: user.chat_theme || 'default',
@@ -441,8 +454,10 @@ const getAdvancedSettings = async (req, res) => {
                 background_sync_throttling: !!user.background_sync_throttling,
                 link_safety_sandbox: user.link_safety_sandbox !== 0,
                 unverified_dm_filter: !!user.unverified_dm_filter,
-                dnd_start: user.dnd_start || '23:00',
-                dnd_end: user.dnd_end || '07:00'
+                // dnd_start/dnd_end were never columns — they silently read as defaults.
+                // Serve the real window (canonical columns) instead.
+                dnd_start: (user.dnd_start_time ? String(user.dnd_start_time).slice(0, 5) : '23:00'),
+                dnd_end: (user.dnd_end_time ? String(user.dnd_end_time).slice(0, 5) : '07:00')
             }
         });
     } catch (error) {

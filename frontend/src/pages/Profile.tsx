@@ -392,7 +392,10 @@ export default function Profile() {
       logger.error('Follow toggle failed:', err);
       showError('Could not update follow. Please try again.');
     }
-  };
+};
+
+  // Check if viewing own profile (can use 'me' alias or matching IDs)
+  const isOwnProfile = username === 'me' || (currentUser && (profile?.id || profile?.user_id) && String(currentUser.id || currentUser.user_id) === String(profile?.id || profile?.user_id));
 
   if (loading) {
     return (
@@ -402,7 +405,7 @@ export default function Profile() {
             <Spinner size="xl" color="text-primary" />
           </div>
           <div className="text-[12px] font-bold text-black/60 dark:text-white/40 uppercase tracking-widest">
-            Loading your profile
+            {isOwnProfile ? 'Loading your profile' : 'Loading profile'}
           </div>
         </div>
       </div>
@@ -412,26 +415,23 @@ export default function Profile() {
   if (!profile) {
     const isGenuinelyMissing = profileError === 'not_found';
     return (
-        <div className="flex bg-white dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pb-[var(--safe-area-inset-bottom,env(safe-area-inset-bottom))]">
+      <div className="flex bg-white dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pb-[var(--safe-area-inset-bottom,env(safe-area-inset-bottom))]">
         <div className="flex-1 flex items-center justify-center p-12">
            <ModernOfflineState
-             type="error"
-             title={isGenuinelyMissing ? 'Ghost Profile' : "Can't load this profile"}
-             message={
-               isGenuinelyMissing
-                 ? 'This sparkle account seems to have vanished or never existed in our campus directory.'
-                 : "We're having trouble reaching Sparkle's servers right now. This doesn't mean the account is gone — try again in a moment."
-             }
-             onRetry={() => fetchProfile()}
-           />
+              type="error"
+              title={isGenuinelyMissing ? 'Ghost Profile' : "Can't load this profile"}
+              message={
+                isGenuinelyMissing
+                  ? 'This sparkle account seems to have vanished or never existed in our campus directory.'
+                  : "We're having trouble reaching Sparkle's servers right now. This doesn't mean the account is gone — try again in a moment."
+              }
+              onRetry={() => fetchProfile()}
+            />
         </div>
       </div>
     );
   }
 
-  const currentId = currentUser?.id || currentUser?.user_id;
-  const profileId = profile?.id || profile?.user_id;
-  const isOwnProfile = !!currentId && !!profileId && String(currentId) === String(profileId);
   const isMeAlias = username === 'me';
   const showOwnerActions = isOwnProfile || isMeAlias;
   const gridItems = activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : activeTab === 'tagged' ? taggedPosts : [];

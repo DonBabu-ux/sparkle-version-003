@@ -228,14 +228,36 @@ class User {
      * Update arbitrary settings columns on the users table.
      * The caller must validate/whitelist the keys before calling this.
      */
+    /**
+     * Legacy settings keys -> the actual users columns.
+     * The notification gates read push_notifications_enabled / dnd_*_time, but
+     * the UI historically sent push_notifications / dnd_start / dnd_end.
+     * dnd_start/dnd_end are not columns at all, so those saves used to fail the
+     * entire UPDATE; push_notifications wrote a column no gate reads, so the
+     * "Push notifications" toggle silently did nothing. Aliases are resolved
+     * here so every writer lands on the canonical column.
+     */
+    static SETTING_COLUMN_ALIASES = {
+        push_notifications: 'push_notifications_enabled',
+        dnd_start: 'dnd_start_time',
+        dnd_end: 'dnd_end_time',
+    };
+
     static async updateSettings(userId, settings) {
         const fields = [];
         const values = [];
 
         for (const [key, val] of Object.entries(settings)) {
             // only allow simple scalar values; caller is responsible for whitelisting
-            fields.push(`${key} = ?`);
+            const column = User.SETTING_COLUMN_ALIASES[key] || key;
+            fields.push(`${column} = ?`);
             values.push(val);
+            // Dual-write the legacy push column so older readers
+            // (deliveryQueueWorker) keep working until they are migrated.
+            if (column === 'push_notifications_enabled' && key === 'push_notifications') {
+                fields.push(`push_notifications = ?`);
+                values.push(val);
+            }
         }
 
         if (fields.length === 0) return false;

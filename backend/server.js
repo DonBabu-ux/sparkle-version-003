@@ -34,6 +34,8 @@ const { securityHeaders, apiRateLimiter, sanitizeInput, imageLimiter, csrfProtec
 const logger = require('./utils/logger');
 const { authMiddleware } = require('./middleware/auth.middleware');
 const { startKeepAlive } = require('./utils/keep-alive');
+const redisService = require('./services/redis.service');
+const { resolveOrigins } = require('./config/allowedOrigins');
 const firebaseConfig = require('./config/firebase.config');
 const { initializeSocket } = require('./socket');
 const { initializeEmail } = require('./config/email');
@@ -71,20 +73,10 @@ app.use(securityHeaders);
 // CORS configuration to allow credentials and specific origins
 app.use(cors({
     origin: function (origin, callback) {
-        const allowedOrigins = [
-            'http://localhost:5173',
-            'http://localhost:3000',
-            'http://localhost:5174',
-            'http://localhost',
-            'https://localhost',
-            'capacitor://localhost',
-            'https://sparkleappweb.vercel.app',
-            'https://sparkleappweb1.vercel.app',
-            'https://sparklewebapp.vercel.app',
-            'https://sparkleapp.vercel.app',
-            'https://sparkle-version-003-1-f4v3.onrender.com',
-            'https://sparkle-app-backup.onrender.com'
-        ];
+        // Shared with the Socket.IO server (socket/index.js) — the two lists
+        // used to drift, which silently rejected production origins for one
+        // channel only. Single source of truth: config/allowedOrigins.js.
+        const allowedOrigins = resolveOrigins();
 
         // Allow requests with no origin (mobile apps, curl, server-to-server).
         if (!origin) return callback(null, true);
@@ -429,7 +421,7 @@ initializeEmail();
 if (require.main === module || process.env.SPARKLE_ROOT_ENTRY) {
     // Bind explicitly on 0.0.0.0 — Render requires it and its port scanner
     // connects over IPv4.
-    server.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, '0.0.0.0', async () => {
         logger.info(`------------------------------------------`);
         logger.info(`🔥 Sparkle Server running on port ${PORT}`);
         logger.info(`🔌 WebSocket server initialized`);
@@ -438,6 +430,21 @@ if (require.main === module || process.env.SPARKLE_ROOT_ENTRY) {
         logger.info(`🏥 Health checks: /health, /health/db`);
         logger.info(`------------------------------------------`);
 
+        // Warm Redis BEFORE serving traffic: the Redis endpoint auto-hibernates
+        // and routes by SNI, so the first connection takes seconds. Waking it
+        // here means the first feed/cache read is served from Redis, not MySQL.
+        try {
+            await redisService.warmup(10000);
+        } catch (err) {
+            logger.warn('Redis warm-up skipped:', err.message);
+        }
+        // Keep-alive pings are OPT-IN and paid-only. Layerbase's Free plan
+        // requires ≥25% sleep per rolling 7 days and explicitly counts
+        // keep-alive pings against it — repeated polls get the database warned
+        // and then PAUSED (connections refused). Set REDIS_WARM_KEEPALIVE=1
+        // only on plans where 6h idle / always-on makes it unnecessary-but-safe.
+        if (process.env.REDIS_WARM_KEEPALIVE === '1') redisService.startWarmKeepAlive();
+
         // Start keep-alive service to prevent Render from sleeping
         startKeepAlive();
 
@@ -445,6 +452,16 @@ if (require.main === module || process.env.SPARKLE_ROOT_ENTRY) {
         initDB().then(() => {
             dbReady = true;
             momentsController.prewarm();
+
+            // Prime the feed candidate pool at boot so the first dashboard
+            // request reads a warm cache instead of running the DB query.
+            try {
+                const { buildCandidatePool } = require('./jobs/candidatePool');
+                buildCandidatePool().catch((err) => logger.warn('Boot candidate pool build failed:', err.message));
+                logger.info('🔥 Candidate pool primed at boot');
+            } catch (err) {
+                logger.warn('Boot candidate pool priming unavailable:', err.message);
+            }
             try {
                 const { startAutoWithdrawalScheduler } = require('./services/autoWithdrawalScheduler.service');
                 startAutoWithdrawalScheduler();

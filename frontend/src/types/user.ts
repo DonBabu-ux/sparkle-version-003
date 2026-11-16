@@ -45,6 +45,12 @@ export interface User {
   // Settings / privacy preferences (server user_settings shape)
   user_type?: string;
   push_notifications?: number;
+  // Canonical notification gate columns (what the push gates actually read)
+  push_notifications_enabled?: number;
+  // Canonical DND columns (legacy dnd_start/dnd_end were never columns and broke the save)
+  dnd_start_time?: string;
+  dnd_end_time?: string;
+  dnd_end_time?: string;
   message_privacy?: string;
   last_seen_privacy?: string;
   chat_theme?: string;

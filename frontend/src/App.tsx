@@ -27,6 +27,7 @@ import { CallOverlay } from './components/CallOverlay';
 import { AppLockOverlay } from './components/security/AppLockOverlay';
 import { UploadManager } from './services/UploadManager';
 import { initPushNotifications, startPushAuthSync } from './services/PushService';
+import { ensureWebPushSubscription, startWebPushAuthSync } from './services/WebPushService';
 import UploadNotificationCenter from './components/notifications/UploadNotificationCenter';
 import { useSocket } from './hooks/useSocket';
 import { useFeedStore } from './store/feedStore';
@@ -141,12 +142,11 @@ import { getRoleFromToken } from './utils/tokenUtils';
 import { getPostLoginRoute, resolveAdminAccess } from './utils/adminRoute';
 import { ensureFreshAccessToken } from './services/tokenRefresh';
 import { useAppPermissions } from './hooks/useAppPermissions';
-import Spinner from './components/ui/Spinner';
-import { BlockingLoader } from './components/ui/BlockingLoader';
 import { isDefinitiveAuthFailure } from './utils/startupAuth';
 import { installGlobalImageFallback } from './utils/imageFallback';
 import { logger } from './utils/logger';
 import PageShell from './components/PageShell';
+import SplashScreen from './components/ui/SplashScreen';
 import SparkleHubPage from './pages/SparkleHubPage';
 import InviteLandingPage from './pages/InviteLandingPage';
 const DataCentre = lazyWithRetry(() => import('./pages/DataCentre'));
@@ -171,6 +171,12 @@ function App() {
   const [navigationCompleted, setNavigationCompleted] = useState(() => {
     try { return useUserStore.persist.hasHydrated(); } catch { return false; }
   });
+  // Splash is held for at least SPLASH_MIN_HOLD_MS so the logo registers even
+  // on instant boots, and until the startup navigation target (login vs
+  // dashboard) has been decided. `holdElapsed` fires once the minimum hold
+  // time passes; the splash unmounts only when both are true.
+  const [holdElapsed, setHoldElapsed] = useState(false);
+  const splashReleased = navigationCompleted && holdElapsed;
   const navigate = useNavigate();
   const uploadManagerInitRef = useRef(false);
   const pushInitRef = useRef(false);
@@ -373,12 +379,17 @@ function App() {
     pushInitRef.current = true;
     logger.log('[App] Initializing native push notifications...');
     initPushNotifications().catch(err => logger.warn('[App] Push init error:', err));
+    ensureWebPushSubscription().catch(err => logger.warn('[App] Web push ensure error:', err));
   }, [hydrated, isAuthenticated]);
 
   // ── Native push: re-sync the device token on login/account switch ──
   useEffect(() => {
     const unsubscribe = startPushAuthSync();
-    return () => unsubscribe();
+    const unsubscribeWeb = startWebPushAuthSync();
+    return () => {
+      unsubscribe();
+      unsubscribeWeb();
+    };
   }, []);
 
   // ── Native push: notification taps navigate in-app (PushService dispatches) ──
@@ -421,11 +432,14 @@ function App() {
     };
   }, [socket, setStories]);
 
-  // ── Socket: Route incoming notifications to the audio engine ──
+  // ── Socket: incoming notifications drive sound + badge refresh ──
   useEffect(() => {
     if (!socket) return;
     const onNotification = (data: any) => {
       handleNotificationSound(data);
+      // Refresh the notification badges/panels now instead of waiting for the
+      // next 30s poll — they listen for this event (Navbar, Sidebar).
+      window.dispatchEvent(new CustomEvent('notifications_updated'));
     };
     socket.on('new-notification', onNotification);
     return () => {
@@ -464,40 +478,17 @@ function App() {
     })();
   }, [isAuthenticated]);
 
-  // Show a calm, on-brand splash while the store rehydrates. Reads the stored
-  // theme directly rather than a dark: class (the effect below only runs after
-  // this renders), so a dark-mode user never sees a light flash. Gated on
-  // hydration alone: `hydrated` is already true on authenticated reloads and
-  // SPA navigation, so the splash never appears there.
-  if (!hydrated) {
-    const dark = theme === 'dark';
+  // Splash screen: held for at least SPLASH_MIN_HOLD_MS so the logo registers
+  // even on instant boots. Stays mounted until hydrated AND the hold elapses,
+  // then the parent unmounts it and the app renders underneath.
+  if (!hydrated || !splashReleased) {
     return (
-      <div className={`flex min-h-dvh flex-col items-center justify-center font-sans transition-colors duration-500 ${dark ? 'bg-zinc-900' : 'bg-[#f8e7ed]'}`}>
-        <div className="flex flex-col items-center justify-center p-8 text-center animate-fade-in">
-          {/* Brand mark — explicit dimensions reserve the box, so the logo never
-              shifts the layout while it decodes */}
-          <img
-            src="/sparklelogo.png"
-            alt="Sparkle"
-            width={128}
-            height={128}
-            decoding="async"
-            className="h-24 w-24 object-contain md:h-32 md:w-32"
-          />
-
-          <h1 className={`mt-6 font-heading text-3xl font-bold tracking-tight md:text-4xl ${dark ? 'text-zinc-100' : 'text-[#18181b]'}`}>
-            Sparkle
-          </h1>
-          <p className={`mt-2 text-sm ${dark ? 'text-zinc-300' : 'text-slate-600'}`}>
-            Connect. Share. Shine.
-          </p>
-
-          {/* The one shared brand loader */}
-          <div className="mt-10 flex items-center justify-center">
-            <Spinner size="large" />
-          </div>
-        </div>
-      </div>
+      <SplashScreen
+        show
+        minHoldMs={1500}
+        theme={theme === 'dark' ? 'dark' : 'light'}
+        onHoldComplete={() => setHoldElapsed(true)}
+      />
     );
   }
 
@@ -523,9 +514,9 @@ function App() {
                   <AppLockOverlay />
                   <CrossDeviceSecurityAlertOverlay />
                   <UploadNotificationCenter />
-                  <Suspense fallback={
-                        <BlockingLoader show label="Loading" sublabel="Just a moment" />
-                      }>
+              <Suspense fallback={
+                    <SplashScreen show autoRelease={false} theme={theme === 'dark' ? 'dark' : 'light'} />
+                  }>
                     <Routes>
                     {/* ── Phase 1: Auth & Core ── */}
                     <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
@@ -642,7 +633,7 @@ function App() {
                         isAuthenticated ? (
                           <Suspense
                             fallback={
-                              <BlockingLoader show label="Loading" sublabel="Just a moment" />
+                              <SplashScreen show autoRelease={false} theme={theme === 'dark' ? 'dark' : 'light'} />
                             }
                           >
                             <LearnMorePage />

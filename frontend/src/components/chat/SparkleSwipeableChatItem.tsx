@@ -17,7 +17,8 @@ interface SparkleSwipeableChatItemProps {
   user: any;
   onSelect: () => void;
   onOpen: () => void;
-  onLongPress: () => void;
+  onLongPress?: () => void;
+  onShowContextMenu?: (chat: any) => void;
   onArchive: () => void;
   onDelete: () => void;
   formatMessageText: (text: string) => string;
@@ -35,6 +36,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   onSelect,
   onOpen,
   onLongPress,
+  onShowContextMenu,
   onArchive,
   onDelete,
   formatMessageText,
@@ -74,7 +76,11 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   const handleTouchStart = () => {
     setIsPressing(true);
     pressTimer.current = setTimeout(() => {
-      onLongPress();
+      if (isSelectionMode && onLongPress) {
+        onLongPress();
+      } else if (onShowContextMenu) {
+        onShowContextMenu(chat);
+      }
       setIsPressing(false);
     }, 350);
   };

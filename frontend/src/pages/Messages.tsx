@@ -22,7 +22,7 @@ import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useThemeStore } from '../store/themeStore';
-import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal, ReactionDetailsSheet } from '../components/chat/MessageActionModals';
+import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal, ReactionDetailsSheet, ChatContextMenu } from '../components/chat/MessageActionModals';
 import { useLongPress } from '../hooks/useLongPress';
 
 import { MessageInfoModal } from '../components/chat/MessageInfoModal';
@@ -427,6 +427,8 @@ export default function Messages() {
   const [peekChat, setPeekChat] = useState<any | null>(null);
   const [showOfficialOnboarding, setShowOfficialOnboarding] = useState(true);
   const [showLocationPickerModal, setShowLocationPickerModal] = useState(false);
+  const [contextMenuChat, setContextMenuChat] = useState<any | null>(null);
+  const [showChatContextMenu, setShowChatContextMenu] = useState(false);
 
   useEffect(() => {
     api.get('/messages/official-chat').then(res => {
@@ -452,6 +454,64 @@ export default function Messages() {
   const toggleChatSelection = (chatId: string) => {
     setSelectedChatIds(prev =>
       prev.includes(chatId) ? prev.filter(id => id !== chatId) : [...prev, chatId]
+    );
+  };
+
+  const openChatContextMenu = (chat: any) => {
+    setContextMenuChat(chat);
+    setShowChatContextMenu(true);
+  };
+
+  const handleChatArchive = () => {
+    if (!contextMenuChat) return;
+    const id = contextMenuChat.chat_id;
+    const currentlyArchived = contextMenuChat.is_archived || contextMenuChat.is_archived === 1;
+    toggleArchive(id, !currentlyArchived);
+    api.post(`/messages/chat/${id}/archive`, { isArchived: !currentlyArchived }).catch(() => {
+      api.patch(`/messages/chat/${id}/archive`, { isArchived: !currentlyArchived }).catch(logger.error);
+    });
+    showSuccess(currentlyArchived ? 'Chat unarchived' : 'Chat archived');
+  };
+
+  const handleChatUnarchive = handleChatArchive;
+
+  const handleChatMuteToggle = () => {
+    if (!contextMenuChat) return;
+    const id = contextMenuChat.chat_id;
+    const currentlyMuted = contextMenuChat.is_muted || contextMenuChat.is_muted === 1;
+    toggleMute(id, !currentlyMuted);
+    showSuccess(currentlyMuted ? 'Unmuted' : 'Muted notifications');
+  };
+
+  const handleChatMarkUnread = () => {
+    if (!contextMenuChat) return;
+    const id = contextMenuChat.chat_id;
+    const chatStore = useChatStore.getState();
+    chatStore.incrementUnreadCount(id);
+    showSuccess('Marked as unread');
+  };
+
+  const handleChatDelete = () => {
+    if (!contextMenuChat) return;
+    const id = contextMenuChat.chat_id;
+    toggleDelete(id);
+    api.delete(`/messages/chat/${id}`).catch(logger.error);
+    showSuccess('Chat deleted');
+  };
+
+  const handleChatPinToggle = () => {
+    if (!contextMenuChat) return;
+    const id = contextMenuChat.chat_id;
+    const currentlyPinned = contextMenuChat.is_pinned || contextMenuChat.is_pinned === 1;
+    togglePin(id, !currentlyPinned);
+    showSuccess(currentlyPinned ? 'Chat unpinned' : 'Chat pinned');
+  };
+
+  const currentUserId = user?.id || user?.user_id;
+  const getIsOwnChat = (chat: any) => {
+    return (
+      chat.chat_type === 'self' ||
+      String(currentUserId) === String(chat.partner_id)
     );
   };
 
@@ -3449,7 +3509,12 @@ export default function Messages() {
                       ));
                     }
                   }}
-                  onLongPress={() => toggleChatSelection(chat.chat_id)}
+                  onLongPress={() => {
+                    if (selectedChatIds.length > 0) {
+                      toggleChatSelection(chat.chat_id);
+                    }
+                  }}
+                  onShowContextMenu={() => openChatContextMenu(chat)}
                   onArchive={() => {
                     const targetId = chat.chat_id;
                     toggleArchive(targetId, true);
@@ -6801,6 +6866,22 @@ export default function Messages() {
       </AnimatePresence>
 
       <DeveloperEmergencyConsoleModal isOpen={showDevConsole} onClose={() => setShowDevConsole(false)} />
+
+      {showChatContextMenu && contextMenuChat && (
+        <ChatContextMenu
+          isOpen={showChatContextMenu}
+          onClose={() => setShowChatContextMenu(false)}
+          chat={contextMenuChat}
+          isOwnChat={getIsOwnChat(contextMenuChat)}
+          unreadCount={contextMenuChat?.unread_count || 0}
+          onArchive={handleChatArchive}
+          onUnarchive={handleChatUnarchive}
+          onMuteToggle={handleChatMuteToggle}
+          onPinToggle={handleChatPinToggle}
+          onMarkUnread={handleChatMarkUnread}
+          onDelete={handleChatDelete}
+        />
+      )}
 
       {inAppBrowserUrl && (
         <InAppBrowserModal url={inAppBrowserUrl} onClose={() => setInAppBrowserUrl(null)} />

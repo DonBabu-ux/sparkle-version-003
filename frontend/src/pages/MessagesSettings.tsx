@@ -20,6 +20,7 @@ import type { SoundKey } from '../audio/managers/SoundManager';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { sanitizePartnerName } from '../utils/nameSanitizer';
 import { getDeviceSessionId } from '../utils/deviceSession';
+import { enableWebPush, disableWebPush } from '../services/WebPushService';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -362,7 +363,7 @@ export default function MessagesSettings() {
   const [chatSoundState, setChatSoundState] = useState<string>('default');
 
   // Global settings from user store
-  const [notificationsEnabled, setNotificationsEnabled] = useState(user?.push_notifications !== 0);
+  const [notificationsEnabled, setNotificationsEnabled] = useState((user?.push_notifications_enabled ?? user?.push_notifications) !== 0);
   const [messagePrivacy, setMessagePrivacy] = useState(user?.message_privacy || 'followers');
   const [lastSeenPrivacy, setLastSeenPrivacy] = useState(user?.last_seen_privacy || 'everyone');
   const [activeStatusEnabled, setActiveStatusEnabled] = useState(
@@ -510,6 +511,9 @@ export default function MessagesSettings() {
         await api.put('/users/settings', { [key]: value });
         if (user) setUser({ ...user, [key]: value });
         showSuccess('Saved');
+        if (key === 'push_notifications_enabled') {
+          void (value ? enableWebPush() : disableWebPush());
+        }
       } catch {
         showError("Couldn't save. Try again.");
       }
@@ -533,7 +537,7 @@ export default function MessagesSettings() {
 
   useEffect(() => {
     if (user) {
-      setNotificationsEnabled(user.push_notifications !== 0);
+      setNotificationsEnabled((user.push_notifications_enabled ?? user.push_notifications) !== 0);
       setMessagePrivacy(user.message_privacy || 'followers');
       const lsp = user.last_seen_privacy || 'everyone';
       setLastSeenPrivacy(lsp);
@@ -1463,7 +1467,7 @@ export default function MessagesSettings() {
               checked={notificationsEnabled}
               onChange={val => {
                 setNotificationsEnabled(val);
-                updateSetting('push_notifications', val ? 1 : 0);
+                updateSetting('push_notifications_enabled', val ? 1 : 0);
               }}
               aria-label="Push notifications"
             />

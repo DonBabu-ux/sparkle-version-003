@@ -241,11 +241,14 @@ class DeliveryQueueWorker {
                         let hidePreview = false;
                         try {
                             const [prefRows] = await db.query(
-                                'SELECT push_notifications, auto_suppress_notifications FROM users WHERE user_id = ? LIMIT 1',
+                                // push_notifications_enabled is the column the
+                                // other push gates read (notification.controller.js);
+                                // falls back to the legacy column for pre-migration rows.
+                                'SELECT COALESCE(push_notifications_enabled, push_notifications) AS push_enabled, auto_suppress_notifications FROM users WHERE user_id = ? LIMIT 1',
                                 [item.recipient_id]
                             );
                             if (prefRows && prefRows[0]) {
-                                if (prefRows[0].push_notifications === 0 || prefRows[0].push_notifications === false) {
+                                if (prefRows[0].push_enabled === 0 || prefRows[0].push_enabled === false) {
                                     // User has explicitly turned off push notifications
                                     await db.query('DELETE FROM delivery_queue WHERE queue_id = ?', [item.queue_id]);
                                     continue;

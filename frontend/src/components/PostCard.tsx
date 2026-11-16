@@ -21,6 +21,7 @@ import { VideoPlayer } from './VideoPlayer';
 import { emitHeart as spawnTikTokHeart } from './TikTokHearts';
 import clsx from 'clsx';
 import { logger } from '../utils/logger';
+import { getMediaUrl } from '../utils/imageUtils';
 
 export interface Post {
   post_id: string;
@@ -297,7 +298,6 @@ const isDeletedAuthor = Boolean(
   }
 
   const timeAgo = formatDistanceToNow(new Date(post.created_at));
-  const getMediaUrl = (url: string) => url.startsWith('http') ? url : `${api.defaults.baseURL}${url}`;
 
   const getFeelingIcon = (feeling: string) => {
     const f = feeling.toLowerCase();
@@ -586,7 +586,7 @@ post.media_files!.length === 3 && idx === 0 ? "row-span-2" : ""
 )}
 >
 <ProgressiveImage
-src={file.url}
+src={getMediaUrl(file.url)}
 alt=""
 imageClassName="w-full !h-full object-cover transition-transform duration-700 hover:scale-105"
 width={800}
@@ -608,7 +608,7 @@ width={800}
               ) : (
                 <div className="relative w-full aspect-[4/5] max-h-[70vh] sm:max-h-[600px]">
                   <ProgressiveImage
-                    src={post.media_url}
+                    src={getMediaUrl(post.media_url)}
                     alt=""
                     containerClassName="!absolute inset-0"
                     imageClassName="w-full !h-full object-cover transition-transform duration-700 hover:scale-105"

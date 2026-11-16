@@ -18,6 +18,9 @@ router.get('/vapid-public-key', (req, res) => res.json({ key: process.env.VAPID_
 // Subscribe to push notifications
 router.post('/subscribe', notificationController.subscribePush);
 
+// Remove web push subscription
+router.delete('/subscribe', notificationController.unsubscribePush);
+
 // Register FCM token for mobile push
 router.post('/register-fcm-token', notificationController.registerFcmToken);
 

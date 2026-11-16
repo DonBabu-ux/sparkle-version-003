@@ -1106,20 +1106,29 @@ class Message {
     static async markReadTriCondition(chatId, messageIds, recipientUserId) {
         const readReceiptsEnabled = await this.areReadReceiptsEnabled(recipientUserId, chatId);
 
+        // Self-chat (participant1 = participant2): every message's sender IS
+        // the reader, so `sender_id != reader` would match nothing and the
+        // chat could never be marked read. Treat the sender guard as passed.
+        const [[selfChat]] = await db.query(
+            'SELECT 1 AS is_self FROM personal_chats WHERE chat_id = ? AND participant1_id = participant2_id LIMIT 1',
+            [chatId]
+        );
+        const isSelf = selfChat ? 1 : 0;
+
         if (!Array.isArray(messageIds) || messageIds.length === 0) {
             if (readReceiptsEnabled) {
                 await db.query(`
                     UPDATE messages
                     SET read_at = COALESCE(read_at, UTC_TIMESTAMP()), delivered_at = COALESCE(delivered_at, UTC_TIMESTAMP()), status = 'read', is_read = 1
-                    WHERE (conversation_id = ? OR chat_id = ?) AND sender_id != ? AND read_at IS NULL
-                `, [chatId, chatId, recipientUserId]);
+                    WHERE (conversation_id = ? OR chat_id = ?) AND (? = 1 OR sender_id != ?) AND read_at IS NULL
+                `, [chatId, chatId, isSelf, recipientUserId]);
             } else {
                 // Internal unread tracking only: clear recipient's unread indicator
                 await db.query(`
                     UPDATE messages
                     SET is_read = 1
-                    WHERE (conversation_id = ? OR chat_id = ?) AND sender_id != ? AND is_read = 0
-                `, [chatId, chatId, recipientUserId]);
+                    WHERE (conversation_id = ? OR chat_id = ?) AND (? = 1 OR sender_id != ?) AND is_read = 0
+                `, [chatId, chatId, isSelf, recipientUserId]);
             }
             return { readReceiptsEnabled };
         }
@@ -1129,16 +1138,16 @@ class Message {
             await db.query(`
                 UPDATE messages
                 SET read_at = COALESCE(read_at, UTC_TIMESTAMP()), delivered_at = COALESCE(delivered_at, UTC_TIMESTAMP()), status = 'read', is_read = 1
-                WHERE message_id IN (${placeholders}) AND sender_id != ?
+                WHERE message_id IN (${placeholders}) AND (? = 1 OR sender_id != ?)
                   AND (conversation_id = ? OR chat_id = ? OR personal_chat_id = ?)
-            `, [...messageIds, recipientUserId, chatId, chatId, chatId]);
+            `, [...messageIds, isSelf, recipientUserId, chatId, chatId, chatId]);
         } else {
             await db.query(`
                 UPDATE messages
                 SET is_read = 1
-                WHERE message_id IN (${placeholders}) AND sender_id != ?
+                WHERE message_id IN (${placeholders}) AND (? = 1 OR sender_id != ?)
                   AND (conversation_id = ? OR chat_id = ? OR personal_chat_id = ?)
-            `, [...messageIds, recipientUserId, chatId, chatId, chatId]);
+            `, [...messageIds, isSelf, recipientUserId, chatId, chatId, chatId]);
         }
         return { readReceiptsEnabled };
     }

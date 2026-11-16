@@ -157,6 +157,9 @@ export const useUserStore = create<UserState>()(
             activeAccountId: nextAccount.user.user_id
           });
         } else {
+          import('../services/WebPushService')
+            .then((m) => m.deregisterWebPush(outgoingToken))
+            .catch(() => {});
           set({ 
             user: null, 
             token: null, 
@@ -221,6 +224,9 @@ export const useUserStore = create<UserState>()(
               activeAccountId: nextAccount.user.user_id
             });
           } else {
+            import('../services/WebPushService')
+              .then((m) => m.deregisterWebPush(outgoingToken))
+              .catch(() => {});
             set({ 
               user: null, 
               token: null, 

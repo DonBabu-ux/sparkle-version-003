@@ -50,19 +50,28 @@ export default function Sidebar() {
   useEffect(() => {
     const fetchUnread = async () => {
       try {
-        const res = await api.get('/notifications');
-        const list = res.data.notifications || res.data || [];
-        setUnreadCount(list.filter((n: { is_read?: number | boolean; isRead?: boolean }) => !n.is_read && !n.isRead).length);
+        // True unread count from the dedicated endpoint — the old approach
+        // fetched one page (limit 20) and counted it client-side, so busy
+        // users saw a count capped at 20.
+        const res = await api.get('/notifications/unread-count');
+        const count = Number(res.data?.unreadCount ?? 0);
+        setUnreadCount(Number.isFinite(count) ? count : 0);
       } catch {
         /* silent — dot just stays off */
       }
     };
     fetchUnread();
     const interval = setInterval(fetchUnread, 30000);
+    // Refresh immediately when a notification arrives over sockets
+    // (dispatched by App.tsx on 'new-notification') instead of waiting up
+    // to 30s for the next poll.
+    const onUpdated = () => fetchUnread();
     const onAllRead = () => setUnreadCount(0);
+    window.addEventListener('notifications_updated', onUpdated);
     window.addEventListener('notifications_all_read', onAllRead);
     return () => {
       clearInterval(interval);
+      window.removeEventListener('notifications_updated', onUpdated);
       window.removeEventListener('notifications_all_read', onAllRead);
     };
   }, []);

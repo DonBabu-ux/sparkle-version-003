@@ -133,8 +133,14 @@ class MessageReminderService {
              AND r.user_id = CASE WHEN pc.participant1_id = m.sender_id
                                   THEN pc.participant2_id
                                   ELSE pc.participant1_id END
-       WHERE m.is_read = 0
-       GROUP BY m.conversation_id, m.sender_id, recipient_id, r.reminder_id
+        WHERE m.is_read = 0
+          AND NOT (m.sender_id = pc.participant2_id AND pc.is_deleted_p1 = 1)
+         AND NOT (m.sender_id = pc.participant1_id AND pc.is_deleted_p2 = 1)
+       GROUP BY m.conversation_id, m.sender_id,
+                CASE WHEN pc.participant1_id = m.sender_id
+                     THEN pc.participant2_id
+                     ELSE pc.participant1_id END,
+                r.reminder_id
        HAVING MIN(m.sent_at) <= NOW() - INTERVAL ? HOUR
           AND COUNT(*) > 0
           ${unremindedOnly ? 'AND r.reminder_id IS NULL' : ''}

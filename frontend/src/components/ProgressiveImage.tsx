@@ -25,12 +25,20 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
   const isWeakConnection = saveDataMode || quality === 'weak' || quality === 'unstable';
   const initialQuality = isWeakConnection ? 'low' : 'medium';
   
+  // Check if URL is valid before processing
+  const isValidUrl = (url: string): boolean => {
+    if (!url || url.trim() === '' || url === 'null' || url === 'undefined') {
+      return false;
+    }
+    return true;
+  };
+
   const initialUrl = getOptimizedMediaUrl(src, initialQuality, width);
   
   const [currentSrc, setCurrentSrc] = useState(initialUrl);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isHdLoaded, setIsHdLoaded] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState(!isValidUrl(src));
   const [retryCount, setRetryCount] = useState(0);
   
   // Keep track of preloading image to prevent memory leaks if component unmounts
@@ -44,21 +52,23 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
     setCurrentSrc(freshInitialUrl);
     setIsLoaded(false);
     setIsHdLoaded(false);
-    setError(false);
+    setError(!isValidUrl(src));
     
     if (preloadRef.current) {
       preloadRef.current.onload = null;
       preloadRef.current = null;
     }
 
-    // Safety Guardian: Force fully visible state after 1000ms to guarantee no blank space
-    const forceShowTimer = setTimeout(() => {
-      setIsLoaded(true);
-    }, 1000);
+    if (freshInitialUrl) {
+      // Safety Guardian: Force fully visible state after 1000ms
+      const forceShowTimer = setTimeout(() => {
+        setIsLoaded(true);
+      }, 1000);
 
-    return () => {
-      clearTimeout(forceShowTimer);
-    };
+      return () => {
+        clearTimeout(forceShowTimer);
+      };
+    }
   }, [src, saveDataMode, quality, width]);
 
   // Clean up preloader on unmount
@@ -92,13 +102,18 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
   };
 
   const handleRetry = () => {
-    setError(false);
     setRetryCount(prev => prev + 1);
     setIsLoaded(false);
     setIsHdLoaded(false);
     
     const freshInitialQuality = saveDataMode || quality === 'weak' || quality === 'unstable' ? 'low' : 'medium';
-    setCurrentSrc(getOptimizedMediaUrl(src, freshInitialQuality, width));
+    const retryUrl = getOptimizedMediaUrl(src, freshInitialQuality, width);
+    setCurrentSrc(retryUrl);
+    
+    // Only try to load if we have a valid URL
+    if (!isValidUrl(src) && !retryUrl) {
+      setError(true);
+    }
   };
 
   return (

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { enableWebPush, disableWebPush } from '../services/WebPushService';
 import {
   ArrowLeft,
   Shield,
@@ -75,8 +76,8 @@ export default function AdvancedSettingsDetail() {
     background_sync_throttling: false,
     link_safety_sandbox: true,
     unverified_dm_filter: false,
-    dnd_start: '23:00',
-    dnd_end: '07:00',
+    dnd_start_time: '23:00',
+    dnd_end_time: '07:00',
   });
 
   const [sessions, setSessions] = useState<any[]>([]);
@@ -306,6 +307,9 @@ export default function AdvancedSettingsDetail() {
         // Update user store if matching key exists
         if (user) {
           setUser({ ...user, [key]: value } as any);
+        }
+        if (key === 'push_notifications_enabled') {
+          void (value ? enableWebPush() : disableWebPush());
         }
       }
     } catch (err) {
@@ -593,18 +597,18 @@ export default function AdvancedSettingsDetail() {
                 title="Quiet Hours Schedule"
                 description="Time window when non-urgent notifications remain silenced"
                 rightElement="badge"
-                badgeText={`${settings.dnd_start || '23:00'} — ${settings.dnd_end || '07:00'}`}
+                badgeText={`${settings.dnd_start_time || settings.dnd_start || '23:00'} — ${settings.dnd_end_time || settings.dnd_end || '07:00'}`}
                 onClick={() => {
-                  const currentWindow = `${settings.dnd_start || '23:00'}-${settings.dnd_end || '07:00'}`;
-                  if (currentWindow === '23:00-07:00') {
-                    handleUpdateSetting('dnd_start', '22:00');
-                    handleUpdateSetting('dnd_end', '06:00');
-                  } else if (currentWindow === '22:00-06:00') {
-                    handleUpdateSetting('dnd_start', '00:00');
-                    handleUpdateSetting('dnd_end', '08:00');
+                  const currentWindow = `${settings.dnd_start_time || settings.dnd_start || '23:00'}-${settings.dnd_end_time || settings.dnd_end || '07:00'}`;
+                  if (currentWindow.startsWith('23:00-07:00')) {
+                    handleUpdateSetting('dnd_start_time', '22:00');
+                    handleUpdateSetting('dnd_end_time', '06:00');
+                  } else if (currentWindow.startsWith('22:00-06:00')) {
+                    handleUpdateSetting('dnd_start_time', '00:00');
+                    handleUpdateSetting('dnd_end_time', '08:00');
                   } else {
-                    handleUpdateSetting('dnd_start', '23:00');
-                    handleUpdateSetting('dnd_end', '07:00');
+                    handleUpdateSetting('dnd_start_time', '23:00');
+                    handleUpdateSetting('dnd_end_time', '07:00');
                   }
                 }}
               />
@@ -1217,8 +1221,8 @@ export default function AdvancedSettingsDetail() {
                 title="Push Notifications"
                 description="Receive instant alerts on your device for messages and mentions"
                 rightElement="toggle"
-                toggleValue={!!settings.push_notifications}
-                onToggleChange={(val) => handleUpdateSetting('push_notifications', val ? 1 : 0)}
+                toggleValue={settings.push_notifications_enabled !== undefined ? settings.push_notifications_enabled !== 0 : !!settings.push_notifications}
+                onToggleChange={(val) => handleUpdateSetting('push_notifications_enabled', val ? 1 : 0)}
               />
               <SettingRow
                 icon={Bell}

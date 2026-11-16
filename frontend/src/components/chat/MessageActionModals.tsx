@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Reply, Copy, Trash2, MoreHorizontal, Pin, Edit2, Forward, Info, Plus, AlertTriangle } from 'lucide-react';
+import { Reply, Copy, Trash2, MoreHorizontal, Pin, Edit2, Forward, Info, Plus, AlertTriangle, Archive, MessageSquare, BellOff } from 'lucide-react';
 import type { MessagePermissions } from '../../types/messagePermissions';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
@@ -266,6 +266,103 @@ const MoreOption = ({ icon, label, onClick }: any) => (
     <span className="text-[15px] font-medium text-white">{label}</span>
   </button>
 );
+
+export interface ChatContextMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+  chat: {
+    chat_id: string;
+    partner_id?: string;
+    chat_type?: string;
+    is_group?: boolean;
+    is_archived?: boolean;
+    is_pinned?: boolean;
+    is_favorite?: boolean;
+    is_muted?: boolean;
+    partner_name?: string;
+    partner_username?: string;
+    partner_avatar?: string;
+  };
+  isOwnChat: boolean;
+  unreadCount: number;
+  onUnarchive: () => void;
+  onMuteToggle: () => void;
+  onPinToggle: () => void;
+  onMarkUnread: () => void;
+  onDelete: () => void;
+}
+
+export const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
+  isOpen, onClose, chat, isOwnChat, unreadCount, onUnarchive, onMuteToggle, onPinToggle, onMarkUnread, onDelete
+}) => {
+  const a11yRef = useModalA11y(isOpen, onClose);
+  const isArchived = chat.is_archived === true || chat.is_archived === 1;
+  const isPinned = chat.is_pinned === true || chat.is_pinned === 1;
+  const isMuted = chat.is_muted === true || chat.is_muted === 1;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 z-(--z-scrim)"
+            onClick={onClose}
+          />
+          <motion.div
+            ref={a11yRef}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] max-w-[85vw] bg-[#121b22]/95 backdrop-blur-xl rounded-2xl shadow-2xl z-(--z-modal) overflow-hidden border border-white/[0.08]"
+          >
+            <div className="flex flex-col py-1.5">
+              {isPinned && !isArchived && (
+                <>
+                  <MoreOption icon={<Archive size={18} className="text-white/60" />} label="Unpin Conversation" onClick={() => { onUnarchive(); onClose(); }} />
+                  <div className="h-px bg-white/[0.06] my-1" />
+                </>
+              )}
+              {!isPinned && !isArchived && (
+                <>
+                  <MoreOption icon={<Pin size={18} className="text-white/60" />} label="Pin Conversation" onClick={() => { onPinToggle(); onClose(); }} />
+                  <div className="h-px bg-white/[0.06] my-1" />
+                </>
+              )}
+              {!isArchived && !isOwnChat && (
+                <>
+                  <MoreOption icon={<BellOff size={18} className={isMuted ? "text-emerald-400" : "text-white/60"} />} label={isMuted ? "Unmute" : "Mute Notifications"} onClick={() => { onMuteToggle(); onClose(); }} />
+                  <div className="h-px bg-white/[0.06] my-1" />
+                </>
+              )}
+              {unreadCount > 0 && (
+                <>
+                  <MoreOption icon={<MessageSquare size={18} className="text-white/60" />} label="Mark Unread" onClick={() => { onMarkUnread(); onClose(); }} />
+                  <div className="h-px bg-white/[0.06] my-1" />
+                </>
+              )}
+              {!isArchived && !isOwnChat && (
+                <>
+                  <MoreOption icon={<AlertTriangle size={18} className="text-rose-400" />} label="Delete Conversation" onClick={() => { onDelete(); onClose(); }} />
+                  <div className="h-px bg-white/[0.06] my-1" />
+                </>
+              )}
+              {isArchived && (
+                <MoreOption icon={<Archive size={18} className="text-emerald-400" />} label="Unarchive" onClick={() => { onUnarchive(); onClose(); }} />
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
 
 interface ReactionDetailsSheetProps {
   isOpen: boolean;

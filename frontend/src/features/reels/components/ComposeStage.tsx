@@ -1,16 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ArrowLeft, Plus, Globe, Users, Lock, ChevronRight, Settings2,
-  AlertCircle, Loader2, Check, Save, X, Lightbulb, Sparkles,
-  Maximize2, Minimize2, Link2, Share2, Search, AtSign, Hash,
-  Play, SlidersHorizontal, ExternalLink, RefreshCw, Send, CheckCircle2
-} from 'lucide-react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Plus, Globe, Users, Lock, ChevronRight, AlertCircle, Loader2, Check, Save, X, Lightbulb, Sparkles, Maximize2, Minimize2, Link2, Share2, Search, AtSign, Hash, Play, SlidersHorizontal, ExternalLink, RefreshCw, Send, CheckCircle2 } from 'lucide-react';
 import api from '../../../api/api';
 import { useReelCreatorStore } from '../reelCreatorStore';
 import { useCreateMomentsTheme } from '../useCreateMomentsTheme';
-import { BottomSheet, InlineSpinner, PINK } from './shell';
+import { BottomSheet, InlineSpinner } from './shell';
 import { saveDraft } from '../services/draftService';
-import { publishReelBackground, PublishError, AUDIENCE_LABELS, type PublishProgress } from '../services/reelPublishService';
+import { publishReelBackground, PublishError, type PublishProgress } from '../services/reelPublishService';
 import { openNativePicker, filesToGalleryItems } from '../services/mediaLibraryService';
 import type { AudienceKind } from '../types';
 import { showError, showSuccess } from '../../../utils/toast';
@@ -60,23 +55,23 @@ export default function ComposeStage({
   const s = useReelCreatorStore();
   const { isDark } = useCreateMomentsTheme();
 
-  // ── Keyboard / Composition Mode ──
+  // â”€â”€ Keyboard / Composition Mode â”€â”€
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [activeInput, setActiveInput] = useState<'title' | 'desc' | null>(null);
   const [expandedDesc, setExpandedDesc] = useState(false);
 
-  // ── Cover selection ──
+  // â”€â”€ Cover selection â”€â”€
   const [selectedCoverIndex, setSelectedCoverIndex] = useState(0);
   const [coverModalOpen, setCoverModalOpen] = useState(false);
 
-  // ── Description Ideas & AI Assistant Drawers ──
+  // â”€â”€ Description Ideas & AI Assistant Drawers â”€â”€
   const [ideasOpen, setIdeasOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  // ── Hashtags State & Autocomplete (Image 5) ──
+  // â”€â”€ Hashtags State & Autocomplete (Image 5) â”€â”€
   const [activeHashQuery, setActiveHashQuery] = useState<string | null>(null);
   const [hashTokenRange, setHashTokenRange] = useState<{ start: number; end: number } | null>(null);
   const [recentTags, setRecentTags] = useState<string[]>([]);
@@ -84,7 +79,7 @@ export default function ComposeStage({
   const [tagSuggestions, setTagSuggestions] = useState<HashtagItem[]>([]);
   const hashDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Mentions State & Modal (Image 4) ──
+  // â”€â”€ Mentions State & Modal (Image 4) â”€â”€
   const [mentionModalOpen, setMentionModalOpen] = useState(false);
   const [mentionTab, setMentionTab] = useState<'people' | 'videos'>('people');
   const [mentionModalSearch, setMentionModalSearch] = useState('');
@@ -94,12 +89,12 @@ export default function ComposeStage({
   const [mentionSearching, setMentionSearching] = useState(false);
   const mentionSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Inline @ Mention Autocomplete ──
+  // â”€â”€ Inline @ Mention Autocomplete â”€â”€
   const [activeAtQuery, setActiveAtQuery] = useState<string | null>(null);
   const [atTokenRange, setAtTokenRange] = useState<{ start: number; end: number } | null>(null);
   const [inlineMentionResults, setInlineMentionResults] = useState<Person[]>([]);
 
-  // ── Settings Bottom Sheets ──
+  // â”€â”€ Settings Bottom Sheets â”€â”€
   const [audienceSheetOpen, setAudienceSheetOpen] = useState(false);
   const [optionsSheetOpen, setOptionsSheetOpen] = useState(false);
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
@@ -107,10 +102,10 @@ export default function ComposeStage({
   const [linkInput, setLinkInput] = useState('');
   const [shareDestination, setShareDestination] = useState<string>('Standard');
 
-  // ── In-place Reel Preview Modal ──
+  // â”€â”€ In-place Reel Preview Modal â”€â”€
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
-  // ── Publish / Draft State ──
+  // â”€â”€ Publish / Draft State â”€â”€
   const [progress, setProgress] = useState<PublishProgress | null>(null);
   const [publishError, setPublishError] = useState<{ message: string; retryable: boolean } | null>(null);
   const [draftSaving, setDraftSaving] = useState(false);
@@ -125,7 +120,7 @@ export default function ComposeStage({
   const canPublish = s.clips.length > 0 && !s.submitting;
   const coverUrl = s.clips[selectedCoverIndex]?.previewUrl || s.clips[0]?.previewUrl;
 
-  // ── 1. Virtual Keyboard Detection via Visual Viewport ──
+  // â”€â”€ 1. Virtual Keyboard Detection via Visual Viewport â”€â”€
   useEffect(() => {
     const handleViewportResize = () => {
       if (typeof window === 'undefined' || !window.visualViewport) return;
@@ -148,7 +143,7 @@ export default function ComposeStage({
 
   const isCompactMode = isKeyboardOpen || activeInput !== null;
 
-  // ── 2. Load Recent Hashtags & People on Mount ──
+  // â”€â”€ 2. Load Recent Hashtags & People on Mount â”€â”€
   useEffect(() => {
     let alive = true;
     api.get('/reels/hashtags/recent')
@@ -178,7 +173,7 @@ export default function ComposeStage({
     return () => { alive = false; };
   }, []);
 
-  // ── Helper: Call AI generate endpoint ──
+  // â”€â”€ Helper: Call AI generate endpoint â”€â”€
   const callAi = useCallback(async (action: string) => {
     setAiLoading(true);
     setAiResult(null);
@@ -204,7 +199,7 @@ export default function ComposeStage({
   }, [s.description, s.title, s.hashtags]);
 
 
-  // ── 3. Hashtag Suggestions Search (Debounced) ──
+  // â”€â”€ 3. Hashtag Suggestions Search (Debounced) â”€â”€
   useEffect(() => {
     if (activeHashQuery === null) {
       setTagSuggestions([]);
@@ -229,7 +224,7 @@ export default function ComposeStage({
     };
   }, [activeHashQuery]);
 
-  // ── 4. Mention Search for Modal (Debounced) ──
+  // â”€â”€ 4. Mention Search for Modal (Debounced) â”€â”€
   useEffect(() => {
     const q = mentionModalSearch.trim().replace(/^@/, '');
     if (!q) {
@@ -258,7 +253,7 @@ export default function ComposeStage({
     };
   }, [mentionModalSearch]);
 
-  // ── 5. Inline @ Mention Search (Debounced) ──
+  // â”€â”€ 5. Inline @ Mention Search (Debounced) â”€â”€
   useEffect(() => {
     if (activeAtQuery === null) {
       setInlineMentionResults([]);
@@ -282,7 +277,7 @@ export default function ComposeStage({
     return () => clearTimeout(t);
   }, [activeAtQuery, recentPeople]);
 
-  // ── 6. Cursor & Token Detection in Description ──
+  // â”€â”€ 6. Cursor & Token Detection in Description â”€â”€
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value.slice(0, DESC_MAX);
     s.setDescription(text);
@@ -333,7 +328,7 @@ export default function ComposeStage({
     }
   };
 
-  // ── 7. Insert Token Handlers ──
+  // â”€â”€ 7. Insert Token Handlers â”€â”€
   const insertHashtagToken = (tag: string) => {
     const clean = tag.replace(/^#/, '').toLowerCase().trim();
     if (!clean) return;
@@ -406,7 +401,7 @@ export default function ComposeStage({
     }, 50);
   };
 
-  // ── 8. Add Media Handler ──
+  // â”€â”€ 8. Add Media Handler â”€â”€
   const handleAddMedia = async () => {
     if (s.clips.length >= 10) {
       showError('You can add up to 10 clips per reel.');
@@ -439,7 +434,7 @@ export default function ComposeStage({
     }
   };
 
-  // ── 9. Save Draft ──
+  // â”€â”€ 9. Save Draft â”€â”€
   const handleSaveDraft = async () => {
     setDraftSaving(true);
     try {
@@ -454,7 +449,7 @@ export default function ComposeStage({
     }
   };
 
-  // ── 10. Publish Reel ──
+  // â”€â”€ 10. Publish Reel â”€â”€
   const doPublish = async (isRetry = false) => {
     setPublishError(null);
     if (isRetry) setProgress(null);
@@ -465,7 +460,7 @@ export default function ComposeStage({
         setProgress(p);
         s.setSubmitProgress(p.overall);
       });
-      showSuccess('Publishing in the background — you can keep browsing.');
+      showSuccess('Publishing in the background â€” you can keep browsing.');
       onPublishedBackground(handoff.uploadId);
     } catch (err) {
       if (err instanceof PublishError) {
@@ -481,7 +476,7 @@ export default function ComposeStage({
     }
   };
 
-  // ── Audience Label Helper ──
+  // â”€â”€ Audience Label Helper â”€â”€
   const audienceDisplayLabel = useMemo(() => {
     switch (s.audience) {
       case 'public': return 'Everyone can view this reel';
@@ -503,7 +498,7 @@ export default function ComposeStage({
       role="main"
       aria-label="Publish reel studio"
     >
-      {/* ── 1. HEADER ── */}
+      {/* â”€â”€ 1. HEADER â”€â”€ */}
       <header
         className="flex items-center justify-between px-4 h-14 shrink-0 z-20"
         style={{
@@ -553,7 +548,7 @@ export default function ComposeStage({
         )}
       </header>
 
-      {/* ── 2. SCROLLABLE COMPOSER BODY ── */}
+      {/* â”€â”€ 2. SCROLLABLE COMPOSER BODY â”€â”€ */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {/* Top Cover and Media Tiles Row */}
         <section className="px-4 pt-4 pb-2">
@@ -603,10 +598,10 @@ export default function ComposeStage({
             {!isCompactMode && s.clips.length > 1 && (
               <div className="flex-1 min-w-0 pl-1">
                 <p className={`text-xs font-bold truncate ${isDark ? "text-white" : "text-gray-900"}`}>
-                  {s.clips.length} clips · {duration.toFixed(1)}s
+                  {s.clips.length} clips Â· {duration.toFixed(1)}s
                 </p>
                 <p className={`text-[11px] truncate mt-0.5 ${isDark ? "text-[#A6A0A8]" : "text-slate-600"}`}>
-                  {s.selectedMusic ? `♪ ${s.selectedMusic.title}` : 'Original audio'}
+                  {s.selectedMusic ? `â™ª ${s.selectedMusic.title}` : 'Original audio'}
                 </p>
               </div>
             )}
@@ -710,7 +705,7 @@ export default function ComposeStage({
           </div>
         </section>
 
-        {/* ── 3. INLINE HASHTAG SUGGESTIONS (IMAGE 5) ── */}
+        {/* â”€â”€ 3. INLINE HASHTAG SUGGESTIONS (IMAGE 5) â”€â”€ */}
         {activeHashQuery !== null && (tagSuggestions.length > 0 || recentTags.length > 0) && (
           <div className={`px-4 py-2 border-t border-b transition-all ${isDark ? "bg-[#181419] border-[#29232C]" : "bg-gray-50 border-gray-200"}`}>
             <p className={`text-[11px] font-semibold tracking-wide mb-1.5 ${isDark ? "text-white/70" : "text-slate-600"}`}>
@@ -748,7 +743,7 @@ export default function ComposeStage({
           </div>
         )}
 
-        {/* ── 4. INLINE @ MENTION AUTOCOMPLETE ── */}
+        {/* â”€â”€ 4. INLINE @ MENTION AUTOCOMPLETE â”€â”€ */}
         {activeAtQuery !== null && inlineMentionResults.length > 0 && (
           <div className={`px-4 py-2 border-t border-b transition-all ${isDark ? "bg-[#181419] border-[#29232C]" : "bg-gray-50 border-gray-200"}`}>
             <p className={`text-[11px] font-semibold tracking-wide mb-1.5 ${isDark ? "text-white/70" : "text-slate-600"}`}>
@@ -782,7 +777,7 @@ export default function ComposeStage({
           </div>
         )}
 
-        {/* ── 5. PUBLISHING SETTINGS SECTION (IMAGE 2) ── */}
+        {/* â”€â”€ 5. PUBLISHING SETTINGS SECTION (IMAGE 2) â”€â”€ */}
         {!isCompactMode && (
           <section className={`px-4 pt-2 pb-24 divide-y text-sm ${isDark ? "divide-[#29232C]" : "divide-gray-200"}`}>
             {/* Row 1: Add Link */}
@@ -856,7 +851,7 @@ export default function ComposeStage({
         )}
       </div>
 
-      {/* ── 6. BOTTOM PUBLISHING ACTION BAR (IMAGE 2) ── */}
+      {/* â”€â”€ 6. BOTTOM PUBLISHING ACTION BAR (IMAGE 2) â”€â”€ */}
       {!isCompactMode && (
         <div
           className={`fixed bottom-0 inset-x-0 z-30 px-4 py-3 backdrop-blur-md border-t flex items-center gap-3 ${isDark ? "bg-[#0D080E]/95 border-[#29232C]" : "bg-white/95 border-gray-200"}`}
@@ -895,7 +890,7 @@ export default function ComposeStage({
             {s.submitting ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                <span>Publishing…</span>
+                <span>Publishingâ€¦</span>
               </>
             ) : (
               <>
@@ -907,7 +902,7 @@ export default function ComposeStage({
         </div>
       )}
 
-      {/* ── 7. MENTION PEOPLE FULL-SCREEN SCREEN (IMAGE 4) ── */}
+      {/* â”€â”€ 7. MENTION PEOPLE FULL-SCREEN SCREEN (IMAGE 4) â”€â”€ */}
       {mentionModalOpen && (
         <div
           className={`fixed inset-0 z-[var(--z-modal,75)] flex flex-col ${isDark ? "bg-[#0D080E] text-white" : "bg-white text-gray-900"}`}
@@ -988,7 +983,7 @@ export default function ComposeStage({
               </div>
             ) : mentionSearching ? (
               <div className="flex items-center justify-center py-12 text-[#A6A0A8] text-sm gap-2">
-                <InlineSpinner size={18} /> Searching people…
+                <InlineSpinner size={18} /> Searching peopleâ€¦
               </div>
             ) : mentionModalSearch.trim() ? (
               // Search Results
@@ -1116,7 +1111,7 @@ export default function ComposeStage({
         </div>
       )}
 
-      {/* ── 8. DESCRIPTION IDEAS DRAWER ── */}
+      {/* â”€â”€ 8. DESCRIPTION IDEAS DRAWER â”€â”€ */}
       <BottomSheet open={ideasOpen} onClose={() => { setIdeasOpen(false); setAiResult(null); setAiError(null); }} title="Description ideas">
         <div className="flex flex-col gap-2 pt-2">
           {aiResult && (
@@ -1151,7 +1146,7 @@ export default function ComposeStage({
       </BottomSheet>
 
 
-      {/* ── 9. WRITING ASSISTANT DRAWER ── */}
+      {/* â”€â”€ 9. WRITING ASSISTANT DRAWER â”€â”€ */}
       <BottomSheet open={assistantOpen} onClose={() => { setAssistantOpen(false); setAiResult(null); setAiError(null); }} title="Writing assistant">
         <div className="flex flex-col gap-2 pt-2">
           {/* AI Result display */}
@@ -1232,7 +1227,7 @@ export default function ComposeStage({
         </div>
       </BottomSheet>
 
-      {/* ── 10. AUDIENCE PRIVACY BOTTOM SHEET ── */}
+      {/* â”€â”€ 10. AUDIENCE PRIVACY BOTTOM SHEET â”€â”€ */}
       <BottomSheet open={audienceSheetOpen} onClose={() => setAudienceSheetOpen(false)} title="Who can view this reel?">
         <div className="flex flex-col gap-2 pt-2">
           {[
@@ -1267,7 +1262,7 @@ export default function ComposeStage({
         </div>
       </BottomSheet>
 
-      {/* ── 11. MORE OPTIONS BOTTOM SHEET ── */}
+      {/* â”€â”€ 11. MORE OPTIONS BOTTOM SHEET â”€â”€ */}
       <BottomSheet open={optionsSheetOpen} onClose={() => setOptionsSheetOpen(false)} title="More options">
         <div className="flex flex-col gap-2 pt-2">
           <label className={`flex items-center justify-between p-3.5 rounded-2xl border cursor-pointer ${isDark ? "bg-[#181419] border-[#29232C]" : "bg-gray-50 border-gray-200"}`}>
@@ -1336,7 +1331,7 @@ export default function ComposeStage({
         </div>
       </BottomSheet>
 
-      {/* ── 12. ADD LINK BOTTOM SHEET ── */}
+      {/* â”€â”€ 12. ADD LINK BOTTOM SHEET â”€â”€ */}
       <BottomSheet open={linkSheetOpen} onClose={() => setLinkSheetOpen(false)} title="Add link to reel">
         <div className="flex flex-col gap-3 pt-2">
           <input
@@ -1379,7 +1374,7 @@ export default function ComposeStage({
         </div>
       </BottomSheet>
 
-      {/* ── 13. COVER CHOOSER MODAL ── */}
+      {/* â”€â”€ 13. COVER CHOOSER MODAL â”€â”€ */}
       <BottomSheet open={coverModalOpen} onClose={() => setCoverModalOpen(false)} title="Select reel cover">
         <div className="pt-2">
           <p className="text-xs text-[#A6A0A8] mb-3">Choose a frame from your reel to use as the cover image.</p>
@@ -1399,7 +1394,7 @@ export default function ComposeStage({
                 <img src={clip.previewUrl} alt="" className="w-full h-full object-cover" />
                 {selectedCoverIndex === idx && (
                   <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#EC1164] flex items-center justify-center text-white text-[10px] font-bold">
-                    ✓
+                    âœ“
                   </div>
                 )}
               </div>
@@ -1408,7 +1403,7 @@ export default function ComposeStage({
         </div>
       </BottomSheet>
 
-      {/* ── 14. IN-PLACE REEL PREVIEW MODAL ── */}
+      {/* â”€â”€ 14. IN-PLACE REEL PREVIEW MODAL â”€â”€ */}
       {previewModalOpen && (
         <div
           className="fixed inset-0 z-[var(--z-modal,80)] flex flex-col bg-black text-white"
@@ -1448,7 +1443,7 @@ export default function ComposeStage({
         </div>
       )}
 
-      {/* ── 15. PUBLISH PROGRESS OR ERROR OVERLAY ── */}
+      {/* â”€â”€ 15. PUBLISH PROGRESS OR ERROR OVERLAY â”€â”€ */}
       {(s.submitting || publishError) && (
         <div
           className="fixed inset-x-0 bottom-0 z-[calc(var(--z-sheet,70)+5)] px-4 pb-5"
@@ -1459,10 +1454,10 @@ export default function ComposeStage({
               <>
                 <div className="flex items-center justify-between mb-2">
                   <span className={`text-xs font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-                    {progress?.phase === 'rendering' ? 'Processing video edits…'
-                      : progress?.phase === 'uploading' ? 'Uploading reel…'
-                      : progress?.phase === 'story' ? 'Sharing to story…'
-                      : 'Publishing…'}
+                    {progress?.phase === 'rendering' ? 'Processing video editsâ€¦'
+                      : progress?.phase === 'uploading' ? 'Uploading reelâ€¦'
+                      : progress?.phase === 'story' ? 'Sharing to storyâ€¦'
+                      : 'Publishingâ€¦'}
                   </span>
                   <span className={`text-xs font-bold ${isDark ? "text-white/60" : "text-slate-600"}`}>{progress?.overall ?? 0}%</span>
                 </div>

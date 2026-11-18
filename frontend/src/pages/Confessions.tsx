@@ -1,4 +1,5 @@
-import { showInfo, showError } from '../utils/toast';
+﻿import { showInfo, showError } from '../utils/toast';
+import { Picker, data } from '../components/EmojiMart';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
@@ -8,8 +9,6 @@ import { emitHeart } from '../components/TikTokHearts';
 import ConfessionModal from '../components/modals/ConfessionModal';
 import ShareModal from '../components/modals/ShareModal';
 import { formatCount } from '../utils/format';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
 import Spinner from '../components/ui/Spinner';
 import { ShieldCheck, Plus, Orbit, ArrowLeft, Flame, Globe, Star, Snowflake, ShieldOff, MoreHorizontal, Download, Flag, X, MessageCircle, Send } from 'lucide-react';
 import { logger } from '../utils/logger';
@@ -203,7 +202,7 @@ export default function Confessions() {
     }
   };
 
-  // Deep links: /confessions/:id (and legacy share links /confessions?id=…)
+  // Deep links: /confessions/:id (and legacy share links /confessions?id=â€¦)
   // must open the shared confession's conversation, not the plain list.
   const deepLinkHandledIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -255,7 +254,7 @@ export default function Confessions() {
       const next = { ...prev, [id]: !prev[id] };
       try {
         localStorage.setItem('sparkle_saved_confessions', JSON.stringify(Object.keys(next).filter(k => next[k])));
-      } catch { /* private mode / quota — keep in-memory state */ }
+      } catch { /* private mode / quota â€” keep in-memory state */ }
       return next;
     });
     showInfo(isSaved ? 'Removed from saved' : 'Saved');
@@ -266,7 +265,7 @@ export default function Confessions() {
     if (!text?.trim() || isCommenting[confessionId]) return;
 
     setIsCommenting(prev => ({ ...prev, [confessionId]: true }));
-    const content = replyTo ? `↳ ${replyTo.author}: ${text}` : text;
+    const content = replyTo ? `â†³ ${replyTo.author}: ${text}` : text;
     try {
       await api.post(`/confessions/${confessionId}/comments`, { 
         content,
@@ -298,7 +297,7 @@ export default function Confessions() {
 
       <main className="flex-1 relative z-10 w-full max-w-[680px] mx-auto min-h-dvh flex flex-col pb-28">
 
-        {/* ── Sticky Header ── */}
+        {/* â”€â”€ Sticky Header â”€â”€ */}
         <div className="sticky top-0 z-50 bg-[#fdf8fa]/80 dark:bg-zinc-800/80 backdrop-blur-3xl transition-all border-b border-[#ede3e9] dark:border-zinc-700">
           {/* Top row */}
           <div className="flex items-center justify-between px-4 pt-[var(--safe-area-inset-top)] pb-3">
@@ -337,7 +336,7 @@ export default function Confessions() {
             </div>
           </div>
 
-          {/* ── Category Tabs (horizontal scrollable) ── */}
+          {/* â”€â”€ Category Tabs (horizontal scrollable) â”€â”€ */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar px-4 pb-3 pt-1">
             {CATEGORIES.map(cat => (
               <button
@@ -356,10 +355,10 @@ export default function Confessions() {
           </div>
         </div>
 
-        {/* ── Scrollable Feed ── */}
+        {/* â”€â”€ Scrollable Feed â”€â”€ */}
         <div className="flex-1 overflow-y-auto">
 
-          {/* Pulse of the Village – Trending Card */}
+          {/* Pulse of the Village â€“ Trending Card */}
           {trendingConfession && !loading && (
             <div className="mx-4 mt-5 mb-6 animate-fade-in">
               <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-[28px] p-5 relative overflow-hidden border border-[#e6d8e1] dark:border-zinc-700 shadow-lg shadow-primary/5">
@@ -425,7 +424,7 @@ export default function Confessions() {
             Other people see only an alias. Moderators can see the posting account when reviewing a report.
           </p>
 
-          {/* ── Feed Cards ── */}
+          {/* â”€â”€ Feed Cards â”€â”€ */}
           <div className="flex flex-col gap-0 sm:gap-4 px-0 sm:px-4 pb-8">
             {loading ? (
               <div className="py-24 flex flex-col items-center justify-center">
@@ -498,7 +497,7 @@ export default function Confessions() {
                   </p>
                   </div>
 
-                  {/* Attached Image (Edge-to-Edge) — single tap previews, double tap hearts */}
+                  {/* Attached Image (Edge-to-Edge) â€” single tap previews, double tap hearts */}
                   {conf.image_url && (
                     <div 
                       className="relative bg-zinc-900 cursor-pointer border-y border-[#ede3e9] dark:border-zinc-700 overflow-hidden"
@@ -580,22 +579,22 @@ export default function Confessions() {
                               {!showEmojiPicker ? (
                                 <>
                                   <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-[#ede3e9] dark:border-zinc-900">
-                                    {(conf.smile_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">😂 {conf.smile_count}</div>}
-                                    {(conf.relate_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">😭 {conf.relate_count}</div>}
-                                    {(conf.heart_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">❤️ {conf.heart_count}</div>}
-                                    {(conf.fire_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">🔥 {conf.fire_count}</div>}
-                                    {(conf.support_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">🥺 {conf.support_count}</div>}
+                                    {(conf.smile_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">ðŸ˜‚ {conf.smile_count}</div>}
+                                    {(conf.relate_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">ðŸ˜­ {conf.relate_count}</div>}
+                                    {(conf.heart_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">â¤ï¸ {conf.heart_count}</div>}
+                                    {(conf.fire_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">ðŸ”¥ {conf.fire_count}</div>}
+                                    {(conf.support_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">ðŸ¥º {conf.support_count}</div>}
                                     {((conf.smile_count || 0) + (conf.relate_count || 0) + (conf.heart_count || 0) + (conf.fire_count || 0) + (conf.support_count || 0)) === 0 && (
                                       <span className="text-[13px] font-medium text-slate-600 dark:text-zinc-300 mx-auto">No reactions yet</span>
                                     )}
                                   </div>
                                   <div className="flex items-center justify-between gap-1">
                                     {[
-                                      { emoji: '😂', type: 'funny' },
-                                      { emoji: '😭', type: 'relate' },
-                                      { emoji: '❤️', type: 'heart' },
-                                      { emoji: '🔥', type: 'fire' },
-                                      { emoji: '🥺', type: 'support' },
+                                      { emoji: 'ðŸ˜‚', type: 'funny' },
+                                      { emoji: 'ðŸ˜­', type: 'relate' },
+                                      { emoji: 'â¤ï¸', type: 'heart' },
+                                      { emoji: 'ðŸ”¥', type: 'fire' },
+                                      { emoji: 'ðŸ¥º', type: 'support' },
                                     ].map(({ emoji, type }) => (
                                       <button
                                         key={type}
@@ -619,7 +618,7 @@ export default function Confessions() {
                                     data={data} 
                                     onEmojiSelect={(emoji: any) => {
                                       const typeMap: Record<string, string> = {
-                                        '😂': 'funny', '😭': 'relate', '❤️': 'heart', '🔥': 'fire', '🥺': 'support'
+                                        'ðŸ˜‚': 'funny', 'ðŸ˜­': 'relate', 'â¤ï¸': 'heart', 'ðŸ”¥': 'fire', 'ðŸ¥º': 'support'
                                       };
                                       handleReact(conf.confession_id, typeMap[emoji.native] || 'heart');
                                     }} 
@@ -689,7 +688,7 @@ export default function Confessions() {
         </div>
       </main>
 
-      {/* Local ConfessionModal overlay — close via X/Esc (with discard guard) only, not backdrop taps */}
+      {/* Local ConfessionModal overlay â€” close via X/Esc (with discard guard) only, not backdrop taps */}
       {showComposeModal && (
         <div
           className="fixed inset-0 z-(--z-top) flex items-center justify-center p-4 md:p-6 bg-black/20 backdrop-blur-xl animate-fade-in"
@@ -706,14 +705,14 @@ export default function Confessions() {
         </div>
       )}
 
-      {/* ── Global Modals for this isolated view ── */}
+      {/* â”€â”€ Global Modals for this isolated view â”€â”€ */}
       {activeModal === 'share' && (
         <div className="fixed inset-0 z-(--z-toast) flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4">
           <ShareModal onClose={() => setActiveModal(null)} />
         </div>
       )}
 
-      {/* ── In-App Image Previewer ── */}
+      {/* â”€â”€ In-App Image Previewer â”€â”€ */}
       {previewImage && (
         <div className="fixed inset-0 z-(--z-toast) flex flex-col bg-black/95 animate-fade-in backdrop-blur-xl">
           {/* Top Bar */}
@@ -786,7 +785,7 @@ export default function Confessions() {
         </div>
       )}
 
-      {/* ── Confession Comments Modal ── */}
+      {/* â”€â”€ Confession Comments Modal â”€â”€ */}
       {activeCommentsModal && (
         <div className="fixed inset-0 z-(--z-top) flex justify-center items-end sm:items-center bg-black/40 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-lg bg-[#fdf8fa] dark:bg-zinc-800 sm:rounded-[32px] rounded-t-[32px] h-[85vh] sm:h-[80vh] flex flex-col shadow-2xl animate-slide-up sm:animate-scale-in border-t sm:border border-[#e6d8e1] dark:border-zinc-700">

@@ -532,7 +532,7 @@ export default function LockedLivePage() {
               <Calendar size={24} />
             </div>
             <div className="space-y-1">
-              <h4 className="text-base font-black text-white" style={{ fontFamily: 'Outfit' }}>Live Streaming Coming Soon</h4>
+              <h4 className="text-base font-black text-white" style={{ fontFamily: 'Outfit' }}>Sparkle Live Unlocks at 1,000 Followers</h4>
               <p className="text-[10px] md:text-xs text-white/40 max-w-sm leading-relaxed">
                 Keep growing your audience. Sparkle Live unlocks at 1,000 followers. The stage is waiting for you.
               </p>

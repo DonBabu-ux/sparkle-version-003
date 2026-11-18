@@ -215,33 +215,61 @@ exports.getCreatorStats = async (req, res) => {
         try {
             const [wallets] = await pool.query('SELECT wallet_id FROM wallets WHERE user_id = ?', [userId]);
             if (wallets.length > 0) {
-                const [txns] = await pool.query(
-                    `SELECT type, amount, status, created_at 
-                     FROM wallet_transactions 
-                     WHERE wallet_id = ? AND status = 'Completed' AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)`,
-                    [wallets[0].wallet_id, intervalDays]
-                );
+const [txns] = await pool.query(
+                `SELECT type, amount, status, currency, created_at
+                 FROM wallet_transactions
+                 WHERE wallet_id = ? AND status = 'Completed' AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)`,
+                [wallets[0].wallet_id, intervalDays]
+            );
                 walletTxns = txns;
             }
         } catch (e) {
             logger.warn('⚠️ Web wallet transactions check skipped for analytics:', e.message);
         }
 
-        // Aggregate actual revenue from transactions (amounts in cents -> KES)
-        const REVENUE_TYPES = ['Deposit', 'Revenue', 'AdRevenue', 'Tip', 'CreatorPayment', 'Subscription', 'BoostPurchase'];
-        const realRevenue = walletTxns
-            .filter(t => REVENUE_TYPES.includes(t.type))
-            .reduce((sum, t) => sum + (parseFloat(t.amount) / 100), 0);
+// Aggregate actual revenue from transactions (amounts in cents -> KES).
+    // Nothing here is simulated: a creator with no wallet activity sees zeros,
+    // not an invented baseline.
+    const REVENUE_TYPES = ['Deposit', 'Revenue', 'AdRevenue', 'Tip', 'CreatorPayment', 'Subscription', 'BoostPurchas'];
+    const revenueTxns = walletTxns.filter(t => REVENUE_TYPES.includes(t.type));
+    const realRevenue = revenueTxns.reduce((sum, t) => sum + (parseFloat(t.amount) / 100), 0);
+    const realPayouts = walletTxns
+        .filter(t => t.type === 'Withdrawal')
+        .reduce((sum, t) => sum + (parseFloat(t.amount) / 100), 0);
+    const walletCurrency = (walletTxns[0] && walletTxns[0].currency) || 'KES';
 
-        // Dynamic revenue base to keep charts active
-        const simulatedRevenueBase = getDeterministicValue(userId + 'revbase', 500, 2500);
-        const finalRevenue = realRevenue > 0 ? realRevenue : simulatedRevenueBase;
-
-        // Generate daily revenue series
-        const revenueSeries = Array.from({ length: limitPoints }, (_, i) => {
-            const seedVal = getDeterministicValue(userId + 'rev' + i + timeRange, 10, 200);
-            return realRevenue > 0 ? (realRevenue / limitPoints) + (seedVal / 10) : seedVal;
-        });
+    // Real revenue series in the same bucket layout as the engagement series
+    // (oldest -> newest): hourly for 1D, daily for <=30d, monthly beyond.
+    const buildRevenueSeries = (txns, days, points) => {
+        const bucketKey = (d) => {
+            const date = new Date(d);
+            if (days === 1) return `H${date.getHours()}`;
+            if (days > 30) return `M${date.getFullYear()}-${date.getMonth()}`;
+            return date.toISOString().split('T')[0];
+        };
+        const sums = new Map();
+        for (const t of txns) {
+            const key = bucketKey(t.created_at);
+            sums.set(key, (sums.get(key) || 0) + parseFloat(t.amount) / 100);
+        }
+        const now = new Date();
+        const keys = [];
+        for (let i = points - 1; i >= 0; i--) {
+            if (days === 1) keys.push(`H${(now.getHours() - i + 24) % 24}`);
+            else if (days > 30) {
+                const d = new Date();
+                d.setDate(1);
+                d.setMonth(d.getMonth() - i);
+                keys.push(`M${d.getFullYear()}-${d.getMonth()}`);
+            } else {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                keys.push(d.toISOString().split('T')[0]);
+            }
+        }
+        return keys.map(k => Number(((sums.get(k) || 0)).toFixed(2)));
+    };
+    const revenueSeries = buildRevenueSeries(revenueTxns, intervalDays, limitPoints);
 
         // 8. Content Type Performance (Reach, Likes, Saves, Comments, Shares, Watch Time, Revenue)
         const [postsCountResult] = await pool.query(
@@ -317,11 +345,11 @@ exports.getCreatorStats = async (req, res) => {
                 gender: genderDistribution,
                 activeHours
             },
-            revenue: {
-                totalRevenue: finalRevenue,
-                payouts: finalRevenue * 0.7, // Simulated payout index
-                currency: 'NGN'
-            },
+revenue: {
+            totalRevenue: realRevenue,
+            payouts: realPayouts,
+            currency: walletCurrency
+        },
             contentPerformance,
             isBoosted: !!activeBoost,
             boostStrength: activeBoost ? activeBoost.boostStrength : 1.0,

@@ -1,8 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Search, Music, ImageIcon, ChevronDown, Check,
-  Play, Pause, AlertCircle, MoreVertical, LayoutGrid, FolderOpen, ChevronRight, Plus
-} from 'lucide-react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Search, Music, ImageIcon, ChevronDown, Play, Pause, AlertCircle, MoreVertical, LayoutGrid, FolderOpen, ChevronRight, Plus } from 'lucide-react';
 import { useReelCreatorStore } from '../reelCreatorStore';
 import type { GalleryItem, MediaSourceItem, MusicTrack } from '../types';
 import { fetchTrending, stopPreview, togglePreview, subscribePlayback } from '../services/musicService';
@@ -10,13 +7,13 @@ import {
   loadDeviceMedia, filesToGalleryItems, openNativePicker, pickDirectory,
   listFolderMedia, getMediaSources, resolveItemFile, formatDuration
 } from '../services/mediaLibraryService';
-import { InlineSpinner, PINK } from './shell';
+import { InlineSpinner } from './shell';
 import { useCreateMomentsTheme } from '../useCreateMomentsTheme';
 import { logger } from '../../../utils/logger';
 import { showError, showSuccess } from '../../../utils/toast';
 
 /**
- * Stage 1 — Create Reel page:
+ * Stage 1 â€” Create Reel page:
  * - Premium TikTok dark aesthetic (#0D080E) with subtle burgundy ambient light.
  * - Horizontal Popular Music carousel with album art, play/pause, options, and Use button.
  * - Auto-loaded 3-column native & device media gallery with portrait thumbnails,
@@ -39,19 +36,19 @@ export default function CreateStage({
   const addClips = useReelCreatorStore(s => s.addClips);
   const maxMedia = useReelCreatorStore(s => s.maxMedia);
 
-  // ── Music state ──
+  // â”€â”€ Music state â”€â”€
   const [trending, setTrending] = useState<MusicTrack[]>([]);
   const [musicState, setMusicState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
   const [playingId, setPlayingId] = useState<string | null>(null);
 
-  // ── Gallery state ──
+  // â”€â”€ Gallery state â”€â”€
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(true);
   const [galleryError, setGalleryError] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<'all' | 'videos' | 'photos'>('all');
   const [gridColumns, setGridColumns] = useState<3 | 4>(3);
 
-  // ── Sources & Selection ──
+  // â”€â”€ Sources & Selection â”€â”€
   const [sources, setSources] = useState<MediaSourceItem[]>([]);
   const [activeSource, setActiveSource] = useState<string>('camera-roll');
   const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
@@ -60,7 +57,7 @@ export default function CreateStage({
 
   const objectUrlsRef = useRef<string[]>([]);
 
-  // ── 1. Fetch Trending Music on Mount ──
+  // â”€â”€ 1. Fetch Trending Music on Mount â”€â”€
   useEffect(() => {
     let alive = true;
     setMusicState('loading');
@@ -82,7 +79,7 @@ export default function CreateStage({
 
   useEffect(() => subscribePlayback(setPlayingId), []);
 
-  // ── 2. Automatic Media Loading on Mount ──
+  // â”€â”€ 2. Automatic Media Loading on Mount â”€â”€
   const initGallery = useCallback(async () => {
     setGalleryLoading(true);
     setGalleryError(null);
@@ -101,7 +98,7 @@ export default function CreateStage({
     void initGallery();
   }, [initGallery]);
 
-  // ── 3. Load Available Media Sources ──
+  // â”€â”€ 3. Load Available Media Sources â”€â”€
   useEffect(() => {
     let alive = true;
     getMediaSources()
@@ -110,13 +107,13 @@ export default function CreateStage({
     return () => { alive = false; };
   }, []);
 
-  // ── Cleanup temporary object URLs on unmount ──
+  // â”€â”€ Cleanup temporary object URLs on unmount â”€â”€
   useEffect(() => () => {
     objectUrlsRef.current.forEach((u) => { try { URL.revokeObjectURL(u); } catch (_) { /* noop */ } });
     stopPreview();
   }, []);
 
-  // ── Source Selection Handlers ──
+  // â”€â”€ Source Selection Handlers â”€â”€
   const handleSelectSource = async (sourceId: string) => {
     setActiveSource(sourceId);
     setSourceMenuOpen(false);
@@ -187,14 +184,14 @@ export default function CreateStage({
     }
   };
 
-  // ── Filter items based on active tab ──
+  // â”€â”€ Filter items based on active tab â”€â”€
   const filteredItems = useMemo(() => {
     if (filterTab === 'videos') return items.filter(i => i.kind === 'video');
     if (filterTab === 'photos') return items.filter(i => i.kind === 'image');
     return items;
   }, [items, filterTab]);
 
-  // ── Selection Toggle ──
+  // â”€â”€ Selection Toggle â”€â”€
   const toggleSelect = (id: string) => {
     setSelectionOrder(prev => {
       if (prev.includes(id)) {
@@ -208,7 +205,7 @@ export default function CreateStage({
     });
   };
 
-  // ── Add Selected Items to Reel ──
+  // â”€â”€ Add Selected Items to Reel â”€â”€
   const addSelected = async () => {
     if (!selectionOrder.length) return;
     if (clips.length + selectionOrder.length > 10) {
@@ -267,7 +264,7 @@ export default function CreateStage({
         }}
       />
 
-      {/* ── 1. POPULAR MUSIC SECTION ── */}
+      {/* â”€â”€ 1. POPULAR MUSIC SECTION â”€â”€ */}
       <section className="px-4 pt-3 pb-2 relative z-10" aria-labelledby="popular-music-heading">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -290,7 +287,7 @@ export default function CreateStage({
 
         {musicState === 'loading' && (
           <div className={`flex items-center gap-3 py-6 ${isDark ? 'text-white/60' : 'text-slate-600'} text-sm`}>
-            <InlineSpinner size={16} /> Loading trending music…
+            <InlineSpinner size={16} /> Loading trending musicâ€¦
           </div>
         )}
 
@@ -384,7 +381,7 @@ export default function CreateStage({
         )}
       </section>
 
-      {/* ── 2. GALLERY SECTION ── */}
+      {/* â”€â”€ 2. GALLERY SECTION â”€â”€ */}
       <section className="px-4 pt-4 relative z-10" aria-labelledby="gallery-heading">
         {/* Gallery Header with Album Dropdown */}
         <div className="relative mb-3">
@@ -592,7 +589,7 @@ export default function CreateStage({
         )}
       </section>
 
-      {/* ── 3. FLOATING ACTION BAR ── */}
+      {/* â”€â”€ 3. FLOATING ACTION BAR â”€â”€ */}
       {selectionOrder.length > 0 && (
         <div className="fixed left-4 right-4 bottom-6 z-30">
           <button
@@ -607,7 +604,7 @@ export default function CreateStage({
           >
             {addingClips ? (
               <>
-                <InlineSpinner size={16} /> Adding to reel…
+                <InlineSpinner size={16} /> Adding to reelâ€¦
               </>
             ) : (
               <>
@@ -630,7 +627,7 @@ export default function CreateStage({
               boxShadow: '0 8px 24px rgba(236,17,100,0.45)',
             }}
           >
-            Next · {clips.length} clip{clips.length > 1 ? 's' : ''} <ChevronRight size={16} strokeWidth={2.5} />
+            Next Â· {clips.length} clip{clips.length > 1 ? 's' : ''} <ChevronRight size={16} strokeWidth={2.5} />
           </button>
         </div>
       )}

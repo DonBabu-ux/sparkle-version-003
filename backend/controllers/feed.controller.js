@@ -1,4 +1,4 @@
-const Post = require('../models/Post');
+﻿const Post = require('../models/Post');
 const User = require('../models/User');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
@@ -69,7 +69,7 @@ const resolveStoryAudioUrl = (url) => {
         if (isDeezerPreviewHost(parsed.hostname)) {
             return `/api/music/preview-proxy?url=${encodeURIComponent(safe)}`;
         }
-    } catch (_) { /* not a parseable absolute URL — return as-is */ }
+    } catch (_) { /* not a parseable absolute URL â€” return as-is */ }
     return safe;
 };
 
@@ -91,7 +91,7 @@ const storyInteractionError = async (storyRow, viewerId, db = pool) => {
 };
 
 // Story boolean switches (comments_enabled / allow_sharing / allow_message_sharing)
-// are TINYINT(1) DEFAULT 1, so NULL means "never set" — read it as ON. A switch is
+// are TINYINT(1) DEFAULT 1, so NULL means "never set" â€” read it as ON. A switch is
 // only OFF when it is explicitly zero-ish, never because the value is missing.
 const storyFlagEnabled = (value) => value !== 0 && value !== '0' && value !== false;
 
@@ -99,7 +99,7 @@ const storyFlagEnabled = (value) => value !== 0 && value !== '0' && value !== fa
 const areStoryCommentsEnabled = (value) =>
     value === null || value === undefined || storyFlagEnabled(value);
 
-// reply_privacy vocabulary — stories.reply_privacy VARCHAR(20) DEFAULT 'everyone'.
+// reply_privacy vocabulary â€” stories.reply_privacy VARCHAR(20) DEFAULT 'everyone'.
 // Unknown/legacy values fall back to 'everyone' so older clients keep working.
 const resolveReplyPrivacy = (value) => {
     const privacy = String(value === null || value === undefined ? '' : value).toLowerCase();
@@ -248,7 +248,7 @@ const getFeedPosts = async (req, res) => {
 
         // --- Exhaustion Cycle: Soft Reset (Smart Memory Management) ---
         if (fresh.length === 0 && postsFetched < fetchLimit) {
-            console.log(`♻️ Feed Exhaustion for user ${currentUserId}. Performing selective reset.`);
+            logger.debug(`â™»ï¸ Feed Exhaustion for user ${currentUserId}. Performing selective reset.`);
 
             // Instead of clearing everything, just clear the batch offset to try a new discovery slice
             await redisService.del(batchKey);
@@ -479,7 +479,7 @@ const getStories = async (req, res) => {
             const legacyAudioDuration = musicLayer ? (musicLayer.data && musicLayer.data.duration) : s.audio_duration;
             // Music is served over the same HTTPS origin as the app. A raw Deezer
             // CDN URL is cross-origin, so AudioContext + CORS would fail and the
-            // track would never be audible — route through the preview proxy.
+            // track would never be audible â€” route through the preview proxy.
             const legacyAudioUrl = resolveStoryAudioUrl(rawAudioUrl);
 
             map[s.user_id].stories.push({
@@ -528,13 +528,13 @@ const getStories = async (req, res) => {
             });
         }
 
-        // Per-group viewed state for the requester — drives ring style + unviewed badge
+        // Per-group viewed state for the requester â€” drives ring style + unviewed badge
         for (const g of groups) {
             g.unviewed_count = g.stories.filter(st => !st.is_viewed).length;
             g.is_fully_viewed = g.unviewed_count === 0;
         }
 
-        // BATCH 3: this key was only ever read — write it now (60s TTL) so the
+        // BATCH 3: this key was only ever read â€” write it now (60s TTL) so the
         // read above and createStory's del() actually do something.
         try {
             await redisService.set(cacheKey, groups, 60);
@@ -565,7 +565,7 @@ const createStory = async (req, res) => {
         } = req.body;
         let media_url = null;
 
-        console.log('🎬 Story Create Attempt:', {
+        logger.debug('ðŸŽ¬ Story Create Attempt:', {
             hasFiles: !!req.files,
             hasFile: !!req.file,
             fileKeys: req.files ? Object.keys(req.files) : [],
@@ -575,19 +575,19 @@ const createStory = async (req, res) => {
 
         if (req.files && req.files.media) {
             media_url = req.files.media[0].path || req.files.media[0].secure_url;
-            console.log('📸 Story media from file upload (req.files.media):', media_url);
+            logger.debug('ðŸ“¸ Story media from file upload (req.files.media):', media_url);
         } else if (req.file) {
             media_url = req.file.path || req.file.secure_url;
-            console.log('📸 Story media from file upload (req.file):', media_url);
+            logger.debug('ðŸ“¸ Story media from file upload (req.file):', media_url);
         } else if (req.files && Array.isArray(req.files) && req.files.length > 0) {
             media_url = req.files[0].path || req.files[0].secure_url;
-            console.log('📸 Story media from file upload (req.files array):', media_url);
+            logger.debug('ðŸ“¸ Story media from file upload (req.files array):', media_url);
         } else if (req.body.media_url) {
             media_url = req.body.media_url;
-            console.log('🔗 Story media from URL (media_url):', media_url);
+            logger.debug('ðŸ”— Story media from URL (media_url):', media_url);
         } else if (req.body.media) {
             media_url = req.body.media;
-            console.log('🔗 Story media from URL (media):', media_url);
+            logger.debug('ðŸ”— Story media from URL (media):', media_url);
         }
 
         // ALWAYS Normalize media_url immediately to prevent .toLowerCase() crash or [object Object] DB entries
@@ -604,7 +604,7 @@ const createStory = async (req, res) => {
         }
 
         if (!media_url && req.body.type !== 'text' && !req.body.text_content) {
-            console.error('❌ No media provided in story request after checking all fields');
+            console.error('âŒ No media provided in story request after checking all fields');
             return res.status(400).json({ error: 'Media is required for story' });
         }
 
@@ -616,7 +616,7 @@ const createStory = async (req, res) => {
 
         const userId = req.user.userId || req.user.user_id;
         if (!userId) {
-            console.error('❌ No user ID found in request:', req.user);
+            console.error('âŒ No user ID found in request:', req.user);
             return res.status(401).json({ error: 'User not authenticated' });
         }
 
@@ -646,7 +646,7 @@ const createStory = async (req, res) => {
             }
         }
 
-        console.log('📝 Creating story with:', {
+        logger.debug('ðŸ“ Creating story with:', {
             storyId,
             userId,
             media_url,
@@ -668,7 +668,7 @@ const createStory = async (req, res) => {
         let thumbnail_url = null;
         if (req.files && req.files.thumbnail) {
             thumbnail_url = req.files.thumbnail[0].path || req.files.thumbnail[0].secure_url;
-            console.log('📸 Story thumbnail from file upload:', thumbnail_url);
+            logger.debug('ðŸ“¸ Story thumbnail from file upload:', thumbnail_url);
         } else if (req.body.thumbnail_url) {
             thumbnail_url = req.body.thumbnail_url;
         }
@@ -693,7 +693,7 @@ const createStory = async (req, res) => {
                     resolvedAudioDuration = resolvedAudioDuration || parsed.duration || null;
                 }
             } catch (e) {
-                // music_info is not valid JSON — ignore
+                // music_info is not valid JSON â€” ignore
                 logger.debug('createStory: music_info JSON.parse fallback', e?.message || e);
             }
         }
@@ -742,7 +742,7 @@ const createStory = async (req, res) => {
             }
 
             if (resolvedAudioUrl) {
-                // Parse music metadata once — a crafted/legacy music_info string
+                // Parse music metadata once â€” a crafted/legacy music_info string
                 // must not crash createStory via unguarded JSON.parse.
                 let musicMeta = null;
                 try {
@@ -865,7 +865,7 @@ const createStory = async (req, res) => {
         let finalMediaUrl = media_url;
         if (media_type === 'video' && finalMediaUrl && finalMediaUrl.includes('res.cloudinary.com')) {
             finalMediaUrl = trimCloudinaryVideo(finalMediaUrl, trimStart, trimDuration);
-            console.log('✂️ Cloudinary video trimmed URL:', finalMediaUrl);
+            logger.debug('âœ‚ï¸ Cloudinary video trimmed URL:', finalMediaUrl);
         }
 
         await pool.query(
@@ -904,9 +904,9 @@ const createStory = async (req, res) => {
                         [addYoursPromptRows]
                     );
                 }
-                console.log(`✅ Persisted ${stickerRows.length} interactive sticker row(s) for story ${storyId}`);
+                logger.debug(`âœ… Persisted ${stickerRows.length} interactive sticker row(s) for story ${storyId}`);
             } catch (stickerErr) {
-                console.error('⚠️ Interactive sticker persistence failed (non-critical):', stickerErr.message);
+                console.error('âš ï¸ Interactive sticker persistence failed (non-critical):', stickerErr.message);
                 logger.warn(`createStory: sticker persistence skipped for ${storyId}: ${stickerErr.message}`);
             }
         }
@@ -935,22 +935,22 @@ const createStory = async (req, res) => {
                         fileSizeBytes: fileSizeBytes,
                         hashChecksum: hashChecksum
                     });
-                    console.log('✅ Story media registered in Cloudinary architecture.');
+                    logger.debug('âœ… Story media registered in Cloudinary architecture.');
                 }
             } catch (mediaErr) {
-                console.error('⚠️ Media registry failed (non-critical):', mediaErr.message);
+                console.error('âš ï¸ Media registry failed (non-critical):', mediaErr.message);
             }
         }
 
-        console.log('✅ Story created successfully:', storyId);
+        logger.debug('âœ… Story created successfully:', storyId);
 
         // Invalidate story cache so the dashboard immediately reflects the new story
         try {
             const redisService = require('../services/redis.service');
             await redisService.del(`stories:active:${userId}`);
-            console.log('🗑️ Stories cache invalidated for user:', userId);
+            logger.debug('ðŸ—‘ï¸ Stories cache invalidated for user:', userId);
         } catch (cacheErr) {
-            console.warn('⚠️ Cache invalidation failed (non-critical):', cacheErr.message);
+            console.warn('âš ï¸ Cache invalidation failed (non-critical):', cacheErr.message);
         }
 
         // Broadcast story published via Socket.IO
@@ -965,10 +965,10 @@ const createStory = async (req, res) => {
                     thumbnail_url,
                     created_at: new Date()
                 });
-                console.log('📡 Story WebSocket event emitted for user:', userId);
+                logger.debug('ðŸ“¡ Story WebSocket event emitted for user:', userId);
             }
         } catch (socketErr) {
-            console.warn('⚠️ WebSocket broadcast failed (non-critical):', socketErr.message);
+            console.warn('âš ï¸ WebSocket broadcast failed (non-critical):', socketErr.message);
         }
 
         // Create a notification for the user that their story was published successfully
@@ -979,7 +979,7 @@ const createStory = async (req, res) => {
                 `INSERT INTO notifications (
                     notification_id, user_id, type, title, content, 
                     related_id, related_type, actor_id, action_url, aggregation_count
-                ) VALUES (?, ?, 'story_published', 'Story Published', 'Your story has been uploaded and is now live! 🌟', ?, 'story', ?, ?, 1)`,
+                ) VALUES (?, ?, 'story_published', 'Story Published', 'Your story has been uploaded and is now live! ðŸŒŸ', ?, 'story', ?, ?, 1)`,
                 [
                     notificationId,
                     userId,
@@ -988,9 +988,9 @@ const createStory = async (req, res) => {
                     `/stories/${userId}`
                 ]
             );
-            console.log('✅ Success notification created for user story.');
+            logger.debug('âœ… Success notification created for user story.');
         } catch (notifErr) {
-            console.error('⚠️ Failed to create notification for story publish:', notifErr.message);
+            console.error('âš ï¸ Failed to create notification for story publish:', notifErr.message);
         }
 
         res.status(201).json({
@@ -1000,7 +1000,7 @@ const createStory = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Create Story Error:', error);
+        console.error('âŒ Create Story Error:', error);
         logger.error('Create Story Error:', error);
         serverError(res, error);
     }
@@ -1015,7 +1015,7 @@ const likeStory = async (req, res) => {
         const storyId = req.params.id;
         const userId = req.user.userId || req.user.user_id;
 
-        console.log(`📝 Like story request - Story: ${storyId}, User: ${userId}`);
+        logger.debug(`ðŸ“ Like story request - Story: ${storyId}, User: ${userId}`);
 
         if (!storyId || !userId) {
             return res.status(400).json({ error: 'Missing storyId or userId' });
@@ -1024,7 +1024,7 @@ const likeStory = async (req, res) => {
         // Action Deduplication (Priority 1)
         const allowed = await acquireActionLock(userId, storyId, 'like_story', 2);
         if (!allowed) {
-            console.log('🔒 Action deduped: like_story');
+            logger.debug('ðŸ”’ Action deduped: like_story');
             return res.json({ success: true, action: 'deduped', liked: true }); // Assume liked for frontend consistency on spam
         }
 
@@ -1065,7 +1065,7 @@ const likeStory = async (req, res) => {
                 [storyId]
             );
             liked = false;
-            console.log('👎 Story unliked');
+            logger.debug('ðŸ‘Ž Story unliked');
         } else {
             // Like
             const likeId = crypto.randomUUID();
@@ -1078,7 +1078,7 @@ const likeStory = async (req, res) => {
                 [storyId]
             );
             liked = true;
-            console.log('👍 Story liked');
+            logger.debug('ðŸ‘ Story liked');
 
             // Create notification for story owner (if not self)
             const storyData = storiesFound[0];
@@ -1172,7 +1172,7 @@ const deleteStory = async (req, res) => {
             return res.status(404).json({ error: 'Story not found or unauthorized' });
         }
 
-        // Cloudinary + media_registry cleanup — never blocks the delete.
+        // Cloudinary + media_registry cleanup â€” never blocks the delete.
         try {
             await MediaService.deleteMediaForUrls([
                 stories[0].media_url,
@@ -1216,7 +1216,7 @@ const shareStory = async (req, res) => {
         const storyId = req.params.id;
         const userId = req.user.userId || req.user.user_id;
 
-        console.log(`📝 Share story request - Story: ${storyId}, User: ${userId}`);
+        logger.debug(`ðŸ“ Share story request - Story: ${storyId}, User: ${userId}`);
 
         // Validate inputs
         if (!storyId || !userId) {
@@ -1226,14 +1226,14 @@ const shareStory = async (req, res) => {
         // Action Deduplication
         const allowed = await acquireActionLock(userId, storyId, 'share_story', 5); // 5 sec block for share
         if (!allowed) {
-            console.log('🔒 Action deduped: share_story');
+            logger.debug('ðŸ”’ Action deduped: share_story');
             return res.json({ success: true, share_count: 0, deduped: true });
         }
 
         // First check if story exists
         const [story] = await pool.query('SELECT story_id, user_id, created_at, allow_sharing FROM stories WHERE story_id = ?', [storyId]);
         if (!story || story.length === 0) {
-            console.log('❌ Story not found:', storyId);
+            logger.debug('âŒ Story not found:', storyId);
             return res.status(404).json({ error: 'Story not found' });
         }
 
@@ -1244,7 +1244,7 @@ const shareStory = async (req, res) => {
         }
 
         // The owner's sharing switch (stories.allow_sharing, DEFAULT 1) is only
-        // persisted in updateStorySettings — enforce it on the read path too.
+        // persisted in updateStorySettings â€” enforce it on the read path too.
         if (!storyFlagEnabled(story[0].allow_sharing)) {
             return res.status(403).json({ error: 'Sharing is turned off for this story' });
         }
@@ -1265,7 +1265,7 @@ const shareStory = async (req, res) => {
             [storyId]
         );
 
-        console.log('📤 Story share recorded');
+        logger.debug('ðŸ“¤ Story share recorded');
 
         // Create notification for story owner (if not self)
         if (story[0].user_id !== userId) {
@@ -1285,7 +1285,7 @@ const shareStory = async (req, res) => {
                         `/stories/${story[0].user_id}`
                     ]
                 );
-                console.log('📨 Notification created for story share');
+                logger.debug('ðŸ“¨ Notification created for story share');
             } catch (notifErr) {
                 logger.error('Failed to create notification:', notifErr);
                 // Continue even if notification fails
@@ -1298,13 +1298,13 @@ const shareStory = async (req, res) => {
         const [[info]] = await pool.query('SELECT share_count FROM stories WHERE story_id = ?', [storyId]);
         const shareCount = info?.share_count || 0;
 
-        console.log(`✅ Story shared successfully, total shares: ${shareCount}`);
+        logger.debug(`âœ… Story shared successfully, total shares: ${shareCount}`);
         res.json({ success: true, share_count: shareCount });
 
     } catch (error) {
         if (connection) await connection.rollback();
         logger.error('Share Story Error:', error);
-        console.error('❌ Share story error details:', error.message);
+        console.error('âŒ Share story error details:', error.message);
         serverError(res, error);
     } finally {
         if (connection) connection.release();
@@ -1316,7 +1316,7 @@ const viewStory = async (req, res) => {
         const storyId = req.params.id;
         const userId = req.user.userId || req.user.user_id;
 
-        // Owners never view-mark their own stories — otherwise they would
+        // Owners never view-mark their own stories â€” otherwise they would
         // appear in their own viewer list like a different account.
         const [storyRows] = await pool.query('SELECT user_id, created_at FROM stories WHERE story_id = ?', [storyId]);
         if (storyRows.length === 0) {
@@ -1339,7 +1339,7 @@ const viewStory = async (req, res) => {
         );
 
         await pool.query(
-            // The owner's own view never counts — otherwise the story shows
+            // The owner's own view never counts â€” otherwise the story shows
             // "N views" that includes the author (WhatsApp/Facebook semantics).
             'UPDATE stories SET view_count = (SELECT COUNT(*) FROM story_views WHERE story_id = ? AND user_id != ?) WHERE story_id = ?',
             [storyId, userId, storyId]
@@ -1398,7 +1398,7 @@ const addStoryComment = async (req, res) => {
             [commentId, storyId, userId, text]
         );
 
-        // Notify the story author (if not self) — the viewer list already
+        // Notify the story author (if not self) â€” the viewer list already
         // covers story views, so only replies reach the bell.
         if (storyRows[0].user_id !== userId) {
             try {
@@ -1412,7 +1412,7 @@ const addStoryComment = async (req, res) => {
                     actor_name: actor[0]?.name,
                     action_url: `/stories/${storyRows[0].user_id}`
                 }, pool);
-                if (notificationId) console.log('📨 Notification created for story reply');
+                if (notificationId) logger.debug('ðŸ“¨ Notification created for story reply');
             } catch (notifErr) {
                 logger.error('Notification error (ignoring):', notifErr);
             }
@@ -1518,7 +1518,7 @@ const getStoryViewers = async (req, res) => {
         // the viewer row order used to shuffle between two identical requests.
         // Order by the (user, interaction) pair and break ties on a stable key:
         // type is deterministic per source table, user_id is unique per user.
-        // A user who both viewed AND liked still yields two rows — the tiebreak
+        // A user who both viewed AND liked still yields two rows â€” the tiebreak
         // keeps view-before-like-before-share stable instead of random.
         const [viewers] = await pool.query(`
             SELECT u.user_id, u.username, u.name, u.avatar_url, 'view' as type, sv.created_at
@@ -1619,7 +1619,7 @@ const hideStoryFromUser = async (req, res) => {
     }
 };
 
-// GET /stories/privacy/hidden — list the users whose stories the caller has
+// GET /stories/privacy/hidden â€” list the users whose stories the caller has
 // hidden, with the profile info the privacy sheet renders. Ordered by the
 // block's created_at (then id) so pagination is deterministic.
 const getHiddenStoryUsers = async (req, res) => {
@@ -1642,7 +1642,7 @@ const getHiddenStoryUsers = async (req, res) => {
     }
 };
 
-// DELETE /stories/privacy/hidden/:userId — undo a hide. Errors when the block
+// DELETE /stories/privacy/hidden/:userId â€” undo a hide. Errors when the block
 // never existed so the caller cannot treat a typo'd id as a successful unhide.
 const unhideStoryFromUser = async (req, res) => {
     try {
@@ -1667,7 +1667,7 @@ const unhideStoryFromUser = async (req, res) => {
     }
 };
 
-// GET /stories/single/:id — resolve a single story by its own ID.
+// GET /stories/single/:id â€” resolve a single story by its own ID.
 // Used by the /story/:storyId snapshot page (expired-story memorial card)
 // and by StoryViewer when a link was shared with a story_id instead of the
 // owner's user_id.

@@ -218,8 +218,8 @@ const getSafeMediaUrl = (url) => {
 const getStreams = async (req, res) => {
     try {
         const affiliation = req.query.affiliation || req.query.campus;
-        let query = 'SELECT s.*, u.username, u.avatar_url FROM live_streams s JOIN users u ON s.streamer_id = u.user_id WHERE s.status = "live"';
-        const params = [];
+        let query = 'SELECT s.*, u.username, u.avatar_url FROM live_streams s JOIN users u ON s.streamer_id = u.user_id WHERE s.status = ?';
+        const params = ['live'];
         if (affiliation && affiliation !== 'all') {
             query += ' AND s.campus = ?';
             params.push(affiliation);
@@ -233,6 +233,62 @@ const getStreams = async (req, res) => {
         }));
 
         res.json(sanitizedStreams);
+    } catch (error) {
+        serverError(res, error);
+    }
+};
+
+// One stream with its update feed and the caller's follow state.
+const getStream = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [rows] = await pool.query(
+            `SELECT s.*, u.username, u.name, u.avatar_url
+               FROM live_streams s
+               JOIN users u ON s.streamer_id = u.user_id
+              WHERE s.stream_id = ?
+              LIMIT 1`,
+            [id]
+        );
+        if (!rows.length) {
+            return res.status(404).json({ error: 'Stream not found.' });
+        }
+        const stream = rows[0];
+
+        const [updates] = await pool.query(
+            `SELECT update_id, content, created_at
+               FROM stream_updates
+              WHERE stream_id = ?
+              ORDER BY created_at DESC
+              LIMIT 100`,
+            [id]
+        );
+
+        const userId = req.user ? (req.user.userId || req.user.user_id) : null;
+        let isFollowing = false;
+        if (userId) {
+            const [follows] = await pool.query(
+                'SELECT follow_id FROM stream_followers WHERE stream_id = ? AND user_id = ? LIMIT 1',
+                [id, userId]
+            );
+            isFollowing = follows.length > 0;
+        }
+
+        const [counts] = await pool.query(
+            'SELECT COUNT(*) AS n FROM stream_followers WHERE stream_id = ?',
+            [id]
+        );
+
+        res.json({
+            ...stream,
+            username: stream.username,
+            avatar_url: getSafeAvatarUrl(stream.avatar_url),
+            thumbnail_url: getSafeMediaUrl(stream.thumbnail_url),
+            updates,
+            is_following: isFollowing,
+            follower_count: counts[0] ? Number(counts[0].n) : 0,
+        });
     } catch (error) {
         serverError(res, error);
     }
@@ -1132,6 +1188,7 @@ module.exports = {
     getPolls,
     getEvents,
     getStreams,
+    getStream,
     createEvent,
     rsvpEvent,
     createPoll,

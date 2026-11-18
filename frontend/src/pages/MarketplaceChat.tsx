@@ -1,10 +1,9 @@
-import ErrorRetry from '../components/ui/ErrorRetry';
+﻿import ErrorRetry from '../components/ui/ErrorRetry';
 import { confirmDialog } from '../store/dialogStore';
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
 import { ArrowLeft, Send, Image as ImageIcon, MoreVertical, Check, CheckCheck, Smile, Paperclip, Reply, X, Trash2, ShieldCheck, EyeOff, ShoppingBag as ShoppingBagIcon, ShieldAlert, Tag, PackageCheck, BadgeDollarSign, ScanSearch, MapPin, Repeat2, CalendarClock } from 'lucide-react';
+import { Picker, data } from '../components/EmojiMart';
 import { useUserStore } from '../store/userStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
@@ -495,7 +494,7 @@ const MarketplaceChat = () => {
             <div className="flex flex-col">
               <span className="font-bold text-gray-900 leading-tight">{opponentName}</span>
               <span className="text-xs text-gray-500 dark:text-zinc-300">
-                @{opponentUsername} • {isOpponentOnline ? <span className="text-green-600 font-medium">Online</span> : 'Offline'}
+                @{opponentUsername} â€¢ {isOpponentOnline ? <span className="text-green-600 font-medium">Online</span> : 'Offline'}
               </span>
             </div>
           </div>
@@ -748,7 +747,7 @@ const MarketplaceChat = () => {
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <div className="text-[10px] font-black uppercase tracking-wider text-blue-600">
-                                    {parsed.type === 'marketplace_alert' ? '🔔 New Seller Listing' : '🛍️ Listing Inquiry'}
+                                    {parsed.type === 'marketplace_alert' ? 'ðŸ”” New Seller Listing' : 'ðŸ›ï¸ Listing Inquiry'}
                                   </div>
                                   <h4 className="font-bold text-gray-900 text-xs truncate">{parsed.title}</h4>
                                   {parsed.price !== undefined && (
@@ -779,8 +778,8 @@ const MarketplaceChat = () => {
                   {contextMenuId === msg.id && (
                     <div className="absolute top-full mt-1 right-0 bg-white dark:bg-zinc-800 shadow-lg rounded-md border border-gray-200 dark:border-white/10 z-20 overflow-hidden min-w-[150px]">
                       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-zinc-800">
-                        {['👍', '❤️', '😂', '🔥', '🙏'].map(emoji => (<button key={emoji} onClick={(e) => { e.stopPropagation(); handleReact(msg.id, emoji); }} className="hover:scale-125 transition-transform">{emoji}</button>))}
-                        <button onClick={(e) => { e.stopPropagation(); setReactingToMessageId(msg.id); setContextMenuId(null); }} className="hover:bg-gray-200 rounded-full p-1 text-gray-500 dark:text-zinc-300 transition-colors">➕</button>
+                        {['ðŸ‘', 'â¤ï¸', 'ðŸ˜‚', 'ðŸ”¥', 'ðŸ™'].map(emoji => (<button key={emoji} onClick={(e) => { e.stopPropagation(); handleReact(msg.id, emoji); }} className="hover:scale-125 transition-transform">{emoji}</button>))}
+                        <button onClick={(e) => { e.stopPropagation(); setReactingToMessageId(msg.id); setContextMenuId(null); }} className="hover:bg-gray-200 rounded-full p-1 text-gray-500 dark:text-zinc-300 transition-colors">âž•</button>
                       </div>
                       {isMine && (
                         <>

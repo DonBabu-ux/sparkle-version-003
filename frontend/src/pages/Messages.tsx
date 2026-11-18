@@ -1,5 +1,5 @@
-import { showError, showInfo, showSuccess } from '../utils/toast';
-import { useState, useEffect, useRef, useMemo } from 'react';
+﻿import { showError, showInfo, showSuccess } from '../utils/toast';
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 
 import { formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
@@ -22,6 +22,7 @@ import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useThemeStore } from '../store/themeStore';
+import { LazyEmojiPicker } from '../components/chat/LazyEmojiPicker';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal, ReactionDetailsSheet, ChatContextMenu } from '../components/chat/MessageActionModals';
 import { useLongPress } from '../hooks/useLongPress';
 
@@ -43,8 +44,16 @@ import { sanitizePartnerName } from '../utils/nameSanitizer';
 import { SparklePeekCard } from '../components/chat/SparklePeekCard';
 import { SparkleSwipeableChatItem } from '../components/chat/SparkleSwipeableChatItem';
 import { useTimeTick } from '../hooks/useTimeTick';
-import { LocationPickerModal, type LocationPayload } from '../components/chat/LocationPickerModal';
-import { LocationMessageBubble } from '../components/chat/LocationMessageBubble';
+import type { LocationPayload } from '../components/chat/LocationPickerModal';
+
+// Leaflet (~450KB) is only needed for location features — keep it out of the
+// Messages route chunk until a location UI actually renders.
+const LocationPickerModal = lazy(() =>
+  import('../components/chat/LocationPickerModal').then(m => ({ default: m.LocationPickerModal }))
+);
+const LocationMessageBubble = lazy(() =>
+  import('../components/chat/LocationMessageBubble').then(m => ({ default: m.LocationMessageBubble }))
+);
 import { SparklePeopleHubModal } from '../components/chat/SparklePeopleHubModal';
 import { NewChatModal, type ContactUser } from '../components/chat/NewChatModal';
 import { SparklyListingCard } from '../components/marketplace/SparklyListingCard';
@@ -56,8 +65,6 @@ import { detectUrls } from '../utils/linkUtils';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import 'lodash.debounce';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
 import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
 import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 
@@ -281,7 +288,7 @@ const MessageBubbleWrapper: React.FC<{
   );
 };
 
-// Wallpapers are big external images — preload each URL exactly once per
+// Wallpapers are big external images â€” preload each URL exactly once per
 // session so theme switches re-render from the HTTP cache instead of
 // re-fetching, and downscale the Unsplash variants (the heaviest sources).
 
@@ -304,7 +311,7 @@ async function uploadFileWithProgress(fileOrUrl: any, onProgress?: (p: number) =
       if (err?.name === 'AbortError' || err?.message?.includes('aborted') || abortSignal?.aborted) {
         throw err;
       }
-      logger.error('Fetch blob failed — aborting upload', err);
+      logger.error('Fetch blob failed â€” aborting upload', err);
       throw err instanceof Error ? err : new Error('Failed to read media for upload');
     }
   }
@@ -326,7 +333,7 @@ async function uploadFileWithProgress(fileOrUrl: any, onProgress?: (p: number) =
 
 const EMPTY_MESSAGES_ARRAY: any[] = [];
 
-// Incremental chat loading — keep the initial window small so opening a chat
+// Incremental chat loading â€” keep the initial window small so opening a chat
 // never waits on the full history.
 const CHAT_PAGE_SIZE = 30;
 // Max extra pages fetched forward when the first unread message is far below
@@ -386,7 +393,7 @@ export default function Messages() {
 
   // Track last targetChatId we already tried to fetch for (prevents infinite re-fetch loops)
   const lastFetchedTargetRef = useRef<string | null>(null);
-  // Stable mirror of the conversations array — updated on every render but
+  // Stable mirror of the conversations array â€” updated on every render but
   // never used as a useEffect dependency so inbox changes don't re-trigger effects.
   const conversationsRef = useRef<ChatConversation[]>([]);
 
@@ -609,7 +616,7 @@ export default function Messages() {
     });
   };
 
-  // ── Chat actions (wired to real APIs & local store) ──
+  // â”€â”€ Chat actions (wired to real APIs & local store) â”€â”€
   const getTargetChatForActions = () => {
     if (selectedChatIds.length === 1) {
       return conversations.find(c => c.chat_id === selectedChatIds[0]) || null;
@@ -729,7 +736,7 @@ export default function Messages() {
   const referenceTime = useTimeTick(30000);
   /**
    * Badge shown on a sidebar tab. A badge means "there are unread things in
-   * this filter", so every tab reports its unread message total — never a raw
+   * this filter", so every tab reports its unread message total â€” never a raw
    * item count.
    *
    * "All" deliberately reports 0 and renders no badge: it is the whole inbox,
@@ -737,7 +744,7 @@ export default function Messages() {
    * on every render (the Chat equivalent carries none either). The unread
    * number belongs to the Unread filter.
    *
-   * "Unread" also excludes archived, matching what the list itself renders —
+   * "Unread" also excludes archived, matching what the list itself renders â€”
    * the old badge summed archived messages too, so it read 5 above a list of 3.
    */
   const getTabBadgeCount = (tabId: string) => {
@@ -771,7 +778,7 @@ export default function Messages() {
     const handleSynced = (e: any) => {
       const { chatId: syncedChatId } = e.detail || {};
       if (syncedChatId && selectedChat?.chat_id === syncedChatId) {
-        logger.log('🔄 [Messages] Reactive sync event received for active chat:', syncedChatId);
+        logger.log('ðŸ”„ [Messages] Reactive sync event received for active chat:', syncedChatId);
         const msgs = useChatStore.getState().messagesByConversation[syncedChatId] || [];
         updateMessages(() => [...msgs]);
       }
@@ -779,7 +786,7 @@ export default function Messages() {
     const handleTimeout = (e: any) => {
       const { messageId: timeoutMsgId } = e.detail || {};
       if (timeoutMsgId) {
-        logger.log('⏰ [Messages] Message timeout event received for messageId:', timeoutMsgId);
+        logger.log('â° [Messages] Message timeout event received for messageId:', timeoutMsgId);
         updateMessages(prev => prev.map(m => (m.message_id === timeoutMsgId || m.id === timeoutMsgId ? { ...m, status: 'failed' } : m)));
       }
     };
@@ -789,7 +796,7 @@ export default function Messages() {
       if (!messageId) return;
       // Only update if this event is for the currently open chat
       if (editedChatId && selectedChat?.chat_id && editedChatId !== selectedChat.chat_id) return;
-      logger.log('✏️ [Messages] sparkle_message_edited event received for messageId:', messageId);
+      logger.log('âœï¸ [Messages] sparkle_message_edited event received for messageId:', messageId);
       updateMessages(prev => prev.map(m =>
         (m.message_id === messageId || m.id === messageId)
           ? { ...m, content: content ?? m.content, is_edited: is_edited ?? true, edited: true, edited_at: edited_at ?? m.edited_at }
@@ -877,11 +884,11 @@ export default function Messages() {
   }, [messageSearch, selectedChat?.chat_id]);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  // Chat whose initial message load has completed — guards the "No messages yet"
+  // Chat whose initial message load has completed â€” guards the "No messages yet"
   // empty state from flashing for a frame before fetchMessages starts.
   const [loadedChatId, setLoadedChatId] = useState<string | null>(null);
   const [messagesError, setMessagesError] = useState(false);
-  // True from the moment a chat is opened until its first message load finishes —
+  // True from the moment a chat is opened until its first message load finishes â€”
   // drives the skeleton + top loading bar instead of the empty-state flash.
   const isChatOpening = !!chatId && messages.length === 0 && !messagesError && (loadingMessages || loadedChatId !== chatId);
   const [sending, setSending] = useState(false);
@@ -955,7 +962,7 @@ export default function Messages() {
 
       setTimeout(async () => {
         if (attemptScroll()) return;
-        // Not in the loaded window — fetch the page containing it (anchor) and retry.
+        // Not in the loaded window â€” fetch the page containing it (anchor) and retry.
         // Uses the store directly (this handler outlives renders; no stale closures).
         const store = useChatStore.getState();
         const currentChatId = store.activeConversationId || '';
@@ -1242,7 +1249,7 @@ export default function Messages() {
   const [ ,  ] = useState<string | null>(null);
   const [playingEffectEmoji, setPlayingEffectEmoji] = useState<string | null>(null);
   const [ ,  ] = useState(false);
-  const [ ,  ] = useState({ word: '', emoji: '😀' });
+  const [ ,  ] = useState({ word: '', emoji: 'ðŸ˜€' });
   const [partnerIsTyping, setPartnerIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState<{ chatId: string, name: string }[]>([]);
   const [isNearBottom, setIsNearBottom] = useState(true);
@@ -1530,7 +1537,7 @@ export default function Messages() {
     const handleCaptureAttempt = (data: any) => {
       if (data.payload?.chatId === selectedChat.chat_id) {
         setPrivacyAlert({
-          message: `⚠️ Alert: Screen capture attempt detected via ${data.payload.detectionMethod || 'system'}!`,
+          message: 'Alert: Screen capture attempt detected via ' + (data.payload?.detectionMethod || 'system') + '!',
           actorUserId: data.payload.actorUserId,
           timestamp: data.payload.timestamp
         });
@@ -1675,14 +1682,14 @@ export default function Messages() {
     setMediaPermission('granted');
   };
 
-  // showLastSeen is always true for offline partners — no toggling timer
-  // The AnimatePresence in the header already handles smooth Online ↔ last-seen transitions
+  // showLastSeen is always true for offline partners â€” no toggling timer
+  // The AnimatePresence in the header already handles smooth Online â†” last-seen transitions
   const showLastSeen = !selectedChat?.partner_online && !(selectedChat?.is_online === 1) && !(selectedChat?.is_online === true);
 
   // NOTE: `conversations` is intentionally NOT in the dependency array.
   // We use conversationsRef (a stable ref kept in sync above) to read the
   // current list without causing this effect to re-run whenever fetchInbox
-  // updates the conversation list — that was the infinite loop root cause.
+  // updates the conversation list â€” that was the infinite loop root cause.
   useEffect(() => {
     if (targetChatId) {
       const currentConvs = conversationsRef.current;
@@ -1693,7 +1700,7 @@ export default function Messages() {
         lastFetchedTargetRef.current = targetChatId;
         fetchInbox();
       } else if (currentConvs.length === 0 && lastFetchedTargetRef.current !== targetChatId) {
-        // Conversations not yet loaded — fetch once, then the next render will find the chat
+        // Conversations not yet loaded â€” fetch once, then the next render will find the chat
         lastFetchedTargetRef.current = targetChatId;
         fetchInbox();
       } else if (currentConvs.length > 0) {
@@ -1725,7 +1732,7 @@ export default function Messages() {
     } else {
       store.setActiveConversationId(null);
     }
-    // Depend on stable id primitives, not the user object — profile refreshes
+    // Depend on stable id primitives, not the user object â€” profile refreshes
     // recreate the object and would re-download the whole conversation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChat?.chat_id, socket, user?.id, user?.user_id]);
@@ -1833,7 +1840,7 @@ export default function Messages() {
           }
         }
       } catch (_err) {
-        // PrivacyProtection plugin is not implemented on web — silently ignore
+        // PrivacyProtection plugin is not implemented on web â€” silently ignore
       }
     })();
 
@@ -1882,7 +1889,7 @@ export default function Messages() {
     setLoadingMessages(true);
     setMessagesError(false);
     try {
-      // Latest window only — never the full history.
+      // Latest window only â€” never the full history.
       const res = await api.get(`/messages/chat/${chatId}?limit=${CHAT_PAGE_SIZE}`);
       const msgs = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
       const hasMore = !!res.data?.hasMore;
@@ -2004,7 +2011,7 @@ export default function Messages() {
     selectedChatRef.current = selectedChat;
   }, [selectedChat]);
 
-  // Typing indicator — depends only on typing state, never triggers read receipts
+  // Typing indicator â€” depends only on typing state, never triggers read receipts
   useEffect(() => {
     if (selectedChat) {
       const isTyping = typingUsers.some(t => t.chatId === selectedChat.chat_id);
@@ -2081,7 +2088,7 @@ export default function Messages() {
       // `hidden` = subject disabled Active Status; treat as offline and drop
       // last-seen without leaking their real connection state.
       const online = !data.hidden && !!data.isOnline;
-      // Never clobber a known last-seen with null on "online" events — the
+      // Never clobber a known last-seen with null on "online" events â€” the
       // previous timestamp stays authoritative until a real offline stamp lands.
       setConversations((prev: any[]) => prev.map(chat => {
         if (String(chat.partner_id) === statusUserId) {
@@ -2170,7 +2177,7 @@ export default function Messages() {
     // NOTE: message-pinned/unpinned, message-edited, message-deleted-*, and reactions
     // are handled centrally by useMessageSocket.ts (writes straight into chatStore).
 
-    // Listen for chat-updated events so the sidebar refreshes (debounced —
+    // Listen for chat-updated events so the sidebar refreshes (debounced â€”
     // backend emits this to both parties on EVERY message).
     // Guard: only refetch if the incoming chatId is NOT already in the local
     // conversations list (which is maintained in real-time by useMessageSocket).
@@ -2178,7 +2185,7 @@ export default function Messages() {
     let chatUpdatedTimer: number | undefined;
     const handleChatUpdated = (data: { chatId: string }) => {
       logger.log('[CHAT_UPDATED_RECEIVED]', data);
-      // If we already have this chat in our local list, skip the full refetch —
+      // If we already have this chat in our local list, skip the full refetch â€”
       // the optimistic update from useMessageSocket is sufficient.
       const alreadyKnown = conversationsRef.current.some(c => c.chat_id === data.chatId);
       if (alreadyKnown) return;
@@ -2194,7 +2201,7 @@ export default function Messages() {
 
     const handleReconnect = () => {
       const activeChatId = currentChatIdRef.current;
-      logger.log('🔄 Socket connected/reconnected! Rejoining active chat room:', activeChatId);
+      logger.log('ðŸ”„ Socket connected/reconnected! Rejoining active chat room:', activeChatId);
       if (activeChatId && !activeChatId.startsWith('temp_')) {
         socket.emit('join-chat', activeChatId);
       }
@@ -2213,7 +2220,7 @@ export default function Messages() {
   }, [socket, user?.id, user?.user_id]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
-    // Scroll the message list container directly — scrollIntoView would also
+    // Scroll the message list container directly â€” scrollIntoView would also
     // scroll outer ancestors (AppScreen wrapper, window) causing the whole
     // page to jump when the keyboard opens.
     const container = messagesListRef.current;
@@ -2255,10 +2262,10 @@ export default function Messages() {
 
     const prev = lastSideEffectRef.current;
     lastSideEffectRef.current = { chatId: selectedChat.chat_id, msgId: lastMsg.message_id };
-    // Same last message as before — a prepend/paging merge, not a new arrival.
+    // Same last message as before â€” a prepend/paging merge, not a new arrival.
     if (prev.chatId === selectedChat.chat_id && prev.msgId === lastMsg.message_id) return;
     // First window for this chat: fetchMessages owns positioning (unread anchor
-    // or bottom) — don't yank the view with a competing smooth scroll.
+    // or bottom) â€” don't yank the view with a competing smooth scroll.
     if (prev.chatId !== selectedChat.chat_id) return;
 
     const myId = user?.id || user?.user_id;
@@ -2447,7 +2454,7 @@ export default function Messages() {
    * backend/utils/database/init.js and migrations/20261021_extend_message_types.sql
    * has neither, so the INSERT was rejected every time. The optimistic bubble
    * spun for 10s and then showed "Message not delivered" with no server error
-   * surfaced — only a logger.warn. GIF and sticker payloads are images, and
+   * surfaced â€” only a logger.warn. GIF and sticker payloads are images, and
    * presenting them as such is what the receiver already renders.
    */
   const toServerMessageType = (kind?: string): string => {
@@ -2499,7 +2506,7 @@ export default function Messages() {
     if (!isRich) triggerWordEffect(content);
 
     const sendStartTime = performance.now();
-    // ── Generate a stable UUID BEFORE anything else.
+    // â”€â”€ Generate a stable UUID BEFORE anything else.
     // This same ID goes into the optimistic bubble AND the socket payload,
     // so every retry is idempotent on the server.
     const messageId = crypto.randomUUID();
@@ -2525,18 +2532,18 @@ export default function Messages() {
       optimisticMsg.reply_sender_name = replyToMessage.sender_name || replyToMessage.sender_username || 'User';
     }
 
-    // ── Step 1: Display IMMEDIATELY — user sees the message before any network call
+    // â”€â”€ Step 1: Display IMMEDIATELY â€” user sees the message before any network call
     updateMessages(prev => [...prev, optimisticMsg]);
     if (selectedChat) {
       useChatStore.getState().setDraft(selectedChat.chat_id, '');
     }
-    // Release the sending lock immediately — the message is already visible.
+    // Release the sending lock immediately â€” the message is already visible.
     // Network status is indicated by the bubble's status field, not the input lock.
     setSending(false);
 
     const localRenderMs = Math.round(performance.now() - sendStartTime);
 
-    // ── Sparkle Audio: instant 'send' feedback ──
+    // â”€â”€ Sparkle Audio: instant 'send' feedback â”€â”€
     AudioSessionManager.playSound('send');
 
     // Auto scroll if was at bottom
@@ -2552,7 +2559,7 @@ export default function Messages() {
     }
 
     const payload: any = {
-      messageId,               // ← client UUID travels to server for idempotency
+      messageId,               // â† client UUID travels to server for idempotency
       chatId: selectedChat.chat_id,
       partnerId: selectedChat.partner_id,
       content: content || (specialType ? `Shared ${specialType}` : ''),
@@ -2570,7 +2577,7 @@ export default function Messages() {
       useChatStore.getState().setReplyTarget(selectedChat.chat_id, undefined);
     }
 
-    // ── Step 2: Enqueue to Durable Local Outbox FIRST ──
+    // â”€â”€ Step 2: Enqueue to Durable Local Outbox FIRST â”€â”€
         queueOutgoingMessage({
             messageId,
             chatId: selectedChat.chat_id,
@@ -2591,7 +2598,7 @@ export default function Messages() {
       }
     }
 
-    // ── Step 3: Transmit via WebSocket if connected ──
+    // â”€â”€ Step 3: Transmit via WebSocket if connected â”€â”€
     const emitStartTime = performance.now();
     transmitMessage(socket, payload, {
       clientMessageId: messageId,
@@ -2623,7 +2630,7 @@ export default function Messages() {
   const handleSendMessageWrapper = (e: any, content: string, specialType?: string, mediaUrl?: string) => handleSendMessage(e, content, specialType, mediaUrl);
 
   /**
-   * Retry a failed message using its existing UUID — fully idempotent.
+   * Retry a failed message using its existing UUID â€” fully idempotent.
    * The server will return the existing message if it already has the UUID,
    * so this is safe to call multiple times.
    */
@@ -2632,7 +2639,7 @@ export default function Messages() {
     const msgId = failedMsg.message_id || failedMsg.id;
 
     // Guard: a failed upload keeps a local blob:/data: URL which is dead after
-    // the session — re-sending it would store a permanently broken link.
+    // the session â€” re-sending it would store a permanently broken link.
     const retryMediaUrl = failedMsg.media_url || failedMsg.mediaUrl;
     if (retryMediaUrl && typeof retryMediaUrl === 'string' && (retryMediaUrl.startsWith('blob:') || retryMediaUrl.startsWith('data:'))) {
       showError('This attachment could not be uploaded. Please re-attach the file and send again.');
@@ -2647,7 +2654,7 @@ export default function Messages() {
     PersistentOfflineQueue.updateStatus(msgId, 'sending');
 
             const payload: any = {
-                messageId: msgId,  // same UUID — server deduplicates
+                messageId: msgId,  // same UUID â€” server deduplicates
                 chatId: selectedChat.chat_id,
                 partnerId: selectedChat.partner_id,
                 content: failedMsg.content,
@@ -2663,7 +2670,7 @@ export default function Messages() {
     if (failedMsg.reply_to_message_id) payload.replyToId = failedMsg.reply_to_message_id;
 
     // The transport owns the 10s window, the acknowledge and the failure
-    // reconciliation — this path used to start its own timer and then drop the
+    // reconciliation â€” this path used to start its own timer and then drop the
     // server's `server_sequence` on a successful ack, so a resent message lost
     // its ordering key and could land out of place after the next re-sort.
     if (socket?.connected) {
@@ -2696,7 +2703,7 @@ export default function Messages() {
       message_id: clientMessageId,
       id: clientMessageId,
       sender_id: user?.id || user?.user_id || '',
-      content: source === 'device_audio_attachment' ? file.name : '🎤 Voice note',
+      content: source === 'device_audio_attachment' ? file.name : 'ðŸŽ¤ Voice note',
       status: 'sending',
       sent_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
@@ -2849,7 +2856,7 @@ export default function Messages() {
     setShowScrollToBottom(!nearBottom);
     if (nearBottom) setUnreadCountInChat(0);
 
-    // Near the top → page in older messages (guarded + deduped in the store)
+    // Near the top â†’ page in older messages (guarded + deduped in the store)
     if (scrollTop < OLDER_PAGE_THRESHOLD_PX) {
       loadOlderMessages();
     }
@@ -3070,7 +3077,7 @@ export default function Messages() {
   const safeTime = (time: string) => {
     if (!time) return '';
     const date = new Date(time);
-    // Reject "0"/epoch timestamps and unparseable values — they rendered as
+    // Reject "0"/epoch timestamps and unparseable values â€” they rendered as
     // "Invalid Date" or a 1970 clock time in message bubbles.
     if (isNaN(date.getTime()) || date.getTime() <= 0) return '';
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -3078,7 +3085,7 @@ export default function Messages() {
 
   /**
    * WhatsApp-style absolute last-seen for private chat header.
-   * Never uses relative counters — always anchors to today / yesterday / weekday / date.
+   * Never uses relative counters â€” always anchors to today / yesterday / weekday / date.
    * "last seen" prefix is added by the JSX caller.
    */
   
@@ -3100,7 +3107,7 @@ export default function Messages() {
 
   
 
-  /** Compact, human-readable timestamp — delegates to shared utility so format is consistent everywhere */
+  /** Compact, human-readable timestamp â€” delegates to shared utility so format is consistent everywhere */
   
 
   // --- Filtered & Sorted conversations ---
@@ -3152,10 +3159,10 @@ export default function Messages() {
 
   // Desktop-only: track whether a chat was opened from the list (so the
   // in-app back arrow POPS history instead of pushing a duplicate /messages
-  // entry — fixes "hardware/browser back reopens the chat").
+  // entry â€” fixes "hardware/browser back reopens the chat").
   const openedFromListRef = useRef(false);
 
-  // Desktop keyboard navigation: ↑/↓ switch chats, Escape closes overlays or the chat.
+  // Desktop keyboard navigation: â†‘/â†“ switch chats, Escape closes overlays or the chat.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
@@ -3400,7 +3407,7 @@ export default function Messages() {
 
               {searchLoading && (
                 <div className="mb-3 text-[10px] font-bold uppercase tracking-wider text-black/40 dark:text-white/40">
-                  Searching full history…
+                  Searching full historyâ€¦
                 </div>
               )}
 
@@ -3533,8 +3540,8 @@ export default function Messages() {
                     if (typeof txt === 'string' && txt.startsWith('{"type":')) {
                       try {
                         const p = JSON.parse(txt);
-                        if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
-                        if (p.type === 'live_location') return '📍 Live Location';
+                        if (p.type === 'location') return p.name || p.address ? `ðŸ“ ${p.name || p.address}` : 'ðŸ“ Location';
+                        if (p.type === 'live_location') return 'ðŸ“ Live Location';
                       } catch (e) { }
                     }
                     return txt;
@@ -3573,7 +3580,7 @@ export default function Messages() {
 
           {selectedChat ? (
             <>
-              {/* ── Conversation header — lives OUTSIDE the gesture/scroll
+              {/* â”€â”€ Conversation header â€” lives OUTSIDE the gesture/scroll
                   region so the keyboard can never move, translate, or resize
                   it.  shrink-0 prevents it from compressing when the flex
                   column shrinks as the IME inset is applied to the WebView. */}
@@ -3674,7 +3681,7 @@ export default function Messages() {
                             <div className="mt-1 overflow-hidden min-w-0 w-full whitespace-nowrap truncate">
                               {(selectedChat.is_group || selectedChat.chat_type === 'group') ? (
                                 <p className="text-xs md:text-[13px] font-medium lowercase chat-header-presence chat-header-group-online truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight">
-                                  {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count ?? 0} online
+                                  {selectedChat.member_count ? `${selectedChat.member_count} members â€¢ ` : ''}{selectedChat.group_online_count ?? 0} online
                                 </p>
                               ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
                                 <div className="flex items-center gap-1.5 leading-tight">
@@ -3709,7 +3716,7 @@ export default function Messages() {
               </header>
 
               {/* Connection loss is handled by the blocking loader (below),
-                  not a banner — the old banner false-fired on routine sync. */}
+                  not a banner â€” the old banner false-fired on routine sync. */}
               <BlockingLoader
                 show={reconnectBlocked}
                 label="Reconnecting"
@@ -3717,7 +3724,7 @@ export default function Messages() {
                 variant="translucent"
               />
 
-              {/* ── Scrollable message viewport + composer — wrapped in the
+              {/* â”€â”€ Scrollable message viewport + composer â€” wrapped in the
                   gesture detector.  ONLY this region compresses when the
                   keyboard opens.  The header above is completely outside. */}
               <PullUpDisappearingGesture
@@ -3862,7 +3869,7 @@ export default function Messages() {
                   <>
                     <OfficialAccountBanner
                       displayName={sanitizePartnerName(selectedChat?.partner_name || selectedChat?.display_name || selectedChat?.name, selectedChat?.partner_username || selectedChat?.username) || ((window as any).__sparkleIsSparklePay ? 'SparklePay' : 'Sparkle Official')}
-                      badge={(window as any).__sparkleIsSparklePay ? 'Verified Financial Channel' : (selectedChat?.official_badge || '✔️ Verified')}
+                      badge={(window as any).__sparkleIsSparklePay ? 'Verified Financial Channel' : (selectedChat?.official_badge || 'âœ”ï¸ Verified')}
                       accountType={(window as any).__sparkleIsSparklePay ? 'sparkle_pay' : 'official'}
                     />
                     {showOfficialOnboarding && !(window as any).__sparkleIsSparklePay && (
@@ -3890,14 +3897,14 @@ export default function Messages() {
                     </div>
                   ) : messages.length === 0 && !messageSearch && loadedChatId === chatId ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 px-6">
-                      <div className="text-4xl mb-3 select-none" aria-hidden>👋</div>
+                      <div className="text-4xl mb-3 select-none" aria-hidden>ðŸ‘‹</div>
                       <p className="text-white/60 text-sm font-medium">No messages yet</p>
-                      <p className="text-white/30 text-xs mt-1">Say hi — send the first message!</p>
+                      <p className="text-white/30 text-xs mt-1">Say hi â€” send the first message!</p>
                     </div>
                   ) : null}
                   {messageSearch && displayedMessages.length === 0 && !searchLoading ? (
                     <div className="py-10 text-center">
-                      <p className="text-white/40 text-sm">No messages matching “{messageSearch}”</p>
+                      <p className="text-white/40 text-sm">No messages matching â€œ{messageSearch}â€</p>
                       <p className="text-white/25 text-xs mt-1">Searched the full conversation</p>
                     </div>
                   ) : null}
@@ -3947,7 +3954,7 @@ export default function Messages() {
                     const msgId = msg.message_id || msg.id;
                     const isSelected = isSelectionMode && selectedMessageIds.has(msgId);
 
-                    // ── System messages render as a centred pill, not a bubble ──
+                    // â”€â”€ System messages render as a centred pill, not a bubble â”€â”€
                     if (msg.type === 'system') {
                       const isDisappearingNotice = 
                         msg.system_type === 'disappearing_messages_change' || 
@@ -4135,30 +4142,30 @@ export default function Messages() {
                                     } else if (isRefExpired) {
                                       replyContent = 'This message has expired';
                                     } else if (refMsg.content && refMsg.content.trim() !== '') {
-                                      if (replyType === 'image' || replyType === 'photo') replyContent = `📷 ${refMsg.content}`;
-                                      else if (replyType === 'video') replyContent = `🎥 ${refMsg.content}`;
-                                      else if (replyType === 'gif') replyContent = `👾 ${refMsg.content}`;
+                                      if (replyType === 'image' || replyType === 'photo') replyContent = `ðŸ“· ${refMsg.content}`;
+                                      else if (replyType === 'video') replyContent = `ðŸŽ¥ ${refMsg.content}`;
+                                      else if (replyType === 'gif') replyContent = `ðŸ‘¾ ${refMsg.content}`;
                                       else replyContent = refMsg.content;
                                     } else {
                                       switch (replyType) {
                                         case 'image':
                                         case 'photo':
-                                          replyContent = '📷 Photo';
+                                          replyContent = 'ðŸ“· Photo';
                                           break;
                                         case 'video':
-                                          replyContent = '🎥 Video';
+                                          replyContent = 'ðŸŽ¥ Video';
                                           break;
                                         case 'gif':
-                                          replyContent = '👾 GIF';
+                                          replyContent = 'ðŸ‘¾ GIF';
                                           break;
                                         case 'audio':
                                         case 'voice':
                                         case 'voice_note':
-                                          replyContent = '🎵 Voice Note';
+                                          replyContent = 'ðŸŽµ Voice Note';
                                           break;
                                         case 'file':
                                         case 'document':
-                                          replyContent = '📄 Document';
+                                          replyContent = 'ðŸ“„ Document';
                                           break;
                                         default:
                                           replyContent = 'Attachment';
@@ -4215,7 +4222,7 @@ export default function Messages() {
                               <div className="relative text-[14.5px]">
                                 {pendingDeletingIds.has(msgId) ? (
                                   <span className="text-[12px] font-semibold text-rose-300 italic animate-pulse flex items-center gap-1.5 py-0.5 select-none">
-                                    Deleting…
+                                    Deletingâ€¦
                                   </span>
                                 ) : msg.is_deleted_for_everyone ? (
                                   <>
@@ -4358,7 +4365,7 @@ export default function Messages() {
                                               <>
                                                 <img src={gifSrc} alt={isGift ? "Gift" : "GIF"} className="max-w-[260px] max-h-[240px] w-auto h-auto object-contain rounded-[10px] block" />
                                                 <span className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-[4px]">
-                                                  {isGift ? "🎁 GIFT" : "GIF"}
+                                                  {isGift ? "ðŸŽ GIFT" : "GIF"}
                                                 </span>
                                               </>
                                             ) : (
@@ -4385,12 +4392,14 @@ export default function Messages() {
                                     )}
 
                                     {(msg.type === 'location' || msg.type === 'live_location' || (typeof msg.content === 'string' && (msg.content.includes('"type":"location"') || msg.content.includes('"type":"live_location"')))) && (
-                                      <LocationMessageBubble
-                                        message={msg}
-                                        isCurrentUser={msg.sender_id === (user?.user_id || user?.id)}
-                                        onOpenFullMap={() => setShowLocationPickerModal(true)}
-                                      />
-                                    )}
+<Suspense fallback={null}>
+                        <LocationMessageBubble
+                          message={msg}
+                          isCurrentUser={msg.sender_id === (user?.user_id || user?.id)}
+                          onOpenFullMap={() => setShowLocationPickerModal(true)}
+                        />
+                      </Suspense>
+                      )}
 
                                     {msg.type === 'image' && (() => {
                                       const mediaSrc = getMediaUrl(msg.media_url || msg.mediaUrl);
@@ -4589,7 +4598,7 @@ export default function Messages() {
                                               {msg.content || 'Document attachment'}
                                             </div>
                                             <div className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">
-                                              Attachment • FILE
+                                              Attachment â€¢ FILE
                                             </div>
                                           </div>
                                           <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/20 transition-all shrink-0">
@@ -4759,7 +4768,7 @@ export default function Messages() {
                             <div className="flex items-center justify-end gap-1.5 mt-1 mb-1 px-1 select-none">
                               <Clock size={11} className="text-white/30" strokeWidth={2.5} />
                               <span className="text-[10px] text-white/30 font-medium">
-                                Queued — will send when you're back online
+                                Queued â€” will send when you're back online
                               </span>
                             </div>
                           )}
@@ -4778,8 +4787,8 @@ export default function Messages() {
                                 </span>
                                 <span className="font-extrabold text-red-500 hover:text-red-400">
                                   {msg.status === 'blocked'
-                                    ? 'Not sent — you can no longer message this user'
-                                    : <>Message not delivered · {safeTime(msg.failed_at || msg.sent_at || msg.created_at || '')}</>}
+                                    ? 'Not sent â€” you can no longer message this user'
+                                    : <>Message not delivered Â· {safeTime(msg.failed_at || msg.sent_at || msg.created_at || '')}</>}
                                 </span>
                               </button>
                               {msg.status !== 'blocked' && (
@@ -4848,7 +4857,7 @@ export default function Messages() {
                 </div>
               </div>
 
-              {/* ── Scroll-to-bottom floating button ──
+              {/* â”€â”€ Scroll-to-bottom floating button â”€â”€
                     Positioned as absolute relative to <main> (which has position:relative)
                     so it floats at a fixed visual position above the input bar,
                     NOT anchored to the bottom of the scroll content. */}
@@ -4907,7 +4916,7 @@ export default function Messages() {
                 )}
               </AnimatePresence>
 
-              {/* Typing indicator — sits directly above the input bar */}
+              {/* Typing indicator â€” sits directly above the input bar */}
               <AnimatePresence>
                 {!(
                   selectedChat?.account_type === 'system' ||
@@ -4932,7 +4941,7 @@ export default function Messages() {
                         <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
                       </div>
                       <span className="text-[12px] font-bold text-[#ff1493]">
-                        {(typingUsers.find(t => t.chatId === selectedChat?.chat_id)?.name) || sanitizePartnerName(selectedChat?.partner_name, selectedChat?.partner_username)} is typing…
+                        {(typingUsers.find(t => t.chatId === selectedChat?.chat_id)?.name) || sanitizePartnerName(selectedChat?.partner_name, selectedChat?.partner_username)} is typingâ€¦
                       </span>
                     </motion.div>
                   )}
@@ -5245,12 +5254,12 @@ export default function Messages() {
         }}
         onEdit={() => {
           if (activeMessageMenu?.msg && selectedChat) {
-            // The server rejects edits older than 15 minutes — don't offer an
+            // The server rejects edits older than 15 minutes â€” don't offer an
             // action that can only fail (showInfo, not a red error).
             const sentAt = activeMessageMenu.msg.sent_at || activeMessageMenu.msg.created_at;
             const elapsedMin = sentAt ? (Date.now() - new Date(sentAt).getTime()) / 60000 : 0;
             if (elapsedMin > 15) {
-              showInfo('Editing window expired — messages can only be edited within 15 minutes');
+              showInfo('Editing window expired â€” messages can only be edited within 15 minutes');
               setActiveMessageMenu(null);
               return;
             }
@@ -5339,7 +5348,7 @@ export default function Messages() {
         onForward={handlePerformForward}
       />
 
-      {/* ── Start New Chat — Full-Page Slide-In Interface ── */}
+      {/* â”€â”€ Start New Chat â€” Full-Page Slide-In Interface â”€â”€ */}
       <NewChatModal
         isOpen={showNewChatModal && peopleHubMode === 'new_chat'}
         onClose={() => setShowNewChatModal(false)}
@@ -5347,7 +5356,7 @@ export default function Messages() {
         onStartChat={handleStartChatFromPicker}
       />
 
-      {/* ── Share Contact in Active Chat ── */}
+      {/* â”€â”€ Share Contact in Active Chat â”€â”€ */}
       {showNewChatModal && peopleHubMode === 'share_contact' && (
         <SparklePeopleHubModal
           isOpen={showNewChatModal && peopleHubMode === 'share_contact'}
@@ -5388,7 +5397,7 @@ export default function Messages() {
         />
       )}
 
-      {/* VIEW NOTE MODAL — Full Screen */}
+      {/* VIEW NOTE MODAL â€” Full Screen */}
       <AnimatePresence>
         {showViewNoteModal && viewingNote && (
           <motion.div
@@ -5420,7 +5429,7 @@ export default function Messages() {
               </div>
             </div>
 
-            {/* Center — Avatar + Bubble */}
+            {/* Center â€” Avatar + Bubble */}
             <div className="flex-1 flex flex-col items-center justify-center">
               <div className="flex flex-col items-center">
                 {/* Speech bubble */}
@@ -5455,11 +5464,11 @@ export default function Messages() {
               </div>
             </div>
 
-            {/* Bottom — Send message + quick reactions */}
+            {/* Bottom â€” Send message + quick reactions */}
             <div className="px-4 pb-[calc(1.5rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] space-y-3">
               {/* Quick reactions */}
               <div className="flex items-center justify-center gap-6 px-1 relative">
-                {['❤️', '😆', '😮', '😨', '😢'].map(emoji => (
+                {['â¤ï¸', 'ðŸ˜†', 'ðŸ˜®', 'ðŸ˜¨', 'ðŸ˜¢'].map(emoji => (
                   <button
                     key={emoji}
                     disabled={isNoteReacting}
@@ -5613,21 +5622,13 @@ export default function Messages() {
                           transition={{ type: "spring", damping: 25, stiffness: 200 }}
                           className="relative z-10 w-full h-[30vh] overflow-hidden"
                         >
-                          <Picker
-                            data={data}
-                            onEmojiSelect={(emoji: any) => {
-                              setNoteReplyText(prev => prev + emoji.native);
-                              setShowNoteEmojiPicker(false);
-                            }}
-                            theme="dark"
-                            native={true}
-                            previewPosition="none"
-                            skinTonePosition="none"
-                            navPosition="none"
-                            searchPosition="none"
-                            perLine={10}
-                            width="100%"
-                          />
+<LazyEmojiPicker
+                          onEmojiSelect={(emoji) => {
+setNoteReplyText(prev => prev + emoji.native);
+setShowNoteEmojiPicker(false);
+                          }}
+                          theme="dark"
+                        />
                         </motion.div>
                       </div>
                     )}
@@ -5656,7 +5657,7 @@ export default function Messages() {
         />
       )}
 
-      {/* ── 1. FLOATING ATTACHMENT BOTTOM SHEET ── */}
+      {/* â”€â”€ 1. FLOATING ATTACHMENT BOTTOM SHEET â”€â”€ */}
       <AnimatePresence>
         {showAttachmentSheet && (
           <div className="fixed inset-0 z-(--z-modal) flex items-end sm:items-center justify-center select-none">
@@ -5962,7 +5963,7 @@ export default function Messages() {
         )}
       </AnimatePresence>
 
-      {/* ── 2. MULTIPLE SELECTION MEDIA COMPOSER ── */}
+      {/* â”€â”€ 2. MULTIPLE SELECTION MEDIA COMPOSER â”€â”€ */}
       <AnimatePresence>
         {showMediaComposer && (
           <div className="fixed inset-0 z-(--z-modal) chat-overlay-bg flex flex-col select-none">
@@ -6080,7 +6081,7 @@ export default function Messages() {
                     setMediaCaption('');
 
                     // Trigger concurrent background media uploads & optimistic messaging.
-                    // The caption rides on the FIRST image only — not every
+                    // The caption rides on the FIRST image only â€” not every
                     // message in a multi-photo send.
                     items.forEach((item, itemIndex) => {
                       const mediaType = item.type || 'image';
@@ -6118,7 +6119,7 @@ export default function Messages() {
         )}
       </AnimatePresence>
 
-      {/* ── 3. CONCURRENT UPLOAD QUEUE FLOATING WIDGET ── */}
+      {/* â”€â”€ 3. CONCURRENT UPLOAD QUEUE FLOATING WIDGET â”€â”€ */}
       <AnimatePresence>
         {uploadQueue.length > 0 && (
           <motion.div
@@ -6162,7 +6163,7 @@ export default function Messages() {
         )}
       </AnimatePresence>
 
-      {/* ── NEW LIST NAME MODAL ── */}
+      {/* â”€â”€ NEW LIST NAME MODAL â”€â”€ */}
       <AnimatePresence>
         {showNewListFlow === 'name' && (
           <motion.div
@@ -6221,7 +6222,7 @@ export default function Messages() {
         )}
       </AnimatePresence>
 
-      {/* ── ADD TO LIST MODAL ── */}
+      {/* â”€â”€ ADD TO LIST MODAL â”€â”€ */}
       <AnimatePresence>
         {showNewListFlow === 'addPeople' && (
           <motion.div
@@ -6292,7 +6293,7 @@ export default function Messages() {
         )}
       </AnimatePresence>
 
-      {/* ── TAB DROPDOWN CONTEXT MENU ── */}
+      {/* â”€â”€ TAB DROPDOWN CONTEXT MENU â”€â”€ */}
       {tabDropdown && (
         <div className="fixed inset-0 z-(--z-chrome)" onClick={() => setTabDropdown(null)} onContextMenu={(e) => { e.preventDefault(); setTabDropdown(null); }}>
           <div
@@ -6377,7 +6378,7 @@ export default function Messages() {
         </div>
       )}
 
-      {/* ── REORDER LISTS MODAL ── */}
+      {/* â”€â”€ REORDER LISTS MODAL â”€â”€ */}
       <AnimatePresence>
         {showReorderModal && (
           <motion.div
@@ -6537,7 +6538,7 @@ export default function Messages() {
         )}
       </AnimatePresence>
 
-      {/* ── 4. FULL-SCREEN MEDIA VIEWER ── */}
+      {/* â”€â”€ 4. FULL-SCREEN MEDIA VIEWER â”€â”€ */}
       <FullscreenMediaViewer
         message={viewerMessage}
         chat={selectedChat}
@@ -6578,7 +6579,7 @@ export default function Messages() {
         }}
       />
 
-      {/* ── SPARKLE ENTERPRISE UX MODALS & OVERLAYS ── */}
+      {/* â”€â”€ SPARKLE ENTERPRISE UX MODALS & OVERLAYS â”€â”€ */}
       <SparklePeekCard
         chat={peekChat}
         isOpen={!!peekChat}
@@ -6679,25 +6680,27 @@ export default function Messages() {
       </AnimatePresence>
 
       {selectedChat && (
-        <LocationPickerModal
-          isOpen={showLocationPickerModal}
-          chatId={selectedChat.chat_id}
-          onClose={() => setShowLocationPickerModal(false)}
-          onSendCurrentLocation={(payload: LocationPayload) => {
-            const contentJson = JSON.stringify({
-              type: 'location',
-              latitude: payload.latitude,
-              longitude: payload.longitude,
-              accuracy: payload.accuracy,
-              address: payload.address || payload.name,
-              name: payload.name || payload.address
-            });
-            handleSendMessage(undefined, contentJson, 'location');
-          }}
-          onSendLiveLocation={(sessionData) => {
-            logger.log('Live location started:', sessionData);
-          }}
-        />
+<Suspense fallback={null}>
+                        <LocationPickerModal
+                          isOpen={showLocationPickerModal}
+                          chatId={selectedChat.chat_id}
+                          onClose={() => setShowLocationPickerModal(false)}
+                          onSendCurrentLocation={(payload: LocationPayload) => {
+                            const contentJson = JSON.stringify({
+                              type: 'location',
+                              latitude: payload.latitude,
+                              longitude: payload.longitude,
+                              accuracy: payload.accuracy,
+                              address: payload.address || payload.name,
+                              name: payload.name || payload.address
+                            });
+                            handleSendMessage(undefined, contentJson, 'location');
+                          }}
+                          onSendLiveLocation={(sessionData) => {
+                            logger.log('Live location started:', sessionData);
+                          }}
+                        />
+                      </Suspense>
       )}
 
       <AudioPreviewModal
@@ -6798,7 +6801,7 @@ export default function Messages() {
         )}
       </AnimatePresence>
 
-      {/* ── Small Pink Floating Compose Button on Messages Page ── */}
+      {/* â”€â”€ Small Pink Floating Compose Button on Messages Page â”€â”€ */}
       {!selectedChat && !showNewChatModal && (
         <button
           type="button"

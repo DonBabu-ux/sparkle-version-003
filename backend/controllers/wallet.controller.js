@@ -23,6 +23,8 @@ const walletService = require('../services/wallet.service');
 const paystackService = require('../services/paystack.service');
 const logger = require('../utils/logger');
 const { clientError, apiError } = require('../utils/serverError');
+const pool = require('../config/database');
+const crypto = require('crypto');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -279,5 +281,168 @@ exports.handleWebhook = async (req, res) => {
         if (!res.headersSent) {
             return res.status(500).json({ message: 'Could not persist webhook event' });
         }
+    }
+};
+
+// ---- Payout methods (Marketplace > Payout Settings) ---------------------------
+
+const PAYOUT_PROVIDERS = ['bank', 'mpesa'];
+
+/** Accept 2547XXXXXXXX / 07XXXXXXXX / +2547XXXXXXXX -> 2547XXXXXXXX. */
+function normalizeMpesa(input) {
+    const raw = String(input || '').replace(/[\s+-]/g, '');
+    if (/^254\d{9}$/.test(raw)) return raw;
+    const local = raw.replace(/^0+/, '');
+    if (/^[17]\d{8}$/.test(local)) return `254${local}`;
+    return null;
+}
+
+exports.getPayoutMethods = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const [rows] = await pool.query(
+            `SELECT payout_id, provider, account_name, account_number, bank_code, is_default, created_at
+               FROM payout_methods
+              WHERE user_id = ?
+              ORDER BY is_default DESC, created_at DESC`,
+            [userId]
+        );
+        const methods = rows.map((r) => ({
+            payout_id: r.payout_id,
+            provider: r.provider,
+            account_name: r.account_name,
+            account_number_last4: String(r.account_number).slice(-4),
+            bank_code: r.bank_code,
+            is_default: !!r.is_default,
+            created_at: r.created_at,
+        }));
+        res.json({ success: true, methods });
+    } catch (err) {
+        logger.error('[WalletController] getPayoutMethods:', err.message);
+        clientError(res, err, 'Failed to load payout methods');
+    }
+};
+
+exports.addPayoutMethod = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const provider = String((req.body || {}).provider || '').toLowerCase();
+        if (!PAYOUT_PROVIDERS.includes(provider)) {
+            return res.status(400).json({ success: false, message: 'provider must be bank or mpesa' });
+        }
+
+        let accountName;
+        let accountNumber;
+        let bankCode = null;
+
+        if (provider === 'mpesa') {
+            accountNumber = normalizeMpesa((req.body || {}).phone || (req.body || {}).accountNumber);
+            if (!accountNumber) {
+                return res.status(400).json({ success: false, message: 'A valid M-Pesa phone number is required (e.g. 0712 345 678)' });
+            }
+            accountName = String((req.body || {}).accountName || '').trim() || 'M-Pesa';
+        } else {
+            accountNumber = String((req.body || {}).accountNumber || '').replace(/\s/g, '');
+            bankCode = String((req.body || {}).bankCode || '').trim();
+            accountName = String((req.body || {}).accountName || '').trim();
+            if (!/^\d{6,20}$/.test(accountNumber)) {
+                return res.status(400).json({ success: false, message: 'A valid bank account number is required' });
+            }
+            if (!bankCode) {
+                return res.status(400).json({ success: false, message: 'bankCode is required for bank payouts' });
+            }
+            // Read-only Paystack lookup (no state is created here) to verify the
+            // account and fill the holder name when the caller left it blank.
+            if (!accountName) {
+                const resolved = await walletService.resolveAccount(accountNumber, bankCode);
+                accountName = resolved && resolved.data && resolved.data.account_name;
+                if (!accountName) {
+                    return res.status(400).json({ success: false, message: 'Could not resolve that bank account. Check the number and bank.' });
+                }
+            }
+        }
+
+        const [existing] = await pool.query(
+            'SELECT payout_id FROM payout_methods WHERE user_id = ? AND provider = ? AND account_number = ? LIMIT 1',
+            [userId, provider, accountNumber]
+        );
+        if (existing.length) {
+            return res.status(409).json({ success: false, message: 'That payout method is already saved.' });
+        }
+
+        const [count] = await pool.query('SELECT COUNT(*) AS n FROM payout_methods WHERE user_id = ?', [userId]);
+        const makeDefault = count[0].n === 0 || (req.body || {}).isDefault === true;
+
+        const payoutId = crypto.randomUUID();
+        await pool.query(
+            `INSERT INTO payout_methods (payout_id, user_id, provider, account_name, account_number, bank_code, is_default)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [payoutId, userId, provider, accountName, accountNumber, bankCode, makeDefault ? 1 : 0]
+        );
+        if (makeDefault) {
+            await pool.query(
+                'UPDATE payout_methods SET is_default = 0 WHERE user_id = ? AND payout_id <> ?',
+                [userId, payoutId]
+            );
+        }
+
+        res.status(201).json({
+            success: true,
+            method: {
+                payout_id: payoutId,
+                provider,
+                account_name: accountName,
+                account_number_last4: accountNumber.slice(-4),
+                bank_code: bankCode,
+                is_default: makeDefault,
+            },
+        });
+    } catch (err) {
+        logger.error('[WalletController] addPayoutMethod:', err.message);
+        clientError(res, err, 'Failed to save payout method');
+    }
+};
+
+exports.setDefaultPayoutMethod = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const [rows] = await pool.query(
+            'SELECT payout_id FROM payout_methods WHERE payout_id = ? AND user_id = ? LIMIT 1',
+            [req.params.payoutId, userId]
+        );
+        if (!rows.length) {
+            return res.status(404).json({ success: false, message: 'Payout method not found.' });
+        }
+        await pool.query('UPDATE payout_methods SET is_default = 0 WHERE user_id = ?', [userId]);
+        await pool.query('UPDATE payout_methods SET is_default = 1 WHERE payout_id = ?', [rows[0].payout_id]);
+        res.json({ success: true });
+    } catch (err) {
+        logger.error('[WalletController] setDefaultPayoutMethod:', err.message);
+        clientError(res, err, 'Failed to update default payout method');
+    }
+};
+
+exports.deletePayoutMethod = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const [deleted] = await pool.query(
+            'DELETE FROM payout_methods WHERE payout_id = ? AND user_id = ?',
+            [req.params.payoutId, userId]
+        );
+        if (!deleted.affectedRows) {
+            return res.status(404).json({ success: false, message: 'Payout method not found.' });
+        }
+        // Promote the newest remaining method so a default always exists.
+        const [remaining] = await pool.query(
+            'SELECT payout_id FROM payout_methods WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+            [userId]
+        );
+        if (remaining.length) {
+            await pool.query('UPDATE payout_methods SET is_default = 1 WHERE payout_id = ?', [remaining[0].payout_id]);
+        }
+        res.json({ success: true });
+    } catch (err) {
+        logger.error('[WalletController] deletePayoutMethod:', err.message);
+        clientError(res, err, 'Failed to delete payout method');
     }
 };

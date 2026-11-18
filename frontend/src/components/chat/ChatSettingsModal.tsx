@@ -1,10 +1,11 @@
-import { showError, showInfo, showSuccess } from '../../utils/toast';
+﻿import { showError, showInfo, showSuccess } from '../../utils/toast';
 import { validateFile } from '../../utils/fileValidation';
 import { confirmDialog, promptDialog } from '../../store/dialogStore';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { X, Search, Bell, Users, Image as ImageIcon, Pin, Volume2, Download, Share2, Clock, Eye, MoreHorizontal, Shield, Lock, MinusCircle, ShieldAlert, AlertTriangle, Trash2, ChevronLeft, Palette, Smile, ImagePlus, User, Edit3, Check, Sparkles, Send, Wand2, Play, RotateCcw, Copy, Globe, CheckCircle2, Link2, BarChart2, History } from 'lucide-react';
+import { Picker, data } from '../EmojiMart';
 import { sanitizePartnerName } from '../../utils/nameSanitizer';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { useThemeStore, PRESET_THEMES, type SparkleTheme } from '../../store/themeStore';
@@ -33,14 +34,12 @@ interface ChatSettingsModalProps {
 // Removed static EMOJIS and MEMOJIS as we'll use emoji-mart and more realistic avatars
 
 
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 
 const PREVIEW_MESSAGES = [
   { text: "Hey! Did you see the new themes?", isMe: false },
-  { text: "Yes! They look absolutely incredible ✨", isMe: true },
+  { text: "Yes! They look absolutely incredible âœ¨", isMe: true },
   { text: "I'm testing out the animations right now.", isMe: false },
   { text: "Everything feels so smooth!", isMe: true }
 ];
@@ -76,7 +75,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
   const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker' | 'notifications_sounds' | 'encryption_verification' | 'disappearing_selector'>(initialView || 'main');
   const [customizeTab, setCustomizeTab] = useState<'themes' | 'reaction' | 'words'>('themes');
 
-  // ── Create Group state ──
+  // â”€â”€ Create Group state â”€â”€
   const displayPartnerName = sanitizePartnerName(chat.partner_name, chat.partner_username);
   const [groupName, setGroupName] = useState(`${displayPartnerName.split(' ')[0]} \u0026 You`);
   const [groupFriends, setGroupFriends] = useState<any[]>([]);
@@ -85,7 +84,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
   const [groupLoading, setGroupLoading] = useState(false);
   const [groupCreating, setGroupCreating] = useState(false);
 
-  // ── Share Contact state ──
+  // â”€â”€ Share Contact state â”€â”€
   const [linkCopied, setLinkCopied] = useState(false);
   const [followingList, setFollowingList] = useState<any[]>([]);
   const [shareSearchQuery, setShareSearchQuery] = useState('');
@@ -133,7 +132,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
   };
 
   const [wordInput, setWordInput] = useState('');
-  const [wordEmoji, setWordEmoji] = useState('✨');
+  const [wordEmoji, setWordEmoji] = useState('âœ¨');
   const [ ,  ] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   
@@ -277,7 +276,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
     setSelectedNotificationSoundState(useThemeStore.getState().getNotificationSound(chat.chat_id || chat.id));
   }, [chat.chat_id, chat.id]);
 
-  // Deterministic encryption verification keys — same on both sides since chatId is shared
+  // Deterministic encryption verification keys â€” same on both sides since chatId is shared
   const encryptionKeys = useMemo(() => generateEncryptionKeys(chat.chat_id || chat.id || ''), [chat.chat_id, chat.id]);
 
   // Load canonical privacy settings from backend when modal opens
@@ -412,10 +411,10 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               <h2 className="text-2xl font-black text-white flex items-center gap-2">
                 Sparkle Official
                 <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-500/20 border border-rose-500/40 text-rose-400">
-                  ✔️ Verified
+                  âœ”ï¸ Verified
                 </span>
               </h2>
-              <p className="text-xs font-semibold text-rose-400 mt-1">@sparkleofficial • Official Sparkle Account</p>
+              <p className="text-xs font-semibold text-rose-400 mt-1">@sparkleofficial â€¢ Official Sparkle Account</p>
               <p className="text-xs text-slate-400 mt-2 max-w-sm">
                 Helping you discover Sparkle. Trusted platform communication channel between Sparkle and every user.
               </p>
@@ -979,7 +978,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                       <div className="flex-1 w-full overflow-hidden flex justify-center">
                           <Picker 
                             data={data}
-                            onEmojiSelect={(emoji: any) => handleApplyReaction(emoji?.native || emoji?.id || '👍')}
+                            onEmojiSelect={(emoji: any) => handleApplyReaction(emoji?.native || emoji?.id || 'ðŸ‘')}
                             theme="dark"
                             native={true}
                             previewPosition="none"
@@ -1321,7 +1320,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 </div>
 
                 <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-xs text-white/60 leading-relaxed">
-                  💡 <span className="font-bold text-white">Note:</span> Setting a nickname generates an in-chat update message visible to both participants.
+                  ðŸ’¡ <span className="font-bold text-white">Note:</span> Setting a nickname generates an in-chat update message visible to both participants.
                 </div>
 
                 <button 
@@ -1582,7 +1581,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 <Picker 
                   data={data}
                   onEmojiSelect={(emoji: any) => { 
-                    setWordEmoji(emoji?.native || emoji?.id || '✨'); 
+                    setWordEmoji(emoji?.native || emoji?.id || 'âœ¨'); 
                     setView('customize'); 
                   }}
                   theme="dark"
@@ -1657,7 +1656,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 flex gap-3 items-start">
                   <Shield size={16} className="text-emerald-400 mt-0.5 shrink-0" />
                   <p className="text-xs text-white/60 leading-relaxed">
-                    These numbers are unique to this conversation. They never change unless the chat is recreated. No one else — not even Sparkle — can read your messages.
+                    These numbers are unique to this conversation. They never change unless the chat is recreated. No one else â€” not even Sparkle â€” can read your messages.
                   </p>
                 </div>
 
@@ -1690,7 +1689,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                   disabled={!groupName.trim() || groupSelected.length === 0 || groupCreating}
                   className="px-4 py-2 bg-[#ff1493] disabled:opacity-40 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95"
                 >
-                  {groupCreating ? 'Creating…' : 'Create'}
+                  {groupCreating ? 'Creatingâ€¦' : 'Create'}
                 </button>
               </div>
 
@@ -1702,7 +1701,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                   <input
                     value={groupName}
                     onChange={e => setGroupName(e.target.value)}
-                    placeholder="Enter group name…"
+                    placeholder="Enter group nameâ€¦"
                     className="w-full bg-transparent text-white text-base font-bold outline-none placeholder:text-white/30 border-b border-white/5 pb-2"
                   />
                 </div>
@@ -1753,12 +1752,12 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                           } catch {} finally { setGroupLoading(false); }
                         }
                       }}
-                      placeholder="Search friends…"
+                      placeholder="Search friendsâ€¦"
                       className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-white/30"
                     />
                   </div>
                   <div className="space-y-1 max-h-64 overflow-y-auto no-scrollbar">
-                    {groupLoading && <p className="text-xs text-white/40 text-center py-4">Loading…</p>}
+                    {groupLoading && <p className="text-xs text-white/40 text-center py-4">Loadingâ€¦</p>}
                     {groupFriends.filter(f => (f.id || f.user_id) !== chat.partner_id).map((f: any) => {
                       const fId = f.id || f.user_id;
                       const isSelected = groupSelected.some((x: any) => (x.id || x.user_id) === fId);
@@ -1878,7 +1877,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                                   : "bg-[#ff1493] border-[#ff1493] text-white hover:opacity-90 font-bold"
                             )}
                           >
-                            {sharingState === 'sent' ? 'Sent!' : sharingState === 'sending' ? 'Sending…' : 'Send'}
+                            {sharingState === 'sent' ? 'Sent!' : sharingState === 'sending' ? 'Sendingâ€¦' : 'Send'}
                           </button>
                         </div>
                       );

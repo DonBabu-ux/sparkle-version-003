@@ -1,4 +1,4 @@
-import { showInfo, showError } from '../utils/toast';
+import { showError, showSuccess } from '../utils/toast';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -29,6 +29,10 @@ export default function Streams() {
   const [creating, setCreating] = useState(false);
   const [streams, setStreams] = useState<any[]>([]);
   const [loadError, setLoadError] = useState(false);
+  const [myStream, setMyStream] = useState<{ id: string; title: string } | null>(null);
+  const [updateText, setUpdateText] = useState('');
+  const [viewingStream, setViewingStream] = useState<any | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
 
   const loadStreams = async () => {
     try {
@@ -47,18 +51,73 @@ export default function Streams() {
   };
 
   const goLive = async () => {
+    const title = liveTitle.trim();
+    if (!title) { showError('Give your live a title first.'); return; }
     setCreating(true);
     try {
-      // stream_url was sent as null and the backend substituted a deterministic
-      // fake URL, after which this showed "You are live!" and rendered a tile
-      // that did nothing when tapped. There is no capture pipeline, no viewer
-      // and no caller for /streams/:id/end, so there is nothing to go live with
-      // yet. Say that instead of confirming a stream that does not exist.
-      showError('Going live is not available yet. Broadcasting is still being built.');
+      // Sparkle lives are text-update sessions (see /streams/:id/updates +
+      // /streams/:id/end), not video capture: the backend owns the lifecycle
+      // (create -> updates -> end) and the console below drives it.
+      const { data } = await api.post('/streams', { title, description: title, category: 'live' });
+      setMyStream({ id: data.stream_id, title });
+      setGoLiveOpen(false);
+      setLiveTitle('');
+      showSuccess('You are live! Post updates from your console.');
+      loadStreams();
     } catch (err: any) {
       showError(err?.response?.data?.error || 'Could not start your live stream.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const postUpdate = async () => {
+    const content = updateText.trim();
+    if (!content || !myStream) return;
+    try {
+      await api.post(`/streams/${myStream.id}/updates`, { content });
+      setUpdateText('');
+      showSuccess('Update posted');
+    } catch (err: any) {
+      showError(err?.response?.data?.error || 'Could not post that update.');
+    }
+  };
+
+  const endStream = async () => {
+    if (!myStream) return;
+    try {
+      await api.post(`/streams/${myStream.id}/end`);
+      showSuccess('Stream ended');
+      setMyStream(null);
+      loadStreams();
+    } catch (err: any) {
+      showError(err?.response?.data?.error || 'Could not end the stream.');
+    }
+  };
+
+  const openStream = async (stream: any) => {
+    const id = stream.id || stream.stream_id;
+    setViewingStream({ ...stream });
+    setViewLoading(true);
+    try {
+      const { data } = await api.get(`/streams/${id}`);
+      setViewingStream((prev: any) => (prev ? { ...prev, ...data } : data));
+    } catch (err) {
+      showError('Could not open this stream.');
+      setViewingStream(null);
+    } finally {
+      setViewLoading(false);
+    }
+  };
+
+  const toggleFollowStream = async () => {
+    if (!viewingStream) return;
+    try {
+      await api.post(`/streams/${viewingStream.id}/follow`);
+      setViewingStream((prev: any) => (prev ? { ...prev, is_following: true } : prev));
+      showSuccess('Following this stream');
+    } catch (err: any) {
+      showError(err?.response?.data?.error || 'Could not follow this stream.');
     }
   };
 
@@ -71,6 +130,21 @@ export default function Streams() {
   useEffect(() => {
     loadStreams();
   }, []);
+
+  // Poll the open stream so its update feed stays live.
+  useEffect(() => {
+    if (!viewingStream) return;
+    const id = viewingStream.id;
+    const timer = setInterval(async () => {
+      try {
+        const { data } = await api.get(`/streams/${id}`);
+        setViewingStream((prev: any) => (prev && prev.id === id ? { ...prev, ...data } : prev));
+      } catch {
+        /* keep showing the last good snapshot */
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [viewingStream?.id]);
 
   // Background particles ambiance
   const particles = Array.from({ length: 15 }, (_, i) => ({
@@ -197,6 +271,65 @@ export default function Streams() {
         )}
       </div>
 
+      {/* Stream viewer */}
+      {viewingStream && (
+        <div className="fixed inset-0 z-[100] bg-[#04020a]/95 backdrop-blur-xl flex flex-col">
+          <div className="max-w-2xl w-full mx-auto flex flex-col h-full">
+            <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-4 border-b border-white/10">
+              <button
+                onClick={() => setViewingStream(null)}
+                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
+                aria-label="Close stream"
+              >
+                <ArrowLeft size={16} strokeWidth={2.5} />
+              </button>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-black text-white truncate">{viewingStream.title}</h2>
+                <div className="flex items-center gap-2 text-[11px] text-white/50 font-bold">
+                  <span>{viewingStream.username}</span>
+                  <span className="flex items-center gap-1"><Eye size={11} /> {viewingStream.viewer_count || 0}</span>
+                </div>
+              </div>
+              <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${viewingStream.status === 'live' ? 'bg-[#ff008a] text-white' : 'bg-white/10 text-white/50'}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                {viewingStream.status === 'live' ? 'Live' : viewingStream.status || 'ended'}
+              </span>
+            </div>
+
+            {viewingStream.description && (
+              <p className="px-5 py-3 text-xs text-white/60 font-medium border-b border-white/5">{viewingStream.description}</p>
+            )}
+
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+              {viewLoading && (
+                <div className="py-10 text-center text-xs font-bold text-white/40">Loading updates...</div>
+              )}
+              {!viewLoading && (viewingStream.updates || []).length === 0 && (
+                <div className="py-10 text-center text-xs font-bold text-white/40">No updates yet. Follow to get the next ones.</div>
+              )}
+              {(viewingStream.updates || []).map((u: any) => (
+                <div key={u.update_id} className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                  <p className="text-sm text-white/90 font-medium leading-relaxed">{u.content}</p>
+                  <div className="mt-2 text-[10px] font-bold text-white/40">
+                    {new Date(u.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="px-5 py-4 border-t border-white/10">
+              <button
+                onClick={toggleFollowStream}
+                disabled={viewingStream.is_following}
+                className={`w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 ${viewingStream.is_following ? 'bg-white/5 border border-white/10 text-white/60' : 'bg-gradient-to-r from-[#ff008a] to-[#ff4db8] text-white'}`}
+              >
+                {viewingStream.is_following ? 'Following' : 'Follow stream'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Grid */}
       <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-8 space-y-6 relative z-10">
         
@@ -222,6 +355,43 @@ export default function Streams() {
           </div>
         </motion.div>
 
+        {/* Your live console — shown once you are live */}
+        {myStream && (
+          <div className="bg-gradient-to-r from-[#ff008a]/15 to-[#ff4db8]/5 border border-[#ff008a]/30 rounded-[24px] p-6 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="flex items-center gap-1.5 bg-[#ff008a] text-white px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  Live
+                </span>
+                <h4 className="text-sm font-bold text-white truncate">{myStream.title}</h4>
+              </div>
+              <button
+                onClick={endStream}
+                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/80 text-xs font-bold uppercase tracking-wider hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-white transition-all shrink-0"
+              >
+                End stream
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                value={updateText}
+                onChange={(e) => setUpdateText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && postUpdate()}
+                placeholder="Post an update to your viewers..."
+                className="flex-1 bg-black/30 border border-white/10 rounded-xl py-2.5 px-4 text-sm font-medium text-white placeholder-white/40 outline-none focus:border-[#ff4db8]/50 transition-colors"
+              />
+              <button
+                onClick={postUpdate}
+                disabled={!updateText.trim()}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#ff008a] to-[#ff4db8] text-white text-xs font-bold uppercase tracking-wider disabled:opacity-50 active:scale-95 transition-all"
+              >
+                Post update
+              </button>
+            </div>
+          </div>
+        )}
+
         {streams.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {streams.map(stream => (
@@ -229,7 +399,7 @@ export default function Streams() {
                 key={stream.id} 
                 whileHover={{ y: -4 }}
                 className="bg-white/[0.02] backdrop-blur-xl border border-white/5 rounded-[24px] overflow-hidden flex flex-col hover:border-[#ff008a]/20 transition-all duration-300 cursor-pointer"
-                onClick={() => showInfo(`Connecting to ${stream.username}'s live channel...`)}
+                onClick={() => openStream(stream)}
               >
                 
                 {/* Thumbnail Area */}

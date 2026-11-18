@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ArrowLeft, Check, X, Forward, AlertCircle } from 'lucide-react';
+import { Search, ArrowLeft, Check, X, Forward } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useModalA11y } from '../../hooks/useModalA11y';
 

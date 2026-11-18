@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Reply, Copy, Trash2, MoreHorizontal, Pin, Edit2, Forward, Info, Plus, AlertTriangle, Archive, MessageSquare, BellOff } from 'lucide-react';
+import { Picker, data } from '../EmojiMart';
 import type { MessagePermissions } from '../../types/messagePermissions';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
 // Extended quick reactions for horizontal scrolling
-const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '😡', '👍', '🔥', '💯', '✨', '🥺', '💀', '🙏', '🥰', '🎉', '🤡', '😭'];
+const QUICK_REACTIONS = ['â¤ï¸', 'ðŸ˜‚', 'ðŸ˜®', 'ðŸ˜¢', 'ðŸ˜¡', 'ðŸ‘', 'ðŸ”¥', 'ðŸ’¯', 'âœ¨', 'ðŸ¥º', 'ðŸ’€', 'ðŸ™', 'ðŸ¥°', 'ðŸŽ‰', 'ðŸ¤¡', 'ðŸ˜­'];
 
 interface ActionSheetProps {
   isOpen: boolean;

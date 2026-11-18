@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Image as ImageIcon, Video, Mic, FileText, Sparkles, AlertCircle, Clock } from 'lucide-react';
 import { useChatStore } from '../../store/chatStore';
 import type { ChatMessage } from '../../store/chatStore';
@@ -169,30 +169,30 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({
     }
 
     if (content) {
-      if (type === 'image' || type === 'photo') return `📷 ${content}`;
-      if (type === 'video') return `🎥 ${content}`;
-      if (type === 'gif' || type === 'gift') return `👾 ${content}`;
-      if (type === 'audio' || type === 'voice') return `🎵 Voice Note: ${content}`;
-      if (type === 'file' || type === 'document') return `📄 ${content}`;
+      if (type === 'image' || type === 'photo') return `ðŸ“· ${content}`;
+      if (type === 'video') return `ðŸŽ¥ ${content}`;
+      if (type === 'gif' || type === 'gift') return `ðŸ‘¾ ${content}`;
+      if (type === 'audio' || type === 'voice') return `ðŸŽµ Voice Note: ${content}`;
+      if (type === 'file' || type === 'document') return `ðŸ“„ ${content}`;
       return content;
     }
 
     switch (type) {
       case 'image':
       case 'photo':
-        return '📷 Photo';
+        return 'ðŸ“· Photo';
       case 'video':
-        return '🎥 Video';
+        return 'ðŸŽ¥ Video';
       case 'gif':
       case 'gift':
-        return '👾 GIF';
+        return 'ðŸ‘¾ GIF';
       case 'audio':
       case 'voice':
       case 'voice_note':
-        return '🎵 Voice Note';
+        return 'ðŸŽµ Voice Note';
       case 'file':
       case 'document':
-        return '📄 Document';
+        return 'ðŸ“„ Document';
       default:
         return 'Attachment';
     }

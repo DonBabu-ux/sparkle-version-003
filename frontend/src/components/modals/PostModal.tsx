@@ -1,15 +1,14 @@
-import { showError } from '../../utils/toast';
+﻿import { showError } from '../../utils/toast';
 import { validateFiles } from '../../utils/fileValidation';
 import { useState, useRef, useEffect } from 'react';
 import { X, Image as ImageIcon, MapPin, Globe, Lock, Smile, Tag, ChevronDown, Check, Users, Sparkles } from 'lucide-react';
+import { Picker, data } from '../EmojiMart';
 import api from '../../api/api';
 import MentionInput from '../MentionInput';
 import { useUserStore } from '../../store/userStore';
 import { useModalStore } from '../../store/modalStore';
 import Spinner from '../ui/Spinner';
 import FeelingActivitySelector from './FeelingActivitySelector';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
@@ -170,7 +169,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
           />
         )}
 
-        {/* ── Header ── */}
+        {/* â”€â”€ Header â”€â”€ */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
           <div className="w-8" /> {/* spacer */}
           <h2 className="text-[17px] font-black text-gray-900 dark:text-white tracking-tight uppercase italic">
@@ -185,7 +184,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
           </button>
         </div>
 
-        {/* ── Scrollable Body ── */}
+        {/* â”€â”€ Scrollable Body â”€â”€ */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
 
           {/* User row + post type */}
@@ -368,7 +367,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
           )}
         </div>
 
-        {/* ── Footer ── */}
+        {/* â”€â”€ Footer â”€â”€ */}
         <div className="px-5 pb-5 pt-3 border-t border-black/5 dark:border-white/10 space-y-3">
 
           {/* Add to post row */}

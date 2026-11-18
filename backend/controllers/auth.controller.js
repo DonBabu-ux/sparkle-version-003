@@ -1,4 +1,4 @@
-// controllers/auth.controller.js - PRODUCTION VERSION
+﻿// controllers/auth.controller.js - PRODUCTION VERSION
 const { query, queryOne } = require('../utils/database/query');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
@@ -70,7 +70,7 @@ const login = async (req, res) => {
         const cleanEmail = String(loginId).trim().toLowerCase();
 
         // UNION ALL lets MySQL/MariaDB use a separate index per column instead of
-        // doing a full table scan with OR across 3 columns (~8s → <10ms).
+        // doing a full table scan with OR across 3 columns (~8s â†’ <10ms).
         // Each branch MUST be wrapped in () for MariaDB LIMIT-per-branch syntax.
         const user = await queryOne(
             `(SELECT * FROM users WHERE email = ? LIMIT 1)
@@ -549,7 +549,7 @@ const request2FARecovery = async (req, res) => {
 
         await sendEmail({
             to: recoveryDestination,
-            subject: 'Your 2FA Recovery Code - Sparkle ✨',
+            subject: 'Your 2FA Recovery Code - Sparkle âœ¨',
             templateName: 'verify-email', // Reuse verification template
             templateData: {
                 name: user.name,
@@ -686,7 +686,7 @@ const verifyEmail = async (req, res) => {
         if (users[0]) {
             sendEmail({
                 to: email,
-                subject: 'Welcome to Sparkle! 🎉',
+                subject: 'Welcome to Sparkle! ðŸŽ‰',
                 templateName: 'welcome',
                 templateData: {
                     name: users[0].name,
@@ -837,11 +837,6 @@ const resetPassword = async (req, res) => {
     }
 };
 
-const verifySMS = async (req, res) => {
-    // Placeholder for now
-    res.status(501).json({ status: 'error', message: 'SMS verification is currently a placeholder' });
-};
-
 const resendVerification = async (req, res) => {
     try {
         const { email, type } = req.body; // type: 'email' or 'sms'
@@ -904,7 +899,7 @@ const resendVerification = async (req, res) => {
 
         await sendEmail({
             to: email,
-            subject: 'Verify Your Email - Sparkle ✨',
+            subject: 'Verify Your Email - Sparkle âœ¨',
             templateName: 'verify-email',
             templateData: {
                 name: user.name,
@@ -1254,7 +1249,6 @@ module.exports = {
     verifyEmail, 
     forgotPassword, 
     resetPassword, 
-    verifySMS, 
     resendVerification, 
     validateToken, 
     switchAccount, 

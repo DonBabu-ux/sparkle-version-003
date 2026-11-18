@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api/api';
 import type { Group } from '../types/group';
-import { Shield, ArrowLeft, Check, X, Users, Sparkles, AlertCircle } from 'lucide-react';
+import { Shield, ArrowLeft, Check, X, Users, Sparkles } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
@@ -149,17 +149,6 @@ export default function GroupAdmin() {
               </div>
            </section>
 
-           <section className="p-6 rounded-[24px] bg-white dark:bg-zinc-800 border border-gray-100 dark:border-white/10 shadow-sm border-dashed">
-              <div className="flex items-center gap-3 mb-4">
-                 <div className="w-8 h-8 bg-primary/5 rounded-lg flex items-center justify-center text-primary">
-                    <AlertCircle size={16} />
-                 </div>
-                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Admin Tools</h3>
-              </div>
-              <p className="text-[11px] text-gray-400 font-bold italic leading-relaxed uppercase tracking-tight">
-                More admin tools are coming soon.
-              </p>
-           </section>
         </div>
       </main>
 

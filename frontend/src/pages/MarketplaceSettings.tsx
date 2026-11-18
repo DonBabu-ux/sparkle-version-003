@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Shield, UserX, Bell, Eye, Check, AlertTriangle, Lock, BarChart3, CreditCard, ShieldAlert, ChevronRight, UserCheck, Settings, HelpCircle, CheckCircle2, TrendingUp, Package, Users, Flag } from 'lucide-react';
+﻿import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Shield, UserX, Bell, Eye, Check, AlertTriangle, Lock, BarChart3, CreditCard, ShieldAlert, ChevronRight, UserCheck, Settings, HelpCircle, CheckCircle2, TrendingUp, Package, Users, Flag, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
-import { showInfo, showSuccess } from '../utils/toast';
-import { promptDialog } from '../store/dialogStore';
+import { showSuccess } from '../utils/toast';
+import { confirmDialog, promptDialog } from '../store/dialogStore';
 import IdentityVerificationModal from '../components/modals/IdentityVerificationModal';
+
+interface SettingsSectionItem {
+  id: string;
+  icon: React.ReactNode;
+  label: string;
+  desc: string;
+  action: () => void;
+  disabled?: boolean;
+}
 
 interface MarketplaceSettings {
   who_can_message_me: 'everyone' | 'vouched_only' | 'none';
@@ -26,27 +35,39 @@ const MarketplaceSettings = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Sub-view state (ported from MarketplaceSettingsModal — one marketplace settings surface)
+  // Sub-view state (ported from MarketplaceSettingsModal â€” one marketplace settings surface)
   const [activeView, setActiveView] = useState<'main' | 'analytics' | 'payouts' | 'privacy' | 'support' | 'blocked'>('main');
-  const [viewLoading, setViewLoading] = useState(false);
-  const [viewData, setViewData] = useState<any>(null);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
 
-  const sections = [
+  // Payout methods (saved withdrawal destinations)
+  const [autoReplyDraft, setAutoReplyDraft] = useState('');
+  const [sellerStats, setSellerStats] = useState<any>(null);
+  const [sellerStatsLoading, setSellerStatsLoading] = useState(false);
+  const [payoutMethods, setPayoutMethods] = useState<any[]>([]);
+  const [payoutsLoading, setPayoutsLoading] = useState(false);
+  const [payoutProvider, setPayoutProvider] = useState<'mpesa' | 'bank'>('mpesa');
+  const [payoutPhone, setPayoutPhone] = useState('');
+  const [payoutBankCode, setPayoutBankCode] = useState('');
+  const [payoutAccountNumber, setPayoutAccountNumber] = useState('');
+  const [payoutAccountName, setPayoutAccountName] = useState('');
+  const [payoutBanks, setPayoutBanks] = useState<any[]>([]);
+  const [payoutSaving, setPayoutSaving] = useState(false);
+
+const sections: { title: string; items: SettingsSectionItem[] }[] = [
       {
         title: 'Trust & Safety',
       items: [
         { id: 'verification', icon: <UserCheck className="text-blue-600" />, label: 'Marketplace Verification', desc: 'Get your blue checkmark', action: () => setIsVerificationOpen(true) },
-        { id: 'security', icon: <Lock className="text-emerald-600" />, label: 'Account Security', desc: 'Manage your login & keys', action: () => showInfo('Security settings enabled') },
+        { id: 'security', icon: <Lock className="text-emerald-600" />, label: 'Account Security', desc: 'Manage your login & keys', action: () => navigate('/settings/security') },
         { id: 'safety', icon: <ShieldAlert className="text-rose-600" />, label: 'Safety Center', desc: 'Reporting & blocked users', action: () => setActiveView('blocked') }
       ]
     },
     {
       title: 'Business Tools',
       items: [
-        { id: 'analytics', icon: <BarChart3 className="text-indigo-600" />, label: 'Performance Stats', desc: 'Views, clicks & engagement (coming soon)', action: () => showInfo('Performance stats are not available yet.'), disabled: true },
-        { id: 'payouts', icon: <CreditCard className="text-amber-600" />, label: 'Payout Settings', desc: 'Payout setup is not available yet.', action: () => showInfo('Payouts are not available yet.'), disabled: true },
-        { id: 'seller_tools', icon: <Settings className="text-slate-600 dark:text-zinc-300" />, label: 'Seller Tools', desc: 'Bulk actions & auto-replies', action: () => showInfo('Auto-replies enabled. Bulk actions coming later.') }
+        { id: 'analytics', icon: <BarChart3 className="text-indigo-600" />, label: 'Performance Stats', desc: 'Your listing views, sales & revenue', action: () => { setActiveView('analytics'); void loadSellerStats(); } },
+        { id: 'payouts', icon: <CreditCard className="text-amber-600" />, label: 'Payout Settings', desc: 'Your M-Pesa & bank destinations', action: () => { setActiveView('payouts'); void loadPayoutMethods(); void loadPayoutBanks(); } },
+        { id: 'seller_tools', icon: <Settings className="text-slate-600 dark:text-zinc-300" />, label: 'Seller Tools', desc: 'Your marketplace auto-reply', action: () => setActiveView('privacy') }
       ]
     },
     {
@@ -59,7 +80,7 @@ const MarketplaceSettings = () => {
       title: 'Preferences',
       items: [
         { id: 'privacy', icon: <Eye className="text-purple-600" />, label: 'Privacy Settings', desc: 'Who can see your shop', action: () => setActiveView('privacy') },
-        { id: 'notifications', icon: <Bell className="text-orange-600" />, label: 'Marketplace Notifications', desc: 'Alerts for bids & messages', action: () => showInfo('Notifications active') }
+        { id: 'notifications', icon: <Bell className="text-orange-600" />, label: 'Marketplace Notifications', desc: 'Alerts for bids & messages', action: () => navigate('/notifications') }
       ]
     }
   ];
@@ -80,6 +101,7 @@ const MarketplaceSettings = () => {
         show_online_status: !!res.data.show_online_status,
         auto_reply_enabled: !!res.data.auto_reply_enabled,
       });
+      setAutoReplyDraft(String(res.data.auto_reply_text || ''));
     } catch (err) {
       logger.error("Failed to fetch settings", err);
       setError("Failed to load settings. Please try again.");
@@ -106,6 +128,93 @@ const MarketplaceSettings = () => {
       setError("Failed to save changes.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const loadSellerStats = async () => {
+    try {
+      setSellerStatsLoading(true);
+      const res = await api.get('/marketplace/seller-stats');
+      setSellerStats(res.data);
+    } catch (err) {
+      logger.error('Failed to load seller stats', err);
+      setSellerStats(null);
+    } finally {
+      setSellerStatsLoading(false);
+    }
+  };
+
+  const loadPayoutMethods = async () => {
+    try {
+      setPayoutsLoading(true);
+      const res = await api.get('/wallet/payout-methods');
+      setPayoutMethods(res.data.methods || []);
+    } catch (err) {
+      logger.error('Failed to load payout methods', err);
+    } finally {
+      setPayoutsLoading(false);
+    }
+  };
+
+  const loadPayoutBanks = async () => {
+    try {
+      const res = await api.get('/wallet/banks');
+      setPayoutBanks(res.data.banks || []);
+    } catch (err) {
+      logger.error('Failed to load banks', err);
+    }
+  };
+
+  const handleAddPayoutMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPayoutSaving(true);
+    try {
+      if (payoutProvider === 'mpesa') {
+        await api.post('/wallet/payout-methods', { provider: 'mpesa', phone: payoutPhone });
+        setPayoutPhone('');
+      } else {
+        await api.post('/wallet/payout-methods', {
+          provider: 'bank',
+          bankCode: payoutBankCode,
+          accountNumber: payoutAccountNumber,
+          accountName: payoutAccountName || undefined,
+        });
+        setPayoutBankCode('');
+        setPayoutAccountNumber('');
+        setPayoutAccountName('');
+      }
+      showSuccess('Payout method added');
+      await loadPayoutMethods();
+    } catch (err) {
+      logger.error('Failed to add payout method', err);
+    } finally {
+      setPayoutSaving(false);
+    }
+  };
+
+  const handleSetDefaultPayout = async (payoutId: string) => {
+    try {
+      await api.post(`/wallet/payout-methods/${payoutId}/default`);
+      showSuccess('Default payout method updated');
+      await loadPayoutMethods();
+    } catch (err) {
+      logger.error('Failed to set default payout method', err);
+    }
+  };
+
+  const handleDeletePayout = async (payoutId: string) => {
+    const ok = await confirmDialog('Remove this payout method? You can add it again later.', {
+      title: 'Remove payout method',
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/wallet/payout-methods/${payoutId}`);
+      showSuccess('Payout method removed');
+      await loadPayoutMethods();
+    } catch (err) {
+      logger.error('Failed to delete payout method', err);
     }
   };
 
@@ -318,41 +427,39 @@ const MarketplaceSettings = () => {
           </>
         )}
 
+
         {activeView === 'analytics' && (
-          <div className="space-y-6">
-            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 mb-6">
-              <p className="text-xs font-bold text-amber-700">Stats are being generated. Check back after more activity on your listings.</p>
+            <div className="space-y-6">
+              {sellerStatsLoading ? (
+                <div className="flex justify-center py-20"><Spinner size="medium" color="text-primary" /></div>
+              ) : sellerStats ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
+                    <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4"><Eye size={18} /></div>
+                    <div className="text-3xl font-black">{sellerStats.totalViews}</div>
+                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Total Views</div>
+                  </div>
+                  <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
+                    <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><CheckCircle2 size={18} /></div>
+                    <div className="text-3xl font-black">{sellerStats.completedOrders}</div>
+                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Completed Sales</div>
+                  </div>
+                  <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
+                    <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center mb-4"><Package size={18} /></div>
+                    <div className="text-3xl font-black">{sellerStats.activeListings}</div>
+                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Active Listings</div>
+                  </div>
+                  <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
+                    <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center mb-4"><TrendingUp size={18} /></div>
+                    <div className="text-3xl font-black">KES {sellerStats.revenue}</div>
+                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Revenue</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-20 text-slate-500 dark:text-zinc-300 font-bold">No stats available right now.</div>
+              )}
             </div>
-            {viewLoading ? (
-              <div className="flex justify-center py-20"><Spinner size="medium" color="text-primary" /></div>
-            ) : viewData ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
-                  <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4"><Eye size={20} /></div>
-                  <div className="text-3xl font-black">{viewData.views}</div>
-                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Total Views</div>
-                </div>
-                <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
-                  <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><CheckCircle2 size={20} /></div>
-                  <div className="text-3xl font-black">{viewData.sales}</div>
-                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Total Sales</div>
-                </div>
-                <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
-                  <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center mb-4"><Package size={20} /></div>
-                  <div className="text-3xl font-black">{viewData.listings}</div>
-                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Active Listings</div>
-                </div>
-                <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
-                  <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center mb-4"><TrendingUp size={20} /></div>
-                  <div className="text-3xl font-black">{(viewData.engagement_rate * 100).toFixed(1)}%</div>
-                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Engagement</div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-20 text-slate-500 dark:text-zinc-300 font-bold">No analytics data available yet.</div>
-            )}
-          </div>
-        )}
+          )}
 
         {activeView === 'support' && (
           <MarketplaceSupportView />
@@ -360,64 +467,188 @@ const MarketplaceSettings = () => {
 
         {activeView === 'payouts' && (
           <div className="space-y-6">
-            {viewLoading ? (
+            {payoutsLoading ? (
               <div className="flex justify-center py-20"><Spinner size="medium" color="text-primary" /></div>
-            ) : viewData && viewData.length > 0 ? (
-              viewData.map((payout: any) => (
-                <div key={payout.payout_id} className="p-6 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center font-black text-amber-600 uppercase">
-                      {payout.provider.substring(0,2)}
+            ) : (
+              <>
+                {payoutMethods.map((method: any) => (
+                  <div key={method.payout_id} className="p-4 sm:p-6 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center font-black text-amber-600 shrink-0">
+                        {method.provider === 'mpesa' ? 'MP' : 'BK'}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-black truncate">{method.account_name}</div>
+                        <div className="text-sm font-bold text-slate-500 dark:text-zinc-300 truncate">
+                          {method.provider === 'mpesa' ? 'M-PESA' : 'BANK'} **** {method.account_number_last4}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-black">{payout.account_name}</div>
-                      <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">{payout.provider.toUpperCase()} ••••</div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {method.is_default ? (
+                        <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wider rounded-full">Default</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void handleSetDefaultPayout(method.payout_id)}
+                          className="px-3 py-1.5 text-[11px] font-black uppercase tracking-wider rounded-full bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 hover:bg-slate-300 dark:hover:bg-zinc-600 transition-colors"
+                        >
+                          Make default
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => void handleDeletePayout(method.payout_id)}
+                        className="p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                        aria-label="Remove payout method"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
                   </div>
-                  {payout.is_default ? (
-                    <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wider rounded-full">Default</span>
-                  ) : null}
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-20 bg-slate-50 dark:bg-zinc-800 rounded-xl border-2 border-dashed border-slate-200">
-                <div className="w-16 h-16 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center shadow-sm mx-auto mb-4">
-                  <CreditCard size={24} className="text-slate-400" />
-                </div>
-                <div className="font-black text-slate-800 mb-2">No Payout Methods</div>
-                <div className="text-sm font-bold text-slate-400 mb-6">Payout setup is not available yet — bank and mobile wallet support is coming soon.</div>
-              </div>
+                ))}
+
+                {payoutMethods.length === 0 && (
+                  <div className="text-center py-16 bg-slate-50 dark:bg-zinc-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-zinc-700">
+                    <div className="w-16 h-16 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center shadow-sm mx-auto mb-4">
+                      <CreditCard size={24} className="text-slate-400" />
+                    </div>
+                    <div className="font-black text-slate-800 dark:text-zinc-100 mb-2">No payout methods yet</div>
+                    <div className="text-sm font-bold text-slate-400 mb-6 px-6">Add an M-Pesa number or bank account to receive marketplace payouts.</div>
+                  </div>
+                )}
+
+                <form onSubmit={(e) => void handleAddPayoutMethod(e)} className="p-4 sm:p-6 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg space-y-4">
+                  <div className="font-black text-slate-800 dark:text-zinc-100">Add a payout method</div>
+                  <div className="flex gap-2">
+                    {(['mpesa', 'bank'] as const).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPayoutProvider(p)}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${payoutProvider === p ? 'bg-[#ff1493] text-white' : 'bg-white dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 border border-slate-200 dark:border-zinc-600'}`}
+                      >
+                        {p === 'mpesa' ? 'M-Pesa' : 'Bank account'}
+                      </button>
+                    ))}
+                  </div>
+                  {payoutProvider === 'mpesa' ? (
+                    <input
+                      value={payoutPhone}
+                      onChange={(e) => setPayoutPhone(e.target.value)}
+                      placeholder="M-Pesa number (e.g. 0712 345 678)"
+                      aria-label="M-Pesa number"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 font-bold text-sm outline-none focus:border-[#ff1493]"
+                    />
+                  ) : (
+                    <div className="space-y-2">
+                      <select
+                        value={payoutBankCode}
+                        onChange={(e) => setPayoutBankCode(e.target.value)}
+                        aria-label="Bank"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 font-bold text-sm outline-none focus:border-[#ff1493]"
+                      >
+                        <option value="">Select bank</option>
+                        {payoutBanks.map((b: any) => (
+                          <option key={b.code} value={b.code}>{b.name}</option>
+                        ))}
+                      </select>
+                      <input
+                        value={payoutAccountNumber}
+                        onChange={(e) => setPayoutAccountNumber(e.target.value)}
+                        placeholder="Account number"
+                        aria-label="Account number"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 font-bold text-sm outline-none focus:border-[#ff1493]"
+                      />
+                      <input
+                        value={payoutAccountName}
+                        onChange={(e) => setPayoutAccountName(e.target.value)}
+                        placeholder="Account holder name (optional - verified from the bank)"
+                        aria-label="Account holder name"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 font-bold text-sm outline-none focus:border-[#ff1493]"
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={payoutSaving}
+                    className="w-full py-3 rounded-xl bg-[#ff1493] text-white font-black text-sm uppercase tracking-wider disabled:opacity-50"
+                  >
+                    {payoutSaving ? 'Saving...' : 'Add payout method'}
+                  </button>
+                </form>
+              </>
             )}
           </div>
         )}
 
-        {activeView === 'privacy' && (
-          <div className="space-y-6">
-             <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-black">Private Shop Mode</div>
-                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Only verified users can see your items</div>
-                  </div>
-                  <div className="w-12 h-6 bg-slate-300 rounded-full relative cursor-pointer">
-                    <div className="absolute left-1 top-1 w-4 h-4 bg-white dark:bg-zinc-800 rounded-full"></div>
-                  </div>
-                </div>
-                <hr className="border-slate-200" />
+{activeView === 'privacy' && (
+            <div className="space-y-6">
+              <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-black">Direct Messages</div>
                     <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Who can message you</div>
                   </div>
-                  <select className="bg-white dark:bg-zinc-800 border border-slate-200 rounded-xl px-4 py-2 font-bold text-sm outline-none">
-                    <option>Everyone</option>
-                    <option>Verified Only</option>
-                    <option>Nobody</option>
+                  <select
+                    value={settings.who_can_message_me}
+                    onChange={(e) => void handleSave({ who_can_message_me: e.target.value as MarketplaceSettings['who_can_message_me'] })}
+                    aria-label="Who can message you"
+                    className="bg-white dark:bg-zinc-800 border border-slate-200 rounded-xl px-4 py-2 font-bold text-sm outline-none"
+                  >
+                    <option value="everyone">Everyone</option>
+                    <option value="vouched_only">Verified Only</option>
+                    <option value="none">Nobody</option>
                   </select>
                 </div>
-             </div>
-          </div>
-        )}
+                <hr className="border-slate-200" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-black">Message Filter</div>
+                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Hide message requests from people you don't know</div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={settings.message_filter}
+                    aria-label="Message filter"
+                    onClick={() => void handleSave({ message_filter: !settings.message_filter })}
+                    className={`w-12 h-6 rounded-full relative transition-colors ${settings.message_filter ? 'bg-[#ff1493]' : 'bg-slate-300 dark:bg-zinc-600'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.message_filter ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+                <hr className="border-slate-200" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-black">Auto-reply</div>
+                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Answer new marketplace messages automatically</div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={settings.auto_reply_enabled}
+                    aria-label="Auto-reply"
+                    onClick={() => void handleSave({ auto_reply_enabled: !settings.auto_reply_enabled })}
+                    className={`w-12 h-6 rounded-full relative transition-colors ${settings.auto_reply_enabled ? 'bg-[#ff1493]' : 'bg-slate-300 dark:bg-zinc-600'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.auto_reply_enabled ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+                {settings.auto_reply_enabled && (
+                  <textarea
+                    value={autoReplyDraft}
+                    onChange={(e) => setAutoReplyDraft(e.target.value)}
+                    onBlur={() => { if (autoReplyDraft !== settings.auto_reply_text) void handleSave({ auto_reply_text: autoReplyDraft }); }}
+                    placeholder="Thanks for your message! I'll get back to you soon."
+                    rows={3}
+                    aria-label="Auto-reply message"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 font-bold text-sm outline-none focus:border-[#ff1493] resize-none"
+                  />
+                )}
+              </div>
+            </div>
+          )}
 
         {activeView === 'blocked' && (
           <BlockedUsersView />

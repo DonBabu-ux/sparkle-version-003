@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const authController = require('../../controllers/auth.controller');
 const supabaseController = require('../../controllers/supabase.controller');
@@ -42,7 +42,6 @@ router.get('/check-email', authController.checkEmail);
 
 // Verification & Password Flow
 router.post('/verify-email', authRateLimiter, authController.verifyEmail);
-router.post('/verify-sms', authRateLimiter, authController.verifySMS);
 router.post('/forgot-password', authRateLimiter, authController.forgotPassword);
 router.post('/reset-password', authRateLimiter, authController.resetPassword);
 router.post('/resend-verification', authRateLimiter, authController.resendVerification);

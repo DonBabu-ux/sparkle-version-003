@@ -13,6 +13,10 @@ router.post('/deposit',          authMiddleware, walletController.initializeDepo
 router.post('/verify',           authMiddleware, walletController.verifyDeposit);
 router.post('/withdraw',         authMiddleware, walletController.requestWithdrawal);
 router.get('/banks',             authMiddleware, walletController.fetchBanks);
+router.get('/payout-methods',      authMiddleware, walletController.getPayoutMethods);
+router.post('/payout-methods',     authMiddleware, walletController.addPayoutMethod);
+router.post('/payout-methods/:payoutId/default', authMiddleware, walletController.setDefaultPayoutMethod);
+router.delete('/payout-methods/:payoutId', authMiddleware, walletController.deletePayoutMethod);
 router.post('/resolve-account',  authMiddleware, walletController.resolveAccount);
 router.get('/auto-withdrawal',   authMiddleware, walletController.getAutoWithdrawalConfig);
 router.post('/auto-withdrawal',  authMiddleware, walletController.updateAutoWithdrawalConfig);

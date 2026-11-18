@@ -7,15 +7,15 @@ const { optionalAuthMiddleware } = require('../../middleware/auth.middleware');
 
 const getRequesterId = (req) => req.user?.user_id || req.user?.id || null;
 
-// A reference number the user quotes, not a secret. crypto.randomInt rather than
-// Math.random() for consistency with the verification-code paths, but it does NOT
-// fix the real weakness: 900,000 values collide quickly once thousands of
-// tickets exist, and if support_tickets has a unique key on this column the
-// collision surfaces as a 500 on filing a ticket. A DB-assigned id, or a wider
-// space, is what actually fixes that — flagged rather than changed here because
-// it depends on the column's constraint, which is not checked.
+// A reference number the user quotes, not a secret. The space is wide
+// (timestamp base36 + 3 base36 chars of entropy) so thousands of tickets
+// cannot collide, and ticket_id carries a UNIQUE key (migration
+// 20261117) so any residual collision surfaces as a retryable error rather
+// than silently creating a second ticket with a duplicate reference.
 const generateTicketId = () =>
-    'SPK-TKT-' + crypto.randomInt(100000, 999999);
+    'SPK-TKT-' +
+    Date.now().toString(36).toUpperCase().padStart(8, '0') +
+    crypto.randomInt(0, 46656).toString(36).toUpperCase().padStart(3, '0');
 
 const extractDescription = (message) => {
     const text = String(message || '').trim();
@@ -54,24 +54,38 @@ const createTicket = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Issue description is required.' });
         }
 
-        const ticketId = generateTicketId();
         const ticketSubject = (subject && String(subject).trim()) || `Support request: ${category || 'General'}`;
         const ticketCategory = category || 'other';
-        const storedMessage = `[${ticketId}] Priority: ${priority || 'medium'}\n\n${String(description).trim()}`;
 
-        await pool.query(
-            `INSERT INTO support_requests
-                (ticket_id, user_id, name, email, type, message, status)
-             VALUES (?, ?, ?, ?, ?, ?, 'open')`,
-            [
-                ticketId,
-                userId,
-                ticketSubject,
-                email || req.user?.email || null,
-                ticketCategory,
-                storedMessage
-            ]
-        );
+        // Retry on the (astronomically unlikely) reference collision instead of
+        // failing the submission.
+        let ticketId = generateTicketId();
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                const storedMessage = `[${ticketId}] Priority: ${priority || 'medium'}\n\n${String(description).trim()}`;
+                await pool.query(
+                    `INSERT INTO support_requests
+                        (ticket_id, user_id, name, email, type, message, status)
+                     VALUES (?, ?, ?, ?, ?, ?, 'open')`,
+                    [
+                        ticketId,
+                        userId,
+                        ticketSubject,
+                        email || req.user?.email || null,
+                        ticketCategory,
+                        storedMessage
+                    ]
+                );
+                break;
+            } catch (insertErr) {
+                const isDuplicate = insertErr && (insertErr.code === 'ER_DUP_ENTRY' || /duplicate/i.test(insertErr.message || ''));
+                if (isDuplicate && attempt < 2) {
+                    ticketId = generateTicketId();
+                    continue;
+                }
+                throw insertErr;
+            }
+        }
 
         return res.status(201).json({
             success: true,
@@ -134,6 +148,14 @@ router.get('/tickets/:ticketId', optionalAuthMiddleware, async (req, res) => {
         const row = rows[0];
         const description = extractDescription(row.message);
 
+        const [replies] = await pool.query(
+            `SELECT id, sender_id, sender_name, is_admin, message AS content, created_at
+               FROM support_ticket_messages
+              WHERE ticket_id = ?
+              ORDER BY created_at ASC`,
+            [req.params.ticketId]
+        );
+
         return res.json({
             success: true,
             ticket: {
@@ -151,7 +173,14 @@ router.get('/tickets/:ticketId', optionalAuthMiddleware, async (req, res) => {
                     sender_type: 'user',
                     content: description,
                     created_at: row.created_at
-                }
+                },
+                ...replies.map((m) => ({
+                    message_id: String(m.id),
+                    sender_id: m.sender_id,
+                    sender_type: m.is_admin ? 'staff' : 'user',
+                    content: m.content,
+                    created_at: m.created_at
+                }))
             ]
         });
     } catch (error) {
@@ -160,9 +189,66 @@ router.get('/tickets/:ticketId', optionalAuthMiddleware, async (req, res) => {
     }
 });
 
-// Ticket replies are not stored yet; fail honestly instead of pretending to send.
-router.post('/tickets/:ticketId/messages', optionalAuthMiddleware, (req, res) => {
-    return res.status(501).json({ success: false, error: 'Ticket replies are not available yet.' });
+// Reply to a ticket. Stored per-message so a two-way conversation can render
+// in order after the opening report.
+router.post('/tickets/:ticketId/messages', optionalAuthMiddleware, async (req, res) => {
+    const userId = getRequesterId(req);
+    if (!userId) {
+        return res.status(401).json({ success: false, error: 'Please sign in to reply to this ticket.' });
+    }
+
+    const content = String((req.body || {}).content || '').trim();
+    if (!content) {
+        return res.status(400).json({ success: false, error: 'Reply cannot be empty.' });
+    }
+    if (content.length > 5000) {
+        return res.status(400).json({ success: false, error: 'Reply is too long (5000 characters max).' });
+    }
+
+    try {
+        const [rows] = await pool.query(
+            `SELECT ticket_id, status FROM support_requests
+              WHERE ticket_id = ? AND user_id = ? LIMIT 1`,
+            [req.params.ticketId, userId]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({ success: false, error: 'Ticket not found.' });
+        }
+        if (rows[0].status === 'closed') {
+            return res.status(409).json({ success: false, error: 'This ticket is closed. Please open a new one.' });
+        }
+
+        const [inserted] = await pool.query(
+            `INSERT INTO support_ticket_messages
+                (ticket_id, sender_id, sender_name, is_admin, message)
+             VALUES (?, ?, ?, 0, ?)`,
+            [req.params.ticketId, userId, null, content]
+        );
+        const [stored] = await pool.query(
+            'SELECT id, created_at FROM support_ticket_messages WHERE id = ?',
+            [inserted.insertId]
+        );
+
+        // Replying reopens a ticket that had been marked resolved.
+        if (rows[0].status === 'resolved') {
+            await pool.query('UPDATE support_requests SET status = ? WHERE ticket_id = ?', ['open', req.params.ticketId]);
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: {
+                message_id: String(stored[0].id),
+                sender_id: userId,
+                sender_type: 'user',
+                content,
+                created_at: stored[0].created_at
+            }
+        });
+    } catch (error) {
+        logger.error('Support ticket reply failed:', error);
+        return res.status(500).json({ success: false, error: 'Could not send your reply. Please try again.' });
+    }
 });
 
 // Sparkly AI Assistant Support Bot endpoint

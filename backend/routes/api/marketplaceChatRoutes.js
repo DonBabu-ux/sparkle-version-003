@@ -304,6 +304,57 @@ router.post('/messages/:message_id/react', async (req, res) => {
     }
 });
 
+// 7b. Seller performance stats (all figures from real rows)
+router.get('/seller-stats', async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const [listingRows] = await pool.query(
+            `SELECT
+                COALESCE(SUM(view_count), 0) AS total_views,
+                SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active_listings,
+                SUM(CASE WHEN is_sold = 1 THEN 1 ELSE 0 END) AS sold_listings,
+                COUNT(*) AS total_listings
+               FROM marketplace_listings
+              WHERE seller_id = ? AND status <> 'deleted'`,
+            [userId]
+        );
+
+        const [orderRows] = await pool.query(
+            `SELECT COUNT(*) AS completed_orders,
+                    COALESCE(SUM(COALESCE(agreed_price, price_at_time)), 0) AS revenue
+               FROM marketplace_orders
+              WHERE seller_id = ? AND status = 'completed'`,
+            [userId]
+        );
+
+        const [chatRows] = await pool.query(
+            'SELECT COUNT(*) AS conversations FROM marketplace_conversations WHERE seller_id = ?',
+            [userId]
+        );
+
+        const listings = listingRows[0] || {};
+        const orders = orderRows[0] || {};
+        const chats = chatRows[0] || {};
+
+        return res.json({
+            totalViews: Number(listings.total_views || 0),
+            activeListings: Number(listings.active_listings || 0),
+            soldListings: Number(listings.sold_listings || 0),
+            totalListings: Number(listings.total_listings || 0),
+            completedOrders: Number(orders.completed_orders || 0),
+            revenue: Number(orders.revenue || 0),
+            conversations: Number(chats.conversations || 0),
+            currency: 'KES',
+        });
+    } catch (error) {
+        serverError(res, error);
+    }
+});
+
 // 8. Get Marketplace Settings
 router.get('/settings', async (req, res) => {
     try {

@@ -4,28 +4,36 @@ const pool = require('../../config/database');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { serverError } = require('../../utils/serverError');
 
+const SHARE_TARGETS = {
+    post: { table: 'posts', column: 'post_id' },
+    moment: { table: 'moments', column: 'moment_id' },
+    story: { table: 'stories', column: 'story_id' },
+};
+
 // Track Share Analytics
 router.post('/track', authMiddleware, async (req, res) => {
     try {
         const { contentId, type, platform } = req.body;
         const userId = req.user.userId || req.user.user_id;
+        const target = SHARE_TARGETS[type];
 
-        console.log(`Tracking share: ${type} ${contentId} via ${platform} by user ${userId}`);
-
-        // Increment share count in the respective table
-        if (type === 'post') {
-            await pool.query('UPDATE posts SET share_count = share_count + 1 WHERE post_id = ?', [contentId]);
-        } else if (type === 'moment') {
-            await pool.query('UPDATE moments SET share_count = share_count + 1 WHERE moment_id = ?', [contentId]);
-        } else if (type === 'story') {
-            await pool.query('UPDATE stories SET share_count = share_count + 1 WHERE story_id = ?', [contentId]);
+        if (!target || !contentId) {
+            return res.status(400).json({ status: 'error', message: 'Unknown share target.' });
         }
 
-        // track in notifications/analytics if needed
-        // For now just return success
-        res.json({ status: 'success' });
+        await pool.query(
+            `UPDATE ${target.table} SET share_count = share_count + 1 WHERE ${target.column} = ?`,
+            [contentId]
+        );
+        const [rows] = await pool.query(
+            `SELECT share_count FROM ${target.table} WHERE ${target.column} = ? LIMIT 1`,
+            [contentId]
+        );
+
+        logger.info(`[share] user ${userId} shared ${type} ${contentId} via ${platform || 'unknown'}`);
+        res.json({ status: 'success', share_count: rows[0] ? Number(rows[0].share_count) : null });
     } catch (error) {
-        console.error('Track Share Error:', error);
+        logger.error('Track Share Error:', error);
         serverError(res, error);
     }
 });

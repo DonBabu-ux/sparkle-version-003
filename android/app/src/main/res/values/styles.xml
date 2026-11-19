@@ -19,4 +19,11 @@
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
     </style>
+
+    <!-- Lock-screen incoming-call surface. Framework theme on purpose: this
+         activity must never depend on AppCompat resources, and a solid window
+         background keeps the full-screen intent from flashing. -->
+    <style name="Theme.SparkleCall" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/sparkle_call_surface</item>
+    </style>
 </resources>

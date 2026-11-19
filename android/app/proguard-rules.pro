@@ -12,9 +12,10 @@
 #   public *;
 #}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Keep line numbers so R8-minified release stack traces stay diagnosable
+# (Crashlytics reporting works without the mapping-file upload; without these
+# attributes the stacks it receives would be useless).
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.

@@ -13,6 +13,7 @@ import com.getcapacitor.BridgeActivity;
 import com.sparkleapp.plugins.CallPermissionsPlugin;
 import com.sparkleapp.plugins.MediaStoreSaver;
 import com.sparkleapp.plugins.PrivacyProtectionPlugin;
+import com.sparkleapp.plugins.SparkleCallPlugin;
 import com.sparkleapp.plugins.SparkleInsetsPlugin;
 
 public class MainActivity extends BridgeActivity {
@@ -26,6 +27,10 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SparkleInsetsPlugin.class);
         registerPlugin(MediaStoreSaver.class);
         registerPlugin(CallPermissionsPlugin.class);
+        // Call stack: registers the self-managed Telecom PhoneAccount and call
+        // notification channels on bridge load so calls are answerable from the
+        // lock screen even on the first launch of the process.
+        registerPlugin(SparkleCallPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Install SparkleWebChromeClient to guarantee WebRTC camera and microphone
@@ -34,7 +39,14 @@ public class MainActivity extends BridgeActivity {
             this.bridge.getWebView().setWebChromeClient(new SparkleWebChromeClient(this.bridge, this));
         }
 
+        // Apply edge-to-edge natively before the WebView paints so the theme
+        // background reaches the physical top edge from the very first frame
+        // (the JS StatusBar.setOverlaysWebView call only lands after mount).
         enableEdgeToEdge();
+        // Force SOFT_INPUT_ADJUST_NOTHING, overriding whatever the merged manifest
+        // resolved to. The source manifest declares adjustNothing, but the built
+        // APK was shipping adjustResize (verified in all three merged/packaged
+        // manifests), so the declaration was being overridden at merge time.
         forceKeyboardMode();
     }
 
@@ -55,11 +67,62 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    /**
+     * Hardware back used to finish the activity unconditionally: Capacitor 6's
+     * BridgeActivity does not override onBackPressed and @capacitor/app's
+     * backButton event is never emitted, so the SPA's navigation stack (and any
+     * modal pushed with history.pushState) was unreachable — back always killed
+     * the app. This makes back pop the WebView history when there is one, and
+     * only exits when the SPA is at its root.
+     *
+     * Works with the predictive-back opt-in because androidx ComponentActivity
+     * (1.8+, see variables.gradle) routes OnBackInvokedCallback to
+     * onBackPressed when no callback is registered.
+     *
+     * JS note: if a screen must block back, push a router entry with
+     * history.pushState and call preventDefault on popstate — that entry is
+     * now a real history step, so back stays inside the app.
+     */
+    @Override
+    public void onBackPressed() {
+        com.getcapacitor.Bridge bridge = getBridge();
+        android.webkit.WebView webView = bridge != null ? bridge.getWebView() : null;
+        if (webView != null && webView.canGoBack()) {
+            webView.goBack();
+            return;
+        }
+        super.onBackPressed();
+    }
+
+    /**
+     * The chat keyboard squeeze is NOT done natively. The WebView is never padded
+     * and the window is never resized for it — this plugin's own note in
+     * SparkleInsetsPlugin.java explains why setPadding was removed (it clips
+     * content on some devices instead of shrinking the CSS layout viewport, which
+     * is the "keyboard covers the input box" symptom).
+     *
+     * The real mechanism is entirely on the JS side: something publishes the real
+     * keyboard height as the `--ime-height` CSS variable and KeyboardSafeContainer
+     * subtracts it (see components/SafeLayout.tsx), so the message list compresses,
+     * the header stays put and the composer rides above the keys.
+     *
+     * What this method actually guarantees is the precondition for that to work:
+     * the Android window must not also react to the keyboard. With adjustResize the
+     * system shrinks the window *and* the JS shrinks the layout, which is a double
+     * adjustment — the observed symptom was the whole page being pushed up out of
+     * the screen when the keyboard opened. Note that @capacitor/keyboard's
+     * `resizeOnFullScreen` flag resizes the WebView container natively for the same
+     * reason, which is why it is false in capacitor.config.json.
+     *
+     * So the mode is set here, in code, rather than trusted to the manifest: this
+     * runs after the manifest merge and cannot be overridden by a library theme.
+     */
     private void forceKeyboardMode() {
         try {
             getWindow().setSoftInputMode(
                 android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
         } catch (Exception e) {
+            // Never let a window-flag failure take the app down.
             android.util.Log.w("SparkleMain", "Could not set SOFT_INPUT_ADJUST_NOTHING", e);
         }
     }
@@ -69,10 +132,19 @@ public class MainActivity extends BridgeActivity {
             Window window = getWindow();
             WindowCompat.setDecorFitsSystemWindows(window, false);
             window.setStatusBarColor(Color.TRANSPARENT);
+            // Translucent nav bar keeps 3-button-nav glyphs legible while still
+            // letting the app theme paint behind it; gesture nav stays invisible.
             window.setNavigationBarColor(Color.TRANSPARENT);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Status bar contrast is managed by the JS StatusBar plugin
+                // (icon style follows the active screen theme). Navigation bar
+                // keeps system contrast enforcement so 3-button glyphs stay
+                // legible over light content.
                 window.setStatusBarContrastEnforced(false);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            // Never block app startup on a OEM window quirk; the JS-side
+            // StatusBarController overlay remains as a fallback.
+        }
     }
 }

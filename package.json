@@ -38,6 +38,7 @@
     "@capacitor/preferences": "^6.0.4",
     "@capacitor/push-notifications": "^6.0.5",
     "@capacitor/status-bar": "^6.0.3",
+    "@libsql/client": "^0.18.0",
     "@otakit/capacitor-updater": "^3.3.0",
     "@prisma/client": "^6.19.3",
     "@react-three/drei": "^10.7.7",

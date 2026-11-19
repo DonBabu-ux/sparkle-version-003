@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -7,7 +8,11 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:usesCleartextTraffic="false"
+        tools:replace="android:usesCleartextTraffic">
 
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
@@ -16,7 +21,8 @@
         android:theme="@style/AppTheme.NoActionBarLaunch"
         android:launchMode="singleTask"
         android:windowSoftInputMode="adjustNothing"
-        android:exported="true">
+        android:exported="true"
+        android:enableOnBackInvokedCallback="true">
 
         <!-- FCM: fallback channel (messages set android.notification.channel_id
              explicitly; this covers any payload without one) + status bar icon -->
@@ -52,6 +58,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="sparkle" android:host="invite" />
+                <!-- Handed over by IncomingCallActivity / CallService on answer
+                     so the SPA opens its call screen via @capacitor/app's
+                     appUrlOpen; see CallCoordinator.launchAppForCall() -->
+                <data android:scheme="sparkle" android:host="call" />
             </intent-filter>
 
         </activity>
@@ -65,6 +75,65 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!--
+          Telecom self-managed call integration. Bound only by the platform
+          (BIND_TELECOM_CONNECTION_SERVICE is signature-gated); the plugin
+          registers a self-managed PhoneAccount pointing here. API 26+ only —
+          see SparkleCallConnectionService for the pre-O fallback path.
+        -->
+        <service
+            android:name=".plugins.SparkleCallConnectionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
+        </service>
+
+        <!--
+          Keeps an ongoing call alive while the app is backgrounded; covers the
+          FOREGROUND_SERVICE / FOREGROUND_SERVICE_MICROPHONE / CAMERA
+          declarations. stopWithTask=false so swiping the app away does not
+          drop the caller mid-sentence.
+        -->
+        <!--
+          Call alerts arriving while the app process is dead. Declared in the
+          app manifest (which outranks the Capacitor push plugin's library
+          manifest entry) so every FCM message reaches this service first;
+          non-call messages are forwarded back into the push plugin by
+          SparkleFirebaseMessagingService.onMessageReceived(). Backend must
+          send data payloads with {"type": "call", ...} at high priority.
+        -->
+        <service
+            android:name=".plugins.SparkleFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter android:priority="999">
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".plugins.CallService"
+            android:exported="false"
+            android:foregroundServiceType="microphone|camera"
+            android:stopWithTask="false" />
+
+        <!-- Lock-screen incoming-call UI, launched by the ring notification's
+             full-screen intent. Own task + no history + excluded from recents
+             so answering a call never leaves a stray entry in the switcher. -->
+        <activity
+            android:name=".plugins.IncomingCallActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:noHistory="true"
+            android:showWhenLocked="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.SparkleCall"
+            android:turnScreenOn="true"
+            android:windowSoftInputMode="adjustNothing" />
     </application>
 
     <!-- Permissions -->
@@ -108,6 +177,15 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- Android Telecom calling integration -->
     <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+    <!-- Legacy Bluetooth audio routing (API 22-30). API 31+ uses BLUETOOTH_CONNECT
+         alone; without these, a BT headset on Android 11 and below cannot be
+         routed by setCommunicationDevice / MODIFY_AUDIO_SETTINGS. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
     <!-- Proximity sensor and screen wake lock for voice calls -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Location access for live location and campus discovery -->

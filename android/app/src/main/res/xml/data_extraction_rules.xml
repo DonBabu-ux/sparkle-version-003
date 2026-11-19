@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ (API 31+) backup / device-transfer rules for Sparkle.
+
+  This is a Capacitor WebView shell: all persistent user state lives in
+  app_webview (localStorage, IndexedDB, cookies — chat cache, auth tokens) and
+  in shared_prefs (Capacitor Preferences, OTA update state, FCM token). All of
+  it is re-derived from the server after a fresh install or sign-in, so none of
+  it should leave the device. allowBackup stays "true" so unrelated files keep
+  the default backup behaviour, while the WebView container is excluded from
+  both cloud backup and device-to-device transfer.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="app_webview" />
+        <exclude domain="root" path="shared_prefs" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="app_webview" />
+        <exclude domain="root" path="shared_prefs" />
+    </device-transfer>
+</data-extraction-rules>

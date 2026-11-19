@@ -35,7 +35,19 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            // Only wire the signing config when the credentials are actually
+            // present. An empty signingConfig used to be referenced here
+            // unconditionally, which didn't "produce an unsigned APK" — it
+            // crashed packaging with:
+            //   SigningConfig "release" is missing required property "storeFile"
+            // Release builds are then usable locally (R8/lint/APK inspection)
+            // but must never be uploaded.
+            if (project.hasProperty("STORE_PASSWORD")) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.warn("WARNING: building an UNSIGNED release APK — STORE_PASSWORD is not set. " +
+                        "Pass -PSTORE_PASSWORD=... -PKEY_ALIAS=... -PKEY_PASSWORD=... for a distributable build.")
+            }
         }
     }
 }
@@ -51,8 +63,23 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    // Firebase: SparkleFirebaseMessagingService (cold-start calls) compiles
+    // against firebase-messaging directly — the Capacitor push plugin only
+    // exposes it at runtime, not on this module's compile classpath. Version
+    // pinned to the one the plugin resolves, so both see the same classes.
+    implementation "com.google.firebase:firebase-messaging:23.3.1"
+    // Crashlytics: native crashes (a killed WebView renderer, a rejected FGS
+    // start) were previously invisible in a WebView shell. The crashlytics
+    // *SDK* auto-initializes from google-services.json — no Gradle plugin
+    // needed; the plugin's only role is the mapping-file upload, and release
+    // stack readability is handled by the proguard keep below.
+    implementation platform("com.google.firebase:firebase-bom:33.7.0")
+    implementation "com.google.firebase:firebase-crashlytics"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
+    // Robolectric: JSObject is backed by org.json, which is an android.jar
+    // stub in plain unit tests; the call-state snapshot tests need a real one.
+    testImplementation "org.robolectric:robolectric:4.14.1"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')

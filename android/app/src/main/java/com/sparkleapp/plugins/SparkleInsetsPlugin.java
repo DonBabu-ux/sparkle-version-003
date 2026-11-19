@@ -138,7 +138,8 @@ public class SparkleInsetsPlugin extends Plugin {
         return ret;
     }
 
-    private static double dp(int px, float density) {
+    /** Pure px→dp conversion; package-private so it can be unit-tested. */
+    static double dp(int px, float density) {
         if (density <= 0f) return 0;
         return Math.round((px / density) * 100.0) / 100.0;
     }

@@ -4,7 +4,7 @@
 	"webDir": "frontend/dist",
 	"server": {
 		"androidScheme": "https",
-		"cleartext": true
+		"cleartext": false
 	},
 	"plugins": {
 		"Keyboard": {

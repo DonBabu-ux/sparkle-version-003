@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legacy (API 23-30) auto-backup rules. Same rationale as
+  data_extraction_rules.xml — the WebView container and SharedPreferences hold
+  auth tokens and chat cache that must not be cloud-backed up. Android 11 and
+  below use this file via fullBackupContent; Android 12+ uses
+  dataExtractionRules instead.
+-->
+<full-backup-content>
+    <exclude domain="root" path="app_webview" />
+    <exclude domain="root" path="shared_prefs" />
+</full-backup-content>

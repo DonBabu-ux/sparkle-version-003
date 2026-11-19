@@ -10,6 +10,7 @@ import androidx.core.view.WindowCompat;
 import com.getcapacitor.BridgeActivity;
 import com.sparkleapp.plugins.MediaStoreSaver;
 import com.sparkleapp.plugins.PrivacyProtectionPlugin;
+import com.sparkleapp.plugins.SparkleCallPlugin;
 import com.sparkleapp.plugins.SparkleInsetsPlugin;
 
 public class MainActivity extends BridgeActivity {
@@ -19,6 +20,10 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PrivacyProtectionPlugin.class);
         registerPlugin(SparkleInsetsPlugin.class);
         registerPlugin(MediaStoreSaver.class);
+        // Call stack: registers the self-managed Telecom PhoneAccount and call
+        // notification channels on bridge load so calls are answerable from the
+        // lock screen even on the first launch of the process.
+        registerPlugin(SparkleCallPlugin.class);
         super.onCreate(savedInstanceState);
     // Apply edge-to-edge natively before the WebView paints so the theme
     // background reaches the physical top edge from the very first frame
@@ -54,7 +59,34 @@ public class MainActivity extends BridgeActivity {
  * So the mode is set here, in code, rather than trusted to the manifest: this
  * runs after the manifest merge and cannot be overridden by a library theme.
  */
-private void forceKeyboardMode() {
+/**
+     * Hardware back used to finish the activity unconditionally: Capacitor 6's
+     * BridgeActivity does not override onBackPressed and @capacitor/app's
+     * backButton event is never emitted, so the SPA's navigation stack (and any
+     * modal pushed with history.pushState) was unreachable — back always killed
+     * the app. This makes back pop the WebView history when there is one, and
+     * only exits when the SPA is at its root.
+     *
+     * Works with the predictive-back opt-in because androidx ComponentActivity
+     * (1.8+, see variables.gradle) routes OnBackInvokedCallback to
+     * onBackPressed when no callback is registered.
+     *
+     * JS note: if a screen must block back, push a router entry with
+     * history.pushState and call preventDefault on popstate — that entry is
+     * now a real history step, so back stays inside the app.
+     */
+    @Override
+    public void onBackPressed() {
+        com.getcapacitor.Bridge bridge = getBridge();
+        android.webkit.WebView webView = bridge != null ? bridge.getWebView() : null;
+        if (webView != null && webView.canGoBack()) {
+            webView.goBack();
+            return;
+        }
+        super.onBackPressed();
+    }
+
+    private void forceKeyboardMode() {
     try {
         getWindow().setSoftInputMode(
             android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);

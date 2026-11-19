@@ -100,24 +100,30 @@ public class PrivacyProtectionPlugin extends Plugin {
             }
         }
 
-        // Legacy ContentObserver Fallback for Android < 34
-        try {
-            screenshotObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
-                @Override
-                public void onChange(boolean selfChange, Uri uri) {
-                    super.onChange(selfChange, uri);
-                    if (uri != null && uri.toString().contains(MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString())) {
-                        checkMediaStoreForScreenshot();
+        // Legacy ContentObserver fallback for Android < 34 ONLY.
+        // The comment above used to claim that while the code registered the
+        // observer unconditionally. On 34+ the official ScreenCaptureCallback
+        // covers screenshots with no storage access and no false positives, so
+        // observing the user's MediaStore there is pure overhead.
+        if (Build.VERSION.SDK_INT < 34) {
+            try {
+                screenshotObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
+                    @Override
+                    public void onChange(boolean selfChange, Uri uri) {
+                        super.onChange(selfChange, uri);
+                        if (uri != null && uri.toString().contains(MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString())) {
+                            checkMediaStoreForScreenshot();
+                        }
                     }
-                }
-            };
-            activity.getContentResolver().registerContentObserver(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                true,
-                screenshotObserver
-            );
-        } catch (Exception e) {
-            // Permission or OEM restriction
+                };
+                activity.getContentResolver().registerContentObserver(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    true,
+                    screenshotObserver
+                );
+            } catch (Exception e) {
+                // Permission or OEM restriction
+            }
         }
     }
 
@@ -162,8 +168,7 @@ public class PrivacyProtectionPlugin extends Plugin {
 
     private void notifyCaptureAttempt(String method) {
         long now = System.currentTimeMillis();
-        // Debounce notifications within 3 seconds
-        if (now - lastDetectionTime < 3000) return;
+        if (withinDebounceWindow(now, lastDetectionTime, DEBOUNCE_MS)) return;
         lastDetectionTime = now;
 
         JSObject eventData = new JSObject();
@@ -171,6 +176,14 @@ public class PrivacyProtectionPlugin extends Plugin {
         eventData.put("timestamp", new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).format(new java.util.Date()));
         notifyListeners("onScreenshotAttempt", eventData);
     }
+
+    /** Pure time-window check; package-private so it can be unit-tested. */
+    static boolean withinDebounceWindow(long now, long last, long window) {
+        if (last <= 0) return false;      // first detection always passes
+        return (now - last) < window;
+    }
+
+    private static final long DEBOUNCE_MS = 3_000;
 
     @Override
     protected void handleOnDestroy() {

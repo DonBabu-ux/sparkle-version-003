@@ -4,4 +4,20 @@
     <string name="title_activity_main">Sparkle</string>
     <string name="package_name">com.sparkleapp</string>
     <string name="custom_url_scheme">com.sparkleapp</string>
+
+    <!-- Call stack (SparkleCallPlugin / CallService / IncomingCallActivity) -->
+    <string name="call_channel_ring_name">Incoming calls</string>
+    <string name="call_channel_ring_desc">Full-screen alerts for incoming Sparkle calls</string>
+    <string name="call_channel_ongoing_name">Ongoing calls</string>
+    <string name="call_channel_ongoing_desc">Shown while a Sparkle call is in progress</string>
+    <string name="call_incoming_kicker">Sparkle call</string>
+    <string name="call_incoming_unknown">Unknown caller</string>
+    <string name="call_incoming_audio">Incoming voice call</string>
+    <string name="call_incoming_video">Incoming video call</string>
+    <string name="call_ongoing_default">Sparkle call in progress</string>
+    <string name="call_ongoing_audio">Voice call</string>
+    <string name="call_ongoing_video">Video call</string>
+    <string name="call_action_answer">Answer</string>
+    <string name="call_action_decline">Decline</string>
+    <string name="call_action_end">End call</string>
 </resources>

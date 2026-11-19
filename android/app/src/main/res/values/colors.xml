@@ -3,4 +3,6 @@
     <!-- Sparkle brand accent used for notification icon circles / lights
          (default_notification_color, local heads-up iconColor) -->
     <color name="sparkle_notification_color">#FF1493</color>
+    <!-- Lock-screen call surface background (IncomingCallActivity) -->
+    <color name="sparkle_call_surface">#FF14141A</color>
 </resources>

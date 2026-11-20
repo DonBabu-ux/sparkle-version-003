@@ -11,6 +11,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // APK builds: the WebView is served from the app's local bundle, so the
+      // service worker only duplicates the whole bundle into CacheStorage
+      // (~8 MB extra on device) and slows cold start. Set
+      // VITE_PWA_DISABLE=true for Capacitor builds; the web build keeps it.
+      disable: process.env.VITE_PWA_DISABLE === 'true',
       devOptions: {
         enabled: false
       },

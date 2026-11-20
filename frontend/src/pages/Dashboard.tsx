@@ -21,6 +21,7 @@ import { useUploadStore } from '../store/uploadStore';
 import { CloudUpload, RefreshCw, X as XIcon } from 'lucide-react';
 import { useUploadNotificationStore } from '../components/notifications/UploadNotificationCenter';
 import AestheticProfileCompletionBanner from '../components/profile/AestheticProfileCompletionBanner';
+import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import { logger } from '../utils/logger';
 import { showError } from '../utils/toast';
 import { validateFiles } from '../utils/fileValidation';
@@ -320,6 +321,10 @@ const posts = orderedPostIds.map(id => postsById[id]);
         </div>
             {/* Aesthetic Glassmorphism Profile Completion Banner */}
             <AestheticProfileCompletionBanner />
+            {/* Email Verification Banner */}
+            {user && !user.email_verified && (
+              <EmailVerificationBanner userEmail={user.email} />
+            )}
             {/* STORIES - GENIUS RING & BADGE IMPLEMENTATION (Requirement) */}
             <div className="animate-fade-in">
               <div className="flex gap-1.5 overflow-x-auto py-1 no-scrollbar">

@@ -22,6 +22,7 @@ export interface User {
   dm_permission?: 'everyone' | 'followers' | 'none';
   theme?: 'light' | 'dark';
   email_verified?: boolean;
+  sparkle_points?: number;
   phone_verified?: boolean;
   is_followed?: boolean;
   is_followed_by_me?: boolean;

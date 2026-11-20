@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import 'axios';
 import api, { authApi } from '../api/api';
 import { useUserStore } from '../store/userStore';
-import { User as UserIcon, Shield, ShieldCheck, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck, PauseCircle, ShieldAlert, Smartphone, Terminal, Layers, Cpu } from 'lucide-react';
+import { User as UserIcon, Shield, ShieldCheck, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck, PauseCircle, ShieldAlert, Smartphone, Terminal, Layers, Cpu, Mail } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { getPublicLegalDocuments } from '../config/legalDocuments';
 import { getRoleFromToken } from '../utils/tokenUtils';
@@ -294,6 +294,15 @@ export default function Settings() {
             description="Manage connected accounts & profile visibility"
             rightElement="chevron"
             onClick={() => navigate('/settings/accounts')}
+          />
+          <SettingRow
+            icon={Mail}
+            title="Email verification"
+            description={user?.email_verified ? 'Your email is verified' : 'Tap to verify your email'}
+            rightElement={user?.email_verified ? 'badge' : 'chevron'}
+            badgeText={user?.email_verified ? 'Verified' : undefined}
+            badgeVariant={user?.email_verified ? 'green' : undefined}
+            onClick={!user?.email_verified ? () => navigate('/verify-email') : undefined}
           />
         </SettingCardGroup>
 

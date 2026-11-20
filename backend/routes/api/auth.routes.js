@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../../controllers/auth.controller');
 const supabaseController = require('../../controllers/supabase.controller');
-const { authMiddleware } = require('../../middleware/auth.middleware');
+const { authMiddleware, optionalAuthMiddleware } = require('../../middleware/auth.middleware');
 
 // Check if validation middleware exists
 let validate;
@@ -41,11 +41,13 @@ router.get('/check-username', authController.checkUsername);
 router.get('/check-email', authController.checkEmail);
 
 // Verification & Password Flow
-router.post('/verify-email', authRateLimiter, authController.verifyEmail);
+router.get('/verification-status', authMiddleware, authController.getVerificationStatus);
+router.post('/verify-email', optionalAuthMiddleware, authRateLimiter, authController.verifyEmail);
 router.post('/verify-sms', authRateLimiter, authController.verifySMS);
 router.post('/forgot-password', authRateLimiter, authController.forgotPassword);
 router.post('/reset-password', authRateLimiter, authController.resetPassword);
-router.post('/resend-verification', authRateLimiter, authController.resendVerification);
+router.post('/resend-verification', optionalAuthMiddleware, authRateLimiter, authController.resendVerification);
+router.post('/change-pending-email', authMiddleware, authRateLimiter, authController.changePendingEmail);
 router.post('/reactivate', authRateLimiter, authController.reactivateAccount);
 router.post('/cancel-deletion', authRateLimiter, authController.cancelDeletion);
 
@@ -55,5 +57,8 @@ router.post('/otp/verify/sync', supabaseController.syncVerifiedOTP);
 // Token Validation
 router.get('/validate', authMiddleware, authController.validateToken);
 router.post('/switch-account', authController.switchAccount);
+
+// Email diagnostics (admin/debug only — controller enforces role check)
+router.post('/email-test', authMiddleware, authController.emailDiagnostic);
 
 module.exports = router;

@@ -85,14 +85,8 @@ jobs:
             exit 0
           fi
           echo "configured=true" >> "$GITHUB_OUTPUT"
-          cat > backend/.env <<EOF
-          DB_HOST=$DB_HOST
-          DB_USER=$DB_USER
-          DB_PASSWORD=$DB_PASSWORD
-          DB_NAME=$DB_NAME
-          DB_PORT=$DB_PORT
-          JWT_SECRET=$JWT_SECRET
-          EOF
+          printf "DB_HOST=%s\nDB_USER=%s\nDB_PASSWORD=%s\nDB_NAME=%s\nDB_PORT=%s\nJWT_SECRET=%s\n" \
+            "$DB_HOST" "$DB_USER" "$DB_PASSWORD" "$DB_NAME" "$DB_PORT" "$JWT_SECRET" > backend/.env
           echo "backend/.env written from repository secrets (values not printed)"
 
       - name: Backend integration tests (all suites)

@@ -69,4 +69,20 @@ router.post('/verifications/:request_id', adminController.handleVerificationRequ
 router.post('/actions', requireAdminStepUp, adminController.handleAction);
 router.post('/announcements', requireAdminStepUp, adminController.broadcastAnnouncement);
 
+// Email diagnostics — admin only
+router.post('/email-test', requireAdminStepUp, async (req, res) => {
+  const { testEmail } = req.body;
+  if (!testEmail || !testEmail.includes('@')) {
+    return res.status(400).json({ error: 'Valid testEmail required in request body' });
+  }
+  try {
+    const emailService = require('../../services/email.service');
+    const results = await emailService.testProviders(testEmail);
+    return res.json({ success: true, results });
+  } catch (err) {
+    logger.error('[AdminRoute] email-test error:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

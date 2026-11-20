@@ -195,7 +195,7 @@ const login = async (req, res) => {
                     [crypto.randomUUID(), user.user_id, channel, destination, codeHash]
                 );
 
-                logger.info(`[LOGIN 2FA] OTP for user ${user.username} (${channel} to ${destination}): ${otpCode}`);
+                logger.info('[LOGIN 2FA] OTP generated for user ' + user.username + ' (' + channel + ')');
 
                 if (channel === 'email') {
                     try {
@@ -621,7 +621,7 @@ const resend2FA = async (req, res) => {
             [crypto.randomUUID(), user.user_id, channel, destination, codeHash]
         );
 
-        logger.info(`[RESEND 2FA] OTP for user ${user.username} (${channel} to ${destination}): ${otpCode}`);
+        logger.info('[LOGIN 2FA] OTP generated for user ' + user.username + ' (' + channel + ')');
 
         if (channel === 'email') {
             await emailService.send({
@@ -661,52 +661,211 @@ const resend2FA = async (req, res) => {
 
 const verifyEmail = async (req, res) => {
     try {
-        const { code, email } = req.body;
-        if (!code || !email) {
-            return res.status(400).json({ status: 'error', message: 'Email and code are required' });
+        const { code, email: bodyEmail } = req.body;
+        const authUserId = req.user?.user_id;
+
+        if (!code) {
+            return res.status(400).json({ status: 'error', message: 'Verification code is required' });
+        }
+
+        const cleanCode = String(code).trim();
+        let targetEmail = bodyEmail ? String(bodyEmail).trim().toLowerCase() : null;
+
+        if (!targetEmail && authUserId) {
+            const u = await queryOne('SELECT email FROM users WHERE user_id = ? LIMIT 1', [authUserId]);
+            targetEmail = u?.email;
+        }
+
+        if (!targetEmail) {
+            return res.status(400).json({ status: 'error', message: 'Email address and verification code are required' });
         }
 
         const verifications = await query(
-            'SELECT * FROM email_verifications WHERE email = ? AND code = ? AND expires_at > NOW() AND verified_at IS NULL LIMIT 1',
-            [email, code]
+            'SELECT * FROM email_verifications WHERE (email = ? OR user_id = ?) AND code = ? AND expires_at > NOW() AND verified_at IS NULL ORDER BY created_at DESC LIMIT 1',
+            [targetEmail, authUserId || '', cleanCode]
         );
 
-        if (verifications.length === 0) {
+        if (!verifications || verifications.length === 0) {
             return res.status(400).json({ status: 'error', message: 'Invalid or expired verification code' });
         }
 
         const verification = verifications[0];
+        const userId = verification.user_id;
 
-        // Mark as verified
+        // Mark verification record as verified
         await query('UPDATE email_verifications SET verified_at = NOW() WHERE verification_id = ?', [verification.verification_id]);
-        await query('UPDATE users SET email_verified = 1 WHERE user_id = ?', [verification.user_id]);
+        await query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE user_id = ?', [userId]);
 
-        // Send welcome email
-        const users = await query('SELECT name FROM users WHERE user_id = ?', [verification.user_id]);
-        if (users[0]) {
-            sendEmail({
-                to: email,
-                subject: 'Welcome to Sparkle! 🎉',
-                templateName: 'welcome',
-                templateData: {
-                    name: users[0].name,
-                    dashboardUrl: `${process.env.APP_URL || 'http://localhost:3000'}/dashboard`
-                }
-            }).catch(e => logger.error('Welcome email failed:', e));
+        // One-time verification reward (+25 Sparkle Points)
+        let rewardAwarded = false;
+        const rewardPoints = 25;
+        const rewardId = crypto.randomUUID();
+
+        try {
+            // Atomic INSERT IGNORE on UNIQUE user_id constraint
+            const insertResult = await query(
+                'INSERT IGNORE INTO email_verification_rewards (id, user_id, points_awarded, status, created_at) VALUES (?, ?, ?, ?, NOW())',
+                [rewardId, userId, rewardPoints, 'credited']
+            );
+
+            if (insertResult && (insertResult.affectedRows === 1 || insertResult[0]?.affectedRows === 1)) {
+                await query('UPDATE users SET sparkle_points = COALESCE(sparkle_points, 0) + ? WHERE user_id = ?', [rewardPoints, userId]);
+                rewardAwarded = true;
+                logger.info(`[Rewards] +${rewardPoints} Sparkle Points awarded to user ${userId} for email verification.`);
+            }
+        } catch (rewardErr) {
+            logger.warn('[Rewards] Could not process verification reward:', rewardErr.message);
         }
+
+        // Fetch updated user
+        const updatedUser = await queryOne(
+            'SELECT user_id, name, username, email, email_verified, email_verified_at, sparkle_points, avatar_url, campus, role FROM users WHERE user_id = ? LIMIT 1',
+            [userId]
+        );
+
+        // Send welcome email (asynchronous, non-blocking)
+        sendEmail({
+            to: targetEmail,
+            subject: 'Welcome to Sparkle! 🎉',
+            templateName: 'welcome',
+            templateData: {
+                name: updatedUser?.name || 'Sparkle Member',
+                dashboardUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/dashboard`
+            }
+        }).catch(e => logger.error('Welcome email failed:', e));
 
         // Qualify any pending referral
         try {
             const ReferralService = require('../services/referral.service');
-            await ReferralService.qualifyReferral(verification.user_id);
+            await ReferralService.qualifyReferral(userId);
         } catch (qualErr) {
             logger.warn('[AuthController] Referral qualification warning:', qualErr.message);
         }
 
-        res.json({ status: 'success', message: 'Email verified successfully!' });
+        res.json({
+            status: 'success',
+            message: 'Email verified successfully!',
+            email_verified: true,
+            reward: {
+                awarded: rewardAwarded,
+                points: rewardPoints,
+                message: rewardAwarded ? `+${rewardPoints} Sparkle Points awarded!` : 'Reward already claimed.'
+            },
+            user: updatedUser
+        });
     } catch (error) {
         logger.error('Verify Email Error:', error);
         res.status(500).json({ status: 'error', message: 'Verification failed' });
+    }
+};
+
+const getVerificationStatus = async (req, res) => {
+    try {
+        const userId = req.user?.user_id;
+        if (!userId) return res.status(401).json({ status: 'error', message: 'Authentication required' });
+
+        const user = await queryOne(
+            'SELECT user_id, email, email_verified, email_verified_at, sparkle_points FROM users WHERE user_id = ? LIMIT 1',
+            [userId]
+        );
+        if (!user) return res.status(404).json({ status: 'error', message: 'User not found' });
+
+        const pending = await queryOne(
+            'SELECT expires_at, created_at FROM email_verifications WHERE user_id = ? AND expires_at > NOW() AND verified_at IS NULL ORDER BY created_at DESC LIMIT 1',
+            [userId]
+        );
+
+        const rewardRecord = await queryOne(
+            'SELECT id, points_awarded, created_at FROM email_verification_rewards WHERE user_id = ? LIMIT 1',
+            [userId]
+        );
+
+        res.json({
+            status: 'success',
+            data: {
+                email: user.email,
+                is_verified: Boolean(user.email_verified),
+                email_verified: Boolean(user.email_verified),
+                email_verified_at: user.email_verified_at,
+                is_pending: !user.email_verified && Boolean(pending),
+                expires_at: pending?.expires_at || null,
+                reward_claimed: Boolean(rewardRecord),
+                reward_points: 25,
+                sparkle_points: user.sparkle_points || 0
+            }
+        });
+    } catch (error) {
+        logger.error('Get Verification Status Error:', error);
+        res.status(500).json({ status: 'error', message: 'Failed to retrieve verification status' });
+    }
+};
+
+const changePendingEmail = async (req, res) => {
+    try {
+        const userId = req.user?.user_id;
+        if (!userId) return res.status(401).json({ status: 'error', message: 'Authentication required' });
+
+        const { newEmail } = req.body;
+        if (!newEmail || !String(newEmail).includes('@')) {
+            return res.status(400).json({ status: 'error', message: 'A valid email address is required.' });
+        }
+
+        const cleanEmail = String(newEmail).trim().toLowerCase();
+
+        const user = await queryOne('SELECT email, email_verified, name FROM users WHERE user_id = ? LIMIT 1', [userId]);
+        if (!user) return res.status(404).json({ status: 'error', message: 'User not found' });
+
+        if (user.email_verified) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Your email address is already verified. Changing a verified email must be performed through Security Settings.'
+            });
+        }
+
+        if (user.email === cleanEmail) {
+            return res.status(400).json({ status: 'error', message: 'The new email address matches your current pending email.' });
+        }
+
+        const existing = await queryOne('SELECT user_id FROM users WHERE email = ? AND user_id != ? LIMIT 1', [cleanEmail, userId]);
+        if (existing) {
+            return res.status(409).json({ status: 'error', message: 'This email address is already registered to another account.' });
+        }
+
+        // Invalidate old verification records for this user
+        await query('DELETE FROM email_verifications WHERE user_id = ?', [userId]);
+
+        // Update pending email on users
+        await query('UPDATE users SET email = ? WHERE user_id = ?', [cleanEmail, userId]);
+
+        // Generate new 6-digit code
+        const code = crypto.randomInt(100000, 999999).toString();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        await query(
+            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+            [crypto.randomUUID(), userId, cleanEmail, code, expiresAt]
+        );
+
+        // Send email with new verification code
+        sendEmail({
+            to: cleanEmail,
+            subject: 'Verify Your Email - Sparkle ✨',
+            templateName: 'verify-email',
+            templateData: {
+                name: user.name,
+                code,
+                verifyUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/verify-email#email=${encodeURIComponent(cleanEmail)}&code=${code}`
+            }
+        }).catch(e => logger.error('Change email verification dispatch failed:', e));
+
+        res.json({
+            status: 'success',
+            message: 'Pending email updated and new verification code sent.',
+            email: cleanEmail
+        });
+    } catch (error) {
+        logger.error('Change Pending Email Error:', error);
+        res.status(500).json({ status: 'error', message: 'Failed to update pending email.' });
     }
 };
 
@@ -716,7 +875,7 @@ const forgotPassword = async (req, res) => {
         if (!email) return res.status(400).json({ status: 'error', message: 'Email is required' });
 
         const user = await queryOne(
-            'SELECT user_id, name, account_status FROM users WHERE email = ? LIMIT 1',
+            'SELECT user_id, name, account_status, email_verified FROM users WHERE email = ? LIMIT 1',
             [email]
         );
         if (!user) {
@@ -729,6 +888,16 @@ const forgotPassword = async (req, res) => {
             // Security policy: Password reset cannot reactivate or reset terminated/deletion-pending accounts
             logger.info(`Password reset blocked for ${email}: status is '${userStatus}'`);
             return res.json({ status: 'success', message: "If an account exists for this email, we've sent password reset instructions." });
+        }
+
+        // Section 8 Security Enforcement:
+        // An unverified email cannot be used to independently authorize password resets
+        if (!user.email_verified) {
+            logger.info(`Password reset blocked for unverified email: ${email}`);
+            return res.json({
+                status: 'success',
+                message: "If a verified account exists for this email, we've sent password reset instructions."
+            });
         }
 
         // 1-minute countdown rate limit per reset request
@@ -755,7 +924,7 @@ const forgotPassword = async (req, res) => {
             [crypto.randomUUID(), user.user_id, email, token]
         );
 
-        logger.info(`Password reset requested for ${email}. Code: ${token}`);
+        logger.info(`Password reset requested for ${email} — code issued (not logged for security)`);
 
         await sendEmail({
             to: email,
@@ -844,7 +1013,15 @@ const verifySMS = async (req, res) => {
 
 const resendVerification = async (req, res) => {
     try {
-        const { email, type } = req.body; // type: 'email' or 'sms'
+        const { email: bodyEmail, type } = req.body || {}; // type: 'email' or 'sms'
+        let email = bodyEmail ? String(bodyEmail).trim().toLowerCase() : null;
+        const authUserId = req.user?.user_id;
+
+        if (!email && authUserId) {
+            const u = await queryOne('SELECT email FROM users WHERE user_id = ? LIMIT 1', [authUserId]);
+            if (u) email = u.email;
+        }
+
         if (!email) return res.status(400).json({ status: 'error', message: 'Email is required' });
 
         const users = await query('SELECT user_id, name, email_verified, phone_number FROM users WHERE email = ? LIMIT 1', [email]);
@@ -868,17 +1045,18 @@ const resendVerification = async (req, res) => {
             return res.status(429).json({
                 status: 'error',
                 message: `Please wait ${waitSeconds}s before requesting a new code.`,
-                retryAfter: waitSeconds
+                retryAfter: waitSeconds,
+                cooldown: waitSeconds
             });
         }
 
-        // --- NEW: Rate Limiting for Resend (Algorithm 3.3) ---
+        // Rate Limiting for Resend: max 3 per hour
         const resendCount = await query(
             'SELECT COUNT(*) as count FROM verification_requests WHERE user_id = ? AND type = "email" AND requested_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)',
             [user.user_id]
         );
 
-        if (resendCount[0].count >= 3) {
+        if (resendCount && resendCount[0]?.count >= 3) {
             return res.status(429).json({
                 status: 'error',
                 message: 'You can only request a new code 3 times per hour.'
@@ -893,7 +1071,6 @@ const resendVerification = async (req, res) => {
 
         if (user.email_verified) return res.status(400).json({ status: 'error', message: 'Email already verified' });
 
-
         const code = crypto.randomInt(100000, 999999).toString();
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -902,7 +1079,7 @@ const resendVerification = async (req, res) => {
             [crypto.randomUUID(), user.user_id, email, code, expiresAt, code, expiresAt]
         );
 
-        await sendEmail({
+        sendEmail({
             to: email,
             subject: 'Verify Your Email - Sparkle ✨',
             templateName: 'verify-email',
@@ -911,9 +1088,9 @@ const resendVerification = async (req, res) => {
                 code,
                 verifyUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/verify-email#email=${encodeURIComponent(email)}&code=${code}`
             }
-        });
+        }).catch(e => logger.error('Resend verification dispatch failed:', e));
 
-        res.json({ status: 'success', message: 'Verification email resent!' });
+        res.json({ status: 'success', message: 'Verification email resent!', cooldown: 60 });
     } catch (error) {
         logger.error('Resend Verification Error:', error);
         res.status(500).json({ status: 'error', message: 'Resend failed' });
@@ -1247,6 +1424,72 @@ const cancelDeletion = async (req, res) => {
     }
 };
 
+// ---------------------------------------------------------------------------
+// Email Diagnostic endpoint (admin / dev only)
+// ---------------------------------------------------------------------------
+const emailDiagnostic = async (req, res) => {
+    try {
+        // Guard: only admins OR requests carrying the EMAIL_DEBUG_KEY header
+        const isAdmin = req.user?.role === 'admin';
+        const debugKey = process.env.EMAIL_DEBUG_KEY;
+        const headerKey = req.headers['x-sparkle-debug-key'];
+        const hasDebugKey = debugKey && headerKey && headerKey === debugKey;
+
+        if (!isAdmin && !hasDebugKey) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Access denied — admin role or debug key required.'
+            });
+        }
+
+        const { testEmail, provider } = req.body || {};
+        const target = testEmail
+            ? String(testEmail).trim().toLowerCase()
+            : (req.user?.email || null);
+
+        if (!target) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'testEmail is required in the request body.'
+            });
+        }
+
+        const providerStatus = emailService.getProviderStatus();
+
+        let testResults;
+        if (provider === 'gmail') {
+            try {
+                const html = '<p>Sparkle Gmail SMTP diagnostic test. If you received this, Gmail is working.</p>';
+                const r = await emailService._sendViaGmail({ to: target, subject: '[Sparkle] Gmail Test', html, text: 'Sparkle Gmail diagnostic test.' });
+                testResults = { gmail: { success: true, messageId: r.messageId }, resend: null };
+            } catch (err) {
+                testResults = { gmail: { success: false, error: err.message, code: err.code }, resend: null };
+            }
+        } else if (provider === 'resend') {
+            try {
+                const html = '<p>Sparkle Resend API diagnostic test. If you received this, Resend is working.</p>';
+                const r = await emailService._sendViaResend({ to: target, subject: '[Sparkle] Resend Test', html, text: 'Sparkle Resend diagnostic test.' });
+                testResults = { gmail: null, resend: { success: true, messageId: r.messageId } };
+            } catch (err) {
+                testResults = { gmail: null, resend: { success: false, error: err.message, httpStatus: err.response?.status } };
+            }
+        } else {
+            // Default: test both
+            testResults = await emailService.testProviders(target);
+        }
+
+        return res.json({
+            status: 'success',
+            testEmail: target,
+            providerStatus,
+            results: testResults,
+        });
+    } catch (error) {
+        logger.error('Email diagnostic error:', error);
+        return res.status(500).json({ status: 'error', message: 'Diagnostic failed: ' + error.message });
+    }
+};
+
 module.exports = { 
     signup, 
     login, 
@@ -1265,5 +1508,8 @@ module.exports = {
     checkUsername, 
     checkEmail,
     reactivateAccount,
-    cancelDeletion
+    cancelDeletion,
+    getVerificationStatus,
+    changePendingEmail,
+    emailDiagnostic
 };

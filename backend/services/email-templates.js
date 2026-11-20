@@ -757,6 +757,28 @@ const renderers = {
         </div>
     </div>`,
 
+    // ----------------------------------------------------------------
+    // Diagnostic test template (admin/dev use only — never shown to real users)
+    // ----------------------------------------------------------------
+    'diagnostic-test': (d) => `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Sparkle Email Diagnostic</title></head>
+<body style="font-family:sans-serif;padding:20px;">
+  <div style="max-width:480px;margin:0 auto;border:2px dashed #e53e3e;border-radius:8px;padding:24px;">
+    <h2 style="color:#e53e3e;margin-top:0;">⚙ Sparkle Email Diagnostic</h2>
+    <p>This is a <strong>diagnostic test email</strong> from the Sparkle backend email service.</p>
+    <p>If you received this, the sending provider is working correctly.</p>
+    <table style="width:100%;font-size:13px;color:#555;border-collapse:collapse;margin-top:12px;">
+      <tr><td style="padding:4px 8px;font-weight:bold;">Test recipient:</td><td>${esc(d.testEmail || 'unknown')}</td></tr>
+      <tr><td style="padding:4px 8px;font-weight:bold;">Sent at:</td><td>${esc(d.timestamp || new Date().toISOString())}</td></tr>
+    </table>
+    <p style="font-size:11px;color:#999;margin-top:20px;border-top:1px solid #eee;padding-top:12px;">
+      This message was sent as part of an internal email delivery diagnostic. It is not intended for end users.
+    </p>
+  </div>
+</body>
+</html>`,
+
     'appeal-received': (d) => `<meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account Appeal Received - Sparkle</title>

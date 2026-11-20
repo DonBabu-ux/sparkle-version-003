@@ -35,7 +35,7 @@ export const NotificationPermissionReminder: React.FC = () => {
     return false;
   }, []);
 
-  const evaluateNotificationState = useCallback(async (isResume = false) => {
+  const evaluateNotificationState = useCallback(async () => {
     // Only check for logged-in users
     if (!useUserStore.getState().isAuthenticated) return;
 
@@ -72,7 +72,7 @@ export const NotificationPermissionReminder: React.FC = () => {
 
     // Check after 2 seconds on app startup so first paint is completely unimpeded
     const startupTimer = setTimeout(() => {
-      evaluateNotificationState(false);
+      evaluateNotificationState();
     }, 2000);
 
     // Check on app resume from background
@@ -81,14 +81,14 @@ export const NotificationPermissionReminder: React.FC = () => {
       try {
         resumeHandle = App.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
-            evaluateNotificationState(true);
+            evaluateNotificationState();
           }
         });
       } catch {}
     }
 
     const handleFocus = () => {
-      evaluateNotificationState(true);
+      evaluateNotificationState();
     };
 
     window.addEventListener('focus', handleFocus);

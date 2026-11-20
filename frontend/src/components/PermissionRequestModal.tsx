@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
 import { Camera, Mic, Bell, Image, MapPin, Users, Bluetooth, AlertCircle, Settings as SettingsIcon, X } from 'lucide-react';
-import { PermissionService, type SparklePermission, type SparklePermissionStatus } from '../services/PermissionService';
+import { PermissionService, type SparklePermission } from '../services/PermissionService';
 import { lockScroll, unlockScroll } from './AppScreen';
 
 export interface PermissionModalDetails {

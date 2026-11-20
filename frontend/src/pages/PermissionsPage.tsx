@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -13,8 +13,6 @@ import {
   Settings as SettingsIcon,
   RefreshCw,
   CheckCircle2,
-  AlertCircle,
-  HelpCircle,
   ExternalLink,
 } from 'lucide-react';
 import {

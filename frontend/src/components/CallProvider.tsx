@@ -6,6 +6,8 @@ import { logger } from '../utils/logger';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import api from '../api/api';
 import { cancelIncomingCallNotification } from '../services/PushService';
+import { PermissionRequestModal } from './PermissionRequestModal';
+import { PermissionService, type SparklePermission } from '../services/PermissionService';
 import {
   ensureCallPermissions,
   setNativeAudioRoute,
@@ -235,6 +237,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
   // Video Upgrade & Call Waiting
   const [videoUpgradeRequested, setVideoUpgradeRequested] = useState(false);
   const [callWaiting, setCallWaiting] = useState<CallWaitingInfo | null>(null);
+  const [callPermissionPrompt, setCallPermissionPrompt] = useState<SparklePermission | null>(null);
 
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -1068,6 +1071,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
         const perm = await ensureCallPermissions(callMode);
         if (!perm.granted) {
           emit('call:end', { callId, targetId: peerId });
+          setCallPermissionPrompt('microphone');
           failCall(perm.error || 'Microphone permission is required.');
           return;
         }
@@ -1139,6 +1143,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
         const perm = await ensureCallPermissions(callMode);
         if (!perm.granted) {
           emit('call:reject', { callId: call.callId, targetId: call.peerId, reason: 'permission' });
+          setCallPermissionPrompt('microphone');
           failCall(perm.error || 'Microphone permission is required.');
           return;
         }
@@ -1240,7 +1245,19 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     if (!bluetoothDevice) return;
     await selectAudioDevice(bluetoothDevice.deviceId);
   };
-  const toggleCamera = () => setCamera((v) => !v);
+  const toggleCamera = async () => {
+    if (!isCameraOn) {
+      const camStatus = await PermissionService.checkPermission('camera');
+      if (camStatus !== 'granted') {
+        const result = await PermissionService.requestPermission('camera');
+        if (result !== 'granted') {
+          setCallPermissionPrompt('camera');
+          return;
+        }
+      }
+    }
+    setCamera((v) => !v);
+  };
 
   const switchCamera = async () => {
     if (mode !== 'video' || !isCameraOn || stateRef.current === 'idle') return;
@@ -1474,6 +1491,14 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       }}
     >
       {children}
+      {callPermissionPrompt && (
+        <PermissionRequestModal
+          isOpen={true}
+          permissionName={callPermissionPrompt}
+          onDismiss={() => setCallPermissionPrompt(null)}
+          onGranted={() => setCallPermissionPrompt(null)}
+        />
+      )}
     </CallContext.Provider>
   );
 };

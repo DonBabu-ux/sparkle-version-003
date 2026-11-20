@@ -21,6 +21,7 @@ import { NetworkStatusProvider } from './components/NetworkStatusProvider';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { DialogHost } from './components/ui/DialogHost';
 import { CallProvider } from './components/CallProvider';
+import { PermissionModalProvider } from './components/PermissionRequestModal';
 import './context/SocketProvider';
 import { SoundProvider, handleNotificationSound } from './context/SoundProvider';
 import { CallOverlay } from './components/CallOverlay';
@@ -46,9 +47,11 @@ const Settings = lazyWithRetry(() => import('./pages/Settings'));
 const SecurityCentre = lazyWithRetry(() => import('./pages/SecurityCentre'));
 const ChangePassword = lazyWithRetry(() => import('./pages/ChangePassword'));
 import CrossDeviceSecurityAlertOverlay from './components/security/CrossDeviceSecurityAlertOverlay';
+import { NotificationPermissionReminder } from './components/NotificationPermissionReminder';
 const AdvancedSettings = lazyWithRetry(() => import('./pages/AdvancedSettings'));
 const AdvancedSettingsDetail = lazyWithRetry(() => import('./pages/AdvancedSettingsDetail'));
 const AppUpdates = lazyWithRetry(() => import('./pages/AppUpdates'));
+const PermissionsPage = lazyWithRetry(() => import('./pages/PermissionsPage'));
 const Notifications = lazyWithRetry(() => import('./pages/Notifications'));
 const Search = lazyWithRetry(() => import('./pages/Search'));
 const SearchHistory = lazyWithRetry(() => import('./pages/SearchHistory'));
@@ -551,7 +554,8 @@ function App() {
           <OfflineIndicator />
           <DialogHost />
           <GlobalThemeProvider>
-            <CallProvider>
+            <PermissionModalProvider>
+              <CallProvider>
               <div className="app no-scrollbar">
                   <LoadingBar />
                   <GlobalEffects />
@@ -563,6 +567,7 @@ function App() {
                   <CallOverlay />
                   <AppLockOverlay />
                   <CrossDeviceSecurityAlertOverlay />
+                  <NotificationPermissionReminder />
                   <UploadNotificationCenter />
                   <Suspense fallback={
                         <BlockingLoader show label="Loading" sublabel="Just a moment" />
@@ -628,6 +633,7 @@ function App() {
                     <Route path="/marketplace" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
                     <Route path="/groups" element={isAuthenticated ? <Groups /> : <Navigate to="/login" />} />
                     <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
+                    <Route path="/settings/permissions" element={isAuthenticated ? <PermissionsPage /> : <Navigate to="/login" />} />
                     <Route path="/settings/data-centre" element={isAuthenticated ? <DataCentre /> : <Navigate to="/login" />} />
                     <Route path="/settings/security" element={isAuthenticated ? <SecurityCentre /> : <Navigate to="/login" />} />
                     <Route path="/settings/change-password" element={isAuthenticated ? <ChangePassword /> : <Navigate to="/login" />} />
@@ -729,6 +735,7 @@ function App() {
                   </Suspense>
                 </div>
             </CallProvider>
+            </PermissionModalProvider>
           </GlobalThemeProvider>
         </NetworkStatusProvider>
       </CameraProvider>

@@ -110,4 +110,9 @@
     <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
     <!-- Proximity sensor and screen wake lock for voice calls -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Location access for live location and campus discovery -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Contacts access for contact discovery and friend invites -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 </manifest>

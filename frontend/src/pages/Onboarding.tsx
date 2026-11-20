@@ -9,6 +9,7 @@ import Slide2 from '../components/onboarding/Slide2';
 import Slide3 from '../components/onboarding/Slide3';
 import Slide4 from '../components/onboarding/Slide4';
 import Slide5 from '../components/onboarding/Slide5';
+import SlidePermissions from '../components/onboarding/SlidePermissions';
 import Success from '../components/onboarding/Success';
 import OnboardingSheet from '../components/onboarding/OnboardingSheet';
 import { logger } from '../utils/logger';
@@ -80,7 +81,7 @@ export default function Onboarding() {
     );
   }
 
-  const totalSlides = 6;
+  const totalSlides = 7;
   const progressPercent = ((currentSlide - 1) / (totalSlides - 1)) * 100;
 
   return (
@@ -96,14 +97,14 @@ export default function Onboarding() {
         </button>
 
         <span className="text-xs font-medium text-slate-500 dark:text-zinc-300 bg-white dark:bg-zinc-900/80 border border-slate-200 dark:border-zinc-800 px-3 py-1 rounded-full shadow-sm">
-          Step {Math.min(currentSlide, 5)} of 5
+          Step {Math.min(currentSlide, 6)} of 6
         </span>
       </div>
 
       {/* Main wizard wrapper */}
       <div className="w-full max-w-xl bg-white dark:bg-[#16151e] border border-slate-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden relative z-10 flex flex-col">
         {/* Progress Bar */}
-        {currentSlide < 6 && (
+        {currentSlide < 7 && (
           <div className="w-full h-1 bg-zinc-800/80 overflow-hidden">
             <div
               className="h-full bg-[#ff2d87] transition-all duration-300 ease-out"
@@ -150,7 +151,14 @@ export default function Onboarding() {
                 onBack={() => setCurrentSlide(4)}
               />
             )}
-            {currentSlide === 6 && <Success key="success" />}
+            {currentSlide === 6 && (
+              <SlidePermissions
+                key="slidePermissions"
+                onNext={() => setCurrentSlide(7)}
+                onBack={() => setCurrentSlide(5)}
+              />
+            )}
+            {currentSlide === 7 && <Success key="success" />}
           </AnimatePresence>
         </div>
       </div>

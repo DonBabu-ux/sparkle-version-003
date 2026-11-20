@@ -1,14 +1,57 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.sparkleapp"
-    compileSdk rootProject.ext.compileSdkVersion
+    // `=` assignment syntax: the space-separated form is deprecated on AGP 8
+    // and removed in AGP 9, so migrate it while we are here.
+    namespace = "com.sparkleapp"
+    compileSdk = rootProject.ext.compileSdkVersion
+
+    // ── Versioning ──────────────────────────────────────────────────────────
+    // versionName (what users see + the APK file name): sourced from
+    // frontend/package.json so a frontend change that bumps the version flows
+    // straight into the APK — no manual edit of this file per release.
+    // versionCode (monotonic int required by adb/Play): auto-incremented from
+    // version.properties on every *packaging* build (assemble/bundle/install),
+    // so `adb install -r` over an existing build never hits a downgrade
+    // error. Gradle syncs/clean do NOT burn a code (they don't match the task
+    // filter below), so the counter only moves when you actually build.
+    def frontendPackageJson = new File(rootDir, '../frontend/package.json')
+    def frontendVersion = '1.0.0'
+    if (frontendPackageJson.exists()) {
+        try {
+            def pkg = new groovy.json.JsonSlurper().parseText(frontendPackageJson.text)
+            if (pkg.version) {
+                frontendVersion = pkg.version
+            }
+        } catch (Exception e) {
+            logger.warn("WARNING: could not parse frontend/package.json version (${e.message}); using ${frontendVersion}")
+        }
+    }
+    // NOTE: `file()` here resolves against the :app module dir — use
+// rootProject.file() so this reads android/version.properties.
+def versionPropsFile = rootProject.file('version.properties')
+    def versionProps = new Properties()
+    if (versionPropsFile.exists()) {
+        versionPropsFile.withInputStream { versionProps.load(it) }
+    }
+    def lastVersionCode = versionProps.getProperty('VERSION_CODE', '7') as int
+    def isPackagingBuild = gradle.startParameter.taskNames.any { name ->
+        def n = name.toLowerCase()
+        n.contains('assemble') || n.contains('bundle') || n.contains('install') || n.contains('package')
+    }
+    def nextVersionCode = isPackagingBuild ? lastVersionCode + 1 : lastVersionCode
+    if (isPackagingBuild) {
+        versionProps.setProperty('VERSION_CODE', nextVersionCode.toString())
+        versionProps.setProperty('VERSION_NAME', frontendVersion)
+        versionPropsFile.withOutputStream { versionProps.store(it, 'Auto-written by app/build.gradle. versionCode auto-increments per packaging build.') }
+    }
+
     defaultConfig {
         applicationId "com.sparkleapp"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 7
-        versionName "1.0.6"
+        minSdk = rootProject.ext.minSdkVersion
+        targetSdk = rootProject.ext.targetSdkVersion
+        versionCode nextVersionCode
+        versionName frontendVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // aaptOptions {
         //      // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -34,6 +77,9 @@ android {
     buildTypes {
         release {
             minifyEnabled true
+            // R8 only strips unused *code*; without this, unused resources
+            // (drawables of unshipped plugins, etc.) still ship in the APK.
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             // Only wire the signing config when the credentials are actually
             // present. An empty signingConfig used to be referenced here
@@ -45,8 +91,12 @@ android {
             if (project.hasProperty("STORE_PASSWORD")) {
                 signingConfig signingConfigs.release
             } else {
-                logger.warn("WARNING: building an UNSIGNED release APK — STORE_PASSWORD is not set. " +
-                        "Pass -PSTORE_PASSWORD=... -PKEY_ALIAS=... -PKEY_PASSWORD=... for a distributable build.")
+                // Local release builds: sign with the debug key so the APK is
+                // installable via adb. Debug-signed releases must NEVER be
+                // uploaded to Play — Play rejects them.
+                signingConfig signingConfigs.debug
+                logger.warn("WARNING: building a DEBUG-SIGNED release APK — STORE_PASSWORD is not set. " +
+                        "Installable locally only. Pass -PSTORE_PASSWORD=... -PKEY_ALIAS=... -PKEY_PASSWORD=... for a distributable build.")
             }
         }
     }

@@ -29,8 +29,10 @@ npx cap sync android
 Open **PowerShell** in the `android/` directory and run:
 
 ```powershell
-# 1. Set JDK 17 path (Gradle 8.5 compatibility)
-$env:JAVA_HOME="C:\Users\Derivo\.jdks\jbr-17.0.14"
+# 1. JDK 21 is REQUIRED — Capacitor 8's plugin modules compile with
+#    sourceCompatibility 21 (JDK 17 fails with "invalid source release: 21").
+#    Any JDK 21 works; this machine has Android Studio's:
+$env:JAVA_HOME="C:\Users\ADMIN\.jdks\jbr-21.0.11"
 
 # 2. Prevent AGP environment variable conflict
 Remove-Item Env:\ANDROID_PREFS_ROOT -ErrorAction SilentlyContinue
@@ -82,8 +84,8 @@ Below is the complete troubleshooting log from initial build failure to successf
   Incompatible Gradle JVM version: The project's Gradle version 8.5 is incompatible
   with the Gradle JVM version 25 currently selected to run Gradle build.
   ```
-* **Cause:** Android Studio / environment defaulted to Java 25. Gradle 8.5 requires Java 8 – 21.
-* **Fix:** Set `JAVA_HOME` to a compatible JDK version (e.g. JDK 17 at `C:\Users\Derivo\.jdks\jbr-17.0.14`) in your terminal before running `./gradlew`.
+* **Cause:** Android Studio / environment defaulted to a Java version the current Gradle rejects (Gradle 8.14.3 accepts up to Java 24; Android Studio's bundled JBR here is 25).
+* **Fix:** use JDK 21 (`C:\Users\ADMIN\.jdks\jbr-21.0.11`) or JDK 17 for Gradle 8.x-era builds. Note the asymmetry: **build** with 21 — Capacitor 8 period plugins need Java 21 to compile; the JBR 25 breaks the daemon.
 
 ---
 
@@ -212,6 +214,58 @@ Below is the complete troubleshooting log from initial build failure to successf
 
 ---
 
+## Capacitor 8 period (Nov 2026) — what changed
+
+Play has required targetSdk 36 for updates since Aug 31, 2026, which forced the
+toolchain off Capacitor 6 (topped out at 35). Current stack:
+
+| Component | Before | After |
+| :--- | :--- | :--- |
+| Capacitor | 6.2.1 | **8.6.2** (via the 6→7→8 hop chain) |
+| AGP | 8.2.1 | **8.13.0** |
+| Gradle wrapper | 8.5 | **8.14.3** |
+| google-services plugin | 4.4.0 | **4.4.4** |
+| minSdk / compileSdk / targetSdk | 22 / 34 / 34 | **24 / 36 / 36** |
+| Build JDK | 17 | **21** |
+| Node (engines) | >=18 | **>=22** |
+| `android:configChanges` | …uiMode | **…uiMode\|navigation\|density** |
+| otakit updater | 3.3.0 | 3.4.0 (peer `@capacitor/core ^7 || ^8`) |
+
+Gotchas worth remembering (all hit during this migration):
+
+- **`npx cap sync android` must run from the repo ROOT** (`sparkle-version-003/`), never from `android/` — the CLI looks for `capacitor.config.json` in the cwd and silently falls back to `webDir: www` otherwise, which then fails on a missing `www`. The `cap migrate` tool additionally assumes a standard per-platform `package.json` layout this repo doesn't have, so its native-dependency step is skipped (`Unable to find android/package.json`) — harmless, the manual steps above cover it.
+- **SDK Platform 36 + Build-Tools 35 must be installed** (`platforms;android-36`, `build-tools;35.0.0`) — Gradle auto-install normally handles it; the first attempt here failed transiently and the retry succeeded.
+- **Build with JDK 21**: JDK 17 fails on the Capacitor 8 period plugins (`invalid source release: 21`); Android Studio's JBR 25 fails the Gradle daemon. `C:\Users\ADMIN\.jdks\jbr-21.0.11` is the local sweet spot.
+- The frontend typecheck was already red before the migration (129 pre-existing app-code errors); it was diffed before/after to prove the upgrade added none. It is **not** green on `main` — do not treat a non-zero count as a migration regression.
+
+## Call stack (Telecom + FGS)
+
+See `app/src/main/java/com/sparkleapp/plugins/` — `SparkleCallPlugin`,
+`CallService` (foregroundServiceType `microphone|camera`), the self-managed
+`SparkleCallConnectionService`, `IncomingCallActivity` (lock screen), and
+`SparkleFirebaseMessagingService` (cold-start call alerts; non-call messages are
+forwarded to Capacitor's push plugin). The web layer drives it over socket
+signalling via `SparkleCall.*` and the `sparkle://call` deep link.
+
+Verify a build has it: `adb shell dumpsys telecom | Select-String Sparkle` should
+show the registered `Sparkle calls` PhoneAccount after a cold start.
+
+## Tests
+
+```powershell
+# Unit tests (Robolectric + JUnit — WebView-storage chunking, inset dp math,
+# screenshot debounce, call snapshot)
+.\gradlew.bat app:testDebugUnitTest
+
+# Both artifacts (release runs R8 — the call stack survives minification)
+.\gradlew.bat app:assembleDebug app:assembleRelease
+```
+
+Release builds without `STORE_PASSWORD` package successfully but are **unsigned**
+and print a loud warning — never upload them. See `PLAY_CONSOLE_CHECKLIST.md`
+for the console-side declarations the call stack requires (FGS types, app
+category, USE_FULL_SCREEN_INTENT category, Data safety).
+
 ## File Modifications Summary
 
 | File | Status | Description |
@@ -222,7 +276,11 @@ Below is the complete troubleshooting log from initial build failure to successf
 | `android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml` | **Deleted** | Removed vector overriding real app icon. |
 | `android/app/src/main/res/mipmap-*/ic_launcher*.png` | **Updated** | Replaced default green robot images with scaled Sparkle logo assets. |
 | `android/BUILD_GUIDE.md` | **Updated** | Developer guide, versioning instructions, and troubleshooting reference document. |
-| `android/gradle/wrapper/gradle-wrapper.properties` | **Updated** | Gradle wrapper 8.2.1 → **8.5** (8.2.1 is incompatible with the JDK 21+ that Android Studio ships); `networkTimeout=300000`. |
+| `android/gradle/wrapper/gradle-wrapper.properties` | **Updated** | Gradle wrapper 8.2.1 → **8.5** → **8.14.3** (Capacitor 8 period upgrade); `networkTimeout=300000`. |
+| `android/variables.gradle`, `android/build.gradle`, `android/app/build.gradle` | **Updated** | Capacitor 8 period: AGP **8.13.0**, google-services **4.4.4**, minSdk **24**, compile/target **36**, androidx + cordova-android 14.0.1 versions, `=` property syntax. |
+| `android/app/src/main/AndroidManifest.xml` | **Updated** | `configChanges` += `navigation|density`; call services (ConnectionService, CallService with FGS types, IncomingCallActivity, call-messaging service), `sparkle://call` deep link, backup rules, cleartext off. |
+| `android/app/src/main/java/com/sparkleapp/plugins/` | **Added** | Call stack (`CallCoordinator`, `CallService`, `SparkleCallConnection(Service)`, `IncomingCallActivity`, `SparkleFirebaseMessagingService`), Crashlytics bridge (`SparkleDiagnostics`), hardened `MediaStoreSaver`, gated screenshot observer. |
+| `android/app/src/test/java/com/sparkleapp/plugins/` | **Added** | Unit tests: inset dp math, base64 chunking, screenshot debounce, call snapshot (Robolectric + JUnit). |
 | `package.json` (root) | **Updated** | npm `overrides` pinning `tar@^6.1.11` for `@capacitor/cli` (fixes cap sync crash). |
 | `frontend/.env.production` | **Created** | Bakes Render API + socket URLs into the APK bundle. **Gitignored — must exist on every build machine.** |
 
@@ -230,7 +288,7 @@ Below is the complete troubleshooting log from initial build failure to successf
 
 ## Environment Checklist for New Developers
 
-- [x] Java JDK 17 installed and set in `JAVA_HOME`
+- [x] Java JDK **21** installed and set in `JAVA_HOME` (`jbr-21.0.11`; 17 is too old for the Capacitor 8 period plugins)
 - [x] Android SDK installed with platform-tools (`adb`) in PATH
 - [x] `ANDROID_PREFS_ROOT` unset if encountering `AndroidLocationsException`
 - [x] USB Debugging enabled on mobile test device

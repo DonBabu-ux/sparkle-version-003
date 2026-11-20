@@ -100,6 +100,27 @@
 [data-chat-mode="light"] .chat-panel-bg,
 [data-chat-mode="light"].chat-panel-bg { color: #18181b; }
 
+.message-bubble-shell {
+  width: fit-content;
+  max-width: 82%;
+  min-width: 0;
+}
+
+.message-bubble-content {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.official-message-bubble-shell {
+  max-width: 95%;
+}
+
+@media (min-width: 768px) {
+  .message-bubble-shell {
+    max-width: 68%;
+  }
+}
+
 /* ── Conversation header presence indicators ───────────────────────────────
    The conversation header supports both light and dark modes per Part 5.3:
    WCAG AA targets:

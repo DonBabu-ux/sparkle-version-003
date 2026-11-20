@@ -5,21 +5,40 @@ import { useUserStore } from '../store/userStore';
 import { logger } from '../utils/logger';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import api from '../api/api';
+import { cancelIncomingCallNotification } from '../services/PushService';
+import {
+  ensureCallPermissions,
+  setNativeAudioRoute,
+  resetNativeAudioRoute,
+  getNativeAudioDevices,
+  requestBluetoothPermission,
+  type NativeAudioOutputDevice,
+} from '../services/callPermissions';
 
 export type CallMode = 'voice' | 'video';
 export type CallDirection = 'outgoing' | 'incoming';
 export type CallState =
   | 'idle'
-  | 'calling'
+  | 'initiating'
   | 'ringing'
+  | 'accepted'
   | 'connecting'
-  | 'connected'
+  | 'active'
+  | 'reconnecting'
+  | 'held'
   | 'failed'
-  | 'declined'
+  | 'rejected'
   | 'missed'
+  | 'cancelled'
   | 'ended';
 
 export type AudioRouteType = 'speaker' | 'earpiece' | 'bluetooth' | 'headphones';
+
+export interface AudioOutputDevice {
+  deviceId: string;
+  label: string;
+  type: AudioRouteType | 'unknown';
+}
 
 export interface CallHistoryEntry {
   id: string;
@@ -74,10 +93,11 @@ interface CallContextProps {
   remoteStream: MediaStream | null;
   localStream: MediaStream | null;
   // Audio routing & devices
-  availableAudioDevices: MediaDeviceInfo[];
+  availableAudioDevices: AudioOutputDevice[];
   selectedAudioDeviceId: string | null;
   audioRoute: AudioRouteType;
   selectAudioDevice: (deviceId: string) => Promise<void>;
+  connectionQuality: 'excellent' | 'good' | 'poor' | 'unknown';
   // Call upgrade
   videoUpgradeRequested: boolean;
   requestVideoUpgrade: () => void;
@@ -90,7 +110,7 @@ interface CallContextProps {
 
 const CallContext = createContext<CallContextProps | null>(null);
 
-const ICE_CONFIG: RTCConfiguration = {
+const DEFAULT_ICE_CONFIG: RTCConfiguration = {
   iceServers: [
     { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
     { urls: ['stun:stun.cloudflare.com:3478'] },
@@ -121,10 +141,66 @@ const newCallId = (): string => {
   return `call-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
-const mediaConstraints = (mode: CallMode): MediaStreamConstraints =>
-  mode === 'video'
-    ? { audio: true, video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } }
-    : { audio: true };
+type CameraQuality = 'low' | 'standard' | 'high';
+
+const VIDEO_CONSTRAINTS: Record<CameraQuality, { width: number; height: number }> = {
+  low: { width: 480, height: 360 },
+  standard: { width: 640, height: 480 },
+  high: { width: 1280, height: 720 },
+};
+
+const acquireLocalMedia = async (
+  mode: CallMode,
+  quality: CameraQuality = 'standard'
+): Promise<{ stream: MediaStream; fallbackToVoice?: boolean }> => {
+  if (mode === 'video') {
+    try {
+      // 1. Try high quality front camera
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: 'user', width: { ideal: VIDEO_CONSTRAINTS[quality].width }, height: { ideal: VIDEO_CONSTRAINTS[quality].height } }
+      });
+      return { stream };
+    } catch (hdErr) {
+      logger.warn('[CallProvider] HD constraints failed, attempting basic video:', hdErr);
+      try {
+        // 2. Try basic video without restrictive constraints
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        return { stream };
+      } catch (basicErr) {
+        logger.warn('[CallProvider] Basic video failed, falling back to voice only:', basicErr);
+        // 3. Fallback to audio only
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        return { stream, fallbackToVoice: true };
+      }
+    }
+  }
+
+  // Voice call: audio only
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  return { stream };
+};
+
+const mapMediaError = (err: any, mode: CallMode): string => {
+  const errName = err?.name || '';
+  if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError' || errName === 'SecurityError') {
+    return mode === 'video'
+      ? 'Camera & microphone permissions are required. Please enable them in device settings.'
+      : 'Microphone permission is required. Please enable it in device settings.';
+  }
+  if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+    return mode === 'video'
+      ? 'No camera or microphone was found on this device.'
+      : 'No microphone was found on this device.';
+  }
+  if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+    return 'Microphone or camera is currently in use by another application.';
+  }
+  if (errName === 'OverconstrainedError') {
+    return 'Camera hardware does not support the requested video resolution.';
+  }
+  return mode === 'video' ? 'Camera or microphone unavailable' : 'Microphone unavailable';
+};
 
 export const CallProvider = ({ children }: { children: ReactNode }) => {
   const socket: Socket | null = useSocket();
@@ -151,9 +227,10 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
   const [callHistory, setCallHistory] = useState<CallHistoryEntry[]>([]);
 
   // Audio Device Routing
-  const [availableAudioDevices, setAvailableAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [availableAudioDevices, setAvailableAudioDevices] = useState<AudioOutputDevice[]>([]);
   const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState<string | null>(null);
   const [audioRoute, setAudioRoute] = useState<AudioRouteType>('speaker');
+  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'unknown'>('unknown');
 
   // Video Upgrade & Call Waiting
   const [videoUpgradeRequested, setVideoUpgradeRequested] = useState(false);
@@ -171,6 +248,11 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
   const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
   const loggedRef = useRef(false);
+  const lastCallIdRef = useRef<string | null>(null);
+  const connectedNotifiedRef = useRef(false);
+  const iceConfigRef = useRef<RTCConfiguration>(DEFAULT_ICE_CONFIG);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const iceRestartAttemptRef = useRef(0);
 
   const ringSwapTimerRef = useRef<number | null>(null);
   const answerTimeoutRef = useRef<number | null>(null);
@@ -179,6 +261,12 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
   const disconnectGraceRef = useRef<number | null>(null);
   const transitionTimerRef = useRef<number | null>(null);
   const durationIntervalRef = useRef<number | null>(null);
+  const networkStatsIntervalRef = useRef<number | null>(null);
+  const callPrefsRef = useRef<{
+    default_audio_route: 'earpiece' | 'speaker';
+    camera_quality: CameraQuality;
+    use_less_data: boolean;
+  }>({ default_audio_route: 'earpiece', camera_quality: 'standard', use_less_data: false });
 
   const clearTimer = (ref: React.RefObject<number | null>) => {
     if (ref.current !== null) {
@@ -198,10 +286,31 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
 
   // ── Audio Devices Enumeration ──
   const enumerateAudioDevices = useCallback(async () => {
+    const nativeDevices = await getNativeAudioDevices();
+    if (nativeDevices.length > 0) {
+      setAvailableAudioDevices(nativeDevices.map((device: NativeAudioOutputDevice) => ({
+        deviceId: device.deviceId,
+        label: device.label,
+        type: device.type === 'unknown' ? 'unknown' : device.type,
+      })));
+      return;
+    }
     try {
       if (navigator.mediaDevices?.enumerateDevices) {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+        const audioOutputs = devices
+          .filter((device) => device.kind === 'audiooutput')
+          .map((device) => {
+            const label = (device.label || '').toLowerCase();
+            const type: AudioOutputDevice['type'] = label.includes('bluetooth') || label.includes('airpod') || label.includes('bt ')
+              ? 'bluetooth'
+              : label.includes('headphone') || label.includes('headset')
+                ? 'headphones'
+                : label.includes('speaker')
+                  ? 'speaker'
+                  : 'unknown';
+            return { deviceId: device.deviceId, label: device.label || 'Audio output', type };
+          });
         setAvailableAudioDevices(audioOutputs);
       }
     } catch (_) {}
@@ -216,25 +325,18 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
   }, [enumerateAudioDevices]);
 
   const selectAudioDevice = async (deviceId: string) => {
+    const device = availableAudioDevices.find((item) => item.deviceId === deviceId);
+    if (!device) return;
+    if (device.type === 'bluetooth' && !(await requestBluetoothPermission())) return;
+    const route: AudioRouteType = device.type === 'unknown' ? 'speaker' : device.type;
+    const routed = await setNativeAudioRoute(route, device.deviceId);
+    if (!routed) return;
     setSelectedAudioDeviceId(deviceId);
-    const dev = availableAudioDevices.find(d => d.deviceId === deviceId);
-    const label = (dev?.label || '').toLowerCase();
-    if (label.includes('bluetooth') || label.includes('bt') || label.includes('airpod')) {
-      setAudioRoute('bluetooth');
-      setBluetooth(true);
-      setSpeaker(false);
-    } else if (label.includes('speaker')) {
-      setAudioRoute('speaker');
-      setSpeaker(true);
-      setBluetooth(false);
-    } else if (label.includes('headphone') || label.includes('headset')) {
-      setAudioRoute('headphones');
-      setSpeaker(false);
-      setBluetooth(false);
-    } else {
-      setAudioRoute('earpiece');
-      setSpeaker(false);
-      setBluetooth(false);
+    setAudioRoute(route);
+    setBluetooth(route === 'bluetooth');
+    setSpeaker(route === 'speaker');
+    if (callRef.current) {
+      emit('call:audio-route', { callId: callRef.current.callId, targetId: callRef.current.peerId, route });
     }
   };
 
@@ -244,6 +346,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     clearTimer(incomingRingRef);
     clearTimer(connectingTimeoutRef);
     clearTimer(disconnectGraceRef);
+    clearTimer(reconnectTimerRef);
     const pc = pcRef.current;
     pcRef.current = null;
     if (pc) {
@@ -269,13 +372,21 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     setRemoteStream(null);
     pendingOfferRef.current = null;
     pendingIceRef.current = [];
+    connectedNotifiedRef.current = false;
+    iceRestartAttemptRef.current = 0;
     callRef.current = null;
     setVideoUpgradeRequested(false);
     setCallWaiting(null);
   };
 
   const finish = (nextState: CallState, tone: 'completed' | 'hangup' | 'busy') => {
+    const activeId = callRef.current?.callId || lastCallIdRef.current;
+    if (activeId) {
+      cancelIncomingCallNotification(activeId).catch(() => {});
+    }
+    lastCallIdRef.current = callRef.current?.callId || lastCallIdRef.current;
     teardownMedia();
+    resetNativeAudioRoute();
     try {
       AudioSessionManager.endCall(tone);
     } catch (e) {
@@ -287,6 +398,10 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
 
   const failCall = (message: string, tone: 'completed' | 'hangup' | 'busy' = 'hangup') => {
     if (stateRef.current === 'idle') return;
+    const call = callRef.current;
+    if (call) {
+      emit('call:failed', { callId: call.callId, targetId: call.peerId, reason: message });
+    }
     setFailureMessage(message);
     finish('failed', tone);
   };
@@ -313,8 +428,108 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const loadCallPreferences = async () => {
+    try {
+      const response = await api.get('/calls/settings');
+      const settings = response.data?.settings;
+      if (!settings) return;
+      const route = settings.default_audio_route === 'speaker' ? 'speaker' : 'earpiece';
+      const quality: CameraQuality = ['low', 'standard', 'high'].includes(settings.camera_quality)
+        ? settings.camera_quality
+        : 'standard';
+      callPrefsRef.current = {
+        default_audio_route: route,
+        camera_quality: quality,
+        use_less_data: Boolean(settings.use_less_data),
+      };
+    } catch (err) {
+      logger.warn('[CallProvider] Call preferences unavailable:', err);
+    }
+  };
+
+  const preferredRouteFor = (callMode: CallMode): AudioRouteType => {
+    if (callMode === 'video') return 'speaker';
+    return callPrefsRef.current.default_audio_route === 'speaker' ? 'speaker' : 'earpiece';
+  };
+
+  const loadIceConfiguration = async () => {
+    try {
+      const response = await api.get('/calls/ice-servers');
+      const servers = response.data?.iceServers;
+      if (Array.isArray(servers) && servers.length > 0) {
+        iceConfigRef.current = { iceServers: servers };
+      }
+    } catch (err) {
+      logger.warn('[CallProvider] TURN configuration unavailable:', err);
+      iceConfigRef.current = DEFAULT_ICE_CONFIG;
+    }
+  };
+
+  const restartIceConnection = async () => {
+    const call = callRef.current;
+    const pc = pcRef.current;
+    if (!call || !pc || stateRef.current === 'idle' || stateRef.current === 'ended') return;
+    if (iceRestartAttemptRef.current >= 2) {
+      failCall('Connection could not be restored');
+      return;
+    }
+    iceRestartAttemptRef.current += 1;
+    applyState('reconnecting');
+    emit('call:reconnecting', { callId: call.callId, targetId: call.peerId });
+    try {
+      if (typeof pc.restartIce === 'function') pc.restartIce();
+      const offer = await pc.createOffer({ iceRestart: iceRestartAttemptRef.current > 0 });
+      await pc.setLocalDescription(offer);
+      emit('call:offer', { callId: call.callId, targetId: call.peerId, sdp: pc.localDescription });
+    } catch (err) {
+      logger.warn('[CallProvider] ICE restart failed:', err);
+      failCall('Connection could not be restored');
+    }
+  };
+
+  const updateNetworkQuality = useCallback(async () => {
+    const pc = pcRef.current;
+    if (!pc || stateRef.current !== 'active') return;
+    try {
+      const stats = await pc.getStats();
+      let packetLoss = 0;
+      let rtt = 0;
+      stats.forEach((report: any) => {
+        if (report.type === 'inbound-rtp' && !report.isRemote) {
+          const received = Number(report.packetsReceived) || 0;
+          const lost = Number(report.packetsLost) || 0;
+          const total = received + lost;
+          if (total > 0) packetLoss = Math.max(packetLoss, lost / total);
+        }
+        if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.currentRoundTripTime != null) {
+          rtt = Math.max(rtt, Number(report.currentRoundTripTime) * 1000);
+        }
+      });
+      if (packetLoss > 0.12 || rtt > 600) setConnectionQuality('poor');
+      else if (packetLoss > 0.04 || rtt > 280) setConnectionQuality('good');
+      else setConnectionQuality('excellent');
+    } catch (_) {}
+  }, []);
+
+  const applyBandwidthLimits = async (pc: RTCPeerConnection) => {
+    if (!callPrefsRef.current.use_less_data) return;
+    try {
+      for (const sender of pc.getSenders()) {
+        if (!sender.track) continue;
+        const params = sender.getParameters();
+        if (!params.encodings || params.encodings.length === 0) {
+          params.encodings = [{}];
+        }
+        params.encodings[0].maxBitrate = sender.track.kind === 'audio' ? 24000 : 400000;
+        await sender.setParameters(params);
+      }
+    } catch (err) {
+      logger.warn('[CallProvider] Could not apply data saver limits:', err);
+    }
+  };
+
   const createPeer = (callId: string, peerId: string): RTCPeerConnection => {
-    const pc = new RTCPeerConnection(ICE_CONFIG);
+    const pc = new RTCPeerConnection(iceConfigRef.current);
     pcRef.current = pc;
 
     pc.onicecandidate = (e) => {
@@ -332,20 +547,35 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       const cs = pc.connectionState;
       if (cs === 'connected') {
         clearTimer(disconnectGraceRef);
+        clearTimer(reconnectTimerRef);
         clearTimer(connectingTimeoutRef);
-        if (stateRef.current === 'calling' || stateRef.current === 'ringing' || stateRef.current === 'connecting') {
-          applyState('connected');
+        iceRestartAttemptRef.current = 0;
+        if (stateRef.current === 'initiating' || stateRef.current === 'ringing' || stateRef.current === 'accepted' || stateRef.current === 'connecting' || stateRef.current === 'reconnecting') {
+          applyState('active');
         }
-      } else if (cs === 'failed') {
-        failCall('Connection failed');
+        if (!connectedNotifiedRef.current) {
+          connectedNotifiedRef.current = true;
+          AudioSessionManager.stopCallSounds();
+          emit('call:connected', { callId, targetId: peerId });
+        }
       } else if (cs === 'disconnected') {
+        if (stateRef.current !== 'idle' && stateRef.current !== 'ended' && stateRef.current !== 'failed') {
+          applyState('reconnecting');
+          emit('call:reconnecting', { callId, targetId: peerId });
+        }
         if (disconnectGraceRef.current === null) {
           disconnectGraceRef.current = window.setTimeout(() => {
             disconnectGraceRef.current = null;
             if (pcRef.current === pc && pc.connectionState !== 'connected') {
-              failCall('Connection lost');
+              void restartIceConnection();
             }
           }, DISCONNECT_GRACE_MS);
+        }
+      } else if (cs === 'failed') {
+        if (iceRestartAttemptRef.current < 2) {
+          void restartIceConnection();
+        } else {
+          failCall('Connection failed');
         }
       }
     };
@@ -361,11 +591,29 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       t.enabled = isCameraOn;
     });
     // Emit real-time status to peer
-    if (callRef.current && stateRef.current === 'connected') {
+    if (callRef.current && stateRef.current === 'active') {
       emit('call:mute', { callId: callRef.current.callId, targetId: callRef.current.peerId, isMuted });
       emit('call:camera', { callId: callRef.current.callId, targetId: callRef.current.peerId, isCameraOn });
     }
   }, [isMuted, isCameraOn, localStream, emit]);
+
+  useEffect(() => {
+    if (networkStatsIntervalRef.current !== null) {
+      window.clearInterval(networkStatsIntervalRef.current);
+      networkStatsIntervalRef.current = null;
+    }
+    if (state === 'active') {
+      networkStatsIntervalRef.current = window.setInterval(() => {
+        void updateNetworkQuality();
+      }, 5000);
+    }
+    return () => {
+      if (networkStatsIntervalRef.current !== null) {
+        window.clearInterval(networkStatsIntervalRef.current);
+        networkStatsIntervalRef.current = null;
+      }
+    };
+  }, [state, updateNetworkQuality]);
 
   // ── Load history from backend & localStorage ──
   useEffect(() => {
@@ -387,7 +635,9 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
             partnerAvatar: h.partner?.avatar_url,
             mode: h.mode === 'video' ? 'video' : 'voice',
             direction: h.direction || 'outgoing',
-            state: h.status === 'ended' ? 'ended' : h.status === 'missed' ? 'missed' : h.status === 'rejected' ? 'declined' : 'ended',
+            state: ['ended', 'missed', 'rejected', 'cancelled', 'failed'].includes(h.status)
+              ? h.status as CallState
+              : 'ended',
             timestamp: new Date(h.started_at).getTime(),
             duration: h.duration_seconds || 0,
           }));
@@ -409,7 +659,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     const callMode = mode || 'voice';
     const callDir = direction || 'outgoing';
     const entry: CallHistoryEntry = {
-      id: callRef.current?.callId || Math.random().toString(36).slice(2, 11),
+      id: lastCallIdRef.current || callRef.current?.callId || Math.random().toString(36).slice(2, 11),
       partnerId: pid,
       partnerName: partnerName || 'Sparkle User',
       partnerAvatar: partnerAvatar || undefined,
@@ -429,23 +679,6 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       }
       return updated;
     });
-
-    const outcome = finalState === 'ended' ? 'completed'
-      : finalState === 'missed' ? 'missed'
-      : finalState === 'declined' ? 'declined'
-      : finalState === 'failed' ? 'failed'
-      : 'cancelled';
-
-    const me = useUserStore.getState().user;
-    if ((me?.id || me?.user_id) && pid && String(pid).trim()) {
-      api.post('/messages/send', {
-        partnerId: String(pid).trim(),
-        recipient_id: String(pid).trim(),
-        content: `${callDir === 'outgoing' ? 'Outgoing' : 'Incoming'} ${callMode} call · ${outcome}${durationSecs > 0 && outcome === 'completed' ? ` · ${Math.floor(durationSecs / 60)}:${String(durationSecs % 60).padStart(2, '0')}` : ''}`,
-        type: callMode === 'video' ? 'video_call' : 'voice_call',
-        metadata: JSON.stringify({ outcome, duration: durationSecs, direction: callDir }),
-      }).catch((e: Error) => logger.warn('Call log bubble send failed', e.message));
-    }
   };
 
   const clearHistory = () => {
@@ -470,7 +703,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    if (state === 'connected') {
+    if (state === 'active') {
       setCallDuration(0);
       durationIntervalRef.current = window.setInterval(() => {
         setCallDuration((prev) => prev + 1);
@@ -478,7 +711,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    if (state === 'failed' || state === 'declined' || state === 'missed') {
+    if (state === 'failed' || state === 'rejected' || state === 'missed' || state === 'cancelled') {
       saveCallToLog(state, callDuration);
       setMinimized(false);
       transitionTimerRef.current = window.setTimeout(() => {
@@ -517,7 +750,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       if (!callId || !callerId || !data?.sdp) return;
 
       // Call Waiting handling if already in a call:
-      if (stateRef.current === 'connected') {
+      if (stateRef.current === 'active') {
         setCallWaiting({
           callId,
           callerId,
@@ -547,7 +780,8 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       setPartnerAvatar(data.callerAvatar || null);
       setFailureMessage(null);
       setMuted(false);
-      setSpeaker(true);
+      setSpeaker(callMode === 'video');
+      setAudioRoute(callMode === 'video' ? 'speaker' : 'earpiece');
       setBluetooth(false);
       setCamera(callMode === 'video');
       setIsFrontCamera(true);
@@ -556,7 +790,8 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       setMinimized(false);
       applyState('ringing');
 
-      // Alert caller that call is ringing
+      // Alert caller that call was received and is ringing
+      emit('call:received', { callId, targetId: callerId });
       emit('call:ringing', { callId, targetId: callerId });
 
       try {
@@ -578,7 +813,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     const onRinging = (data: { callId?: string }) => {
       const call = callRef.current;
       if (!call || !data?.callId || String(data.callId) !== call.callId) return;
-      if (stateRef.current === 'calling') {
+      if (stateRef.current === 'initiating') {
         applyState('ringing');
       }
     };
@@ -602,6 +837,35 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       })();
     };
 
+    const onOffer = async (data: { callId?: string; sdp?: RTCSessionDescriptionInit }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId || !data.sdp) return;
+      const pc = pcRef.current;
+      if (!pc) return;
+      try {
+        await pc.setRemoteDescription(data.sdp);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        emit('call:accept', { callId: call.callId, targetId: call.peerId, sdp: pc.localDescription });
+      } catch (err) {
+        logger.warn('[CallProvider] Renegotiation failed:', err);
+      }
+    };
+
+    const onConnected = (data: { callId?: string }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      connectedNotifiedRef.current = true;
+      AudioSessionManager.stopCallSounds();
+      applyState('active');
+    };
+
+    const onReconnecting = (data: { callId?: string }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      applyState('reconnecting');
+    };
+
     const onIce = (data: { callId?: string; candidate?: RTCIceCandidateInit | null }) => {
       const call = callRef.current;
       if (!call || !data?.callId || String(data.callId) !== call.callId) return;
@@ -620,7 +884,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       if (data.reason === 'busy') {
         failCall('User is busy', 'busy');
       } else {
-        finish('declined', 'hangup');
+        finish('rejected', 'hangup');
       }
     };
 
@@ -630,10 +894,24 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       finish('missed', 'hangup');
     };
 
-    const onBusy = (data: { callId?: string }) => {
+    const onBusy = (data: { callId?: string; reason?: string }) => {
       const call = callRef.current;
       if (!call || !data?.callId || String(data.callId) !== call.callId) return;
-      failCall('User is busy', 'busy');
+      if (data.reason === 'already-answered') {
+        failCall('Call was answered on another device', 'busy');
+      } else {
+        failCall('User is busy', 'busy');
+      }
+    };
+
+    const onAnsweredElsewhere = (data: { callId?: string }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      if (stateRef.current === 'ringing') {
+        cancelIncomingCallNotification(call.callId).catch(() => {});
+        AudioSessionManager.stopCallSounds();
+        finish('missed', 'hangup');
+      }
     };
 
     const onUnavailable = (data: { callId?: string; reason?: string }) => {
@@ -648,11 +926,17 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
+    const onFailed = (data: { callId?: string; reason?: string }) => {
+      const call = callRef.current;
+      if (!call || !data?.callId || String(data.callId) !== call.callId) return;
+      failCall(data.reason === 'peer-disconnected' ? 'Connection lost' : 'Call failed');
+    };
+
     const onEnd = (data: { callId?: string; reason?: string }) => {
       const call = callRef.current;
       if (!call || !data?.callId || String(data.callId) !== call.callId) return;
-      const wasConnected = stateRef.current === 'connected';
-      finish('ended', wasConnected ? 'completed' : 'hangup');
+      const wasConnected = stateRef.current === 'active';
+      finish(wasConnected ? 'ended' : 'missed', wasConnected ? 'completed' : 'hangup');
     };
 
     const onPeerMute = (data: { callId?: string; isMuted?: boolean }) => {
@@ -690,10 +974,15 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     socket.on('call:invite', onInvite);
     socket.on('call:ringing', onRinging);
     socket.on('call:accept', onAccept);
+    socket.on('call:offer', onOffer);
     socket.on('call:ice', onIce);
+    socket.on('call:connected', onConnected);
+    socket.on('call:reconnecting', onReconnecting);
+    socket.on('call:failed', onFailed);
     socket.on('call:reject', onReject);
     socket.on('call:cancel', onCancel);
     socket.on('call:busy', onBusy);
+    socket.on('call:answered_elsewhere', onAnsweredElsewhere);
     socket.on('call:unavailable', onUnavailable);
     socket.on('call:end', onEnd);
     socket.on('call:mute', onPeerMute);
@@ -705,10 +994,15 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       socket.off('call:invite', onInvite);
       socket.off('call:ringing', onRinging);
       socket.off('call:accept', onAccept);
+      socket.off('call:offer', onOffer);
       socket.off('call:ice', onIce);
+      socket.off('call:connected', onConnected);
+      socket.off('call:reconnecting', onReconnecting);
+      socket.off('call:failed', onFailed);
       socket.off('call:reject', onReject);
       socket.off('call:cancel', onCancel);
       socket.off('call:busy', onBusy);
+      socket.off('call:answered_elsewhere', onAnsweredElsewhere);
       socket.off('call:unavailable', onUnavailable);
       socket.off('call:end', onEnd);
       socket.off('call:mute', onPeerMute);
@@ -736,14 +1030,15 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     setPartnerAvatar(avatar || null);
     setFailureMessage(null);
     setMuted(false);
-    setSpeaker(true);
+    setSpeaker(callMode === 'video');
+    setAudioRoute(callMode === 'video' ? 'speaker' : 'earpiece');
     setBluetooth(false);
     setCamera(callMode === 'video');
     setIsFrontCamera(true);
     setIsRemoteMuted(false);
     setIsRemoteCameraOn(true);
     setMinimized(false);
-    applyState('calling');
+    applyState('initiating');
 
     try {
       AudioSessionManager.startOutgoingCall();
@@ -754,7 +1049,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     clearTimer(ringSwapTimerRef);
     ringSwapTimerRef.current = window.setTimeout(() => {
       ringSwapTimerRef.current = null;
-      if (stateRef.current === 'calling' && callRef.current?.callId === callId) {
+      if (stateRef.current === 'initiating' && callRef.current?.callId === callId) {
         applyState('ringing');
       }
     }, 1200);
@@ -762,7 +1057,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     clearTimer(answerTimeoutRef);
     answerTimeoutRef.current = window.setTimeout(() => {
       answerTimeoutRef.current = null;
-      if (callRef.current?.callId === callId && (stateRef.current === 'calling' || stateRef.current === 'ringing')) {
+      if (callRef.current?.callId === callId && (stateRef.current === 'initiating' || stateRef.current === 'ringing')) {
         emit('call:end', { callId, targetId: peerId });
         finish('missed', 'hangup');
       }
@@ -770,11 +1065,27 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
 
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints(callMode));
+        const perm = await ensureCallPermissions(callMode);
+        if (!perm.granted) {
+          emit('call:end', { callId, targetId: peerId });
+          failCall(perm.error || 'Microphone permission is required.');
+          return;
+        }
+
+        await loadIceConfiguration();
+        await loadCallPreferences();
+        const preferredRoute = preferredRouteFor(callMode);
+        setSpeaker(preferredRoute === 'speaker');
+        setAudioRoute(preferredRoute);
+        const { stream, fallbackToVoice } = await acquireLocalMedia(callMode, callPrefsRef.current.camera_quality);
         if (stateRef.current === 'idle' || callRef.current !== call) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
+        if (fallbackToVoice) {
+          setCamera(false);
+        }
+
         localStreamRef.current = stream;
         setLocalStream(stream);
         stream.getAudioTracks().forEach((t) => {
@@ -784,8 +1095,12 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
           t.enabled = isCameraOn;
         });
 
+        // Set initial audio routing
+        setNativeAudioRoute(preferredRoute);
+
         const pc = createPeer(callId, peerId);
         stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+        await applyBandwidthLimits(pc);
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
@@ -801,7 +1116,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       } catch (e) {
         logger.error('startCall media/signaling failure', e);
         emit('call:end', { callId, targetId: peerId });
-        failCall(callMode === 'video' ? 'Camera or microphone unavailable' : 'Microphone unavailable');
+        failCall(mapMediaError(e, callMode));
       }
     })();
   };
@@ -816,14 +1131,32 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     }
     const callMode = call.mode;
     clearTimer(incomingRingRef);
+    applyState('accepted');
+    AudioSessionManager.stopCallSounds();
 
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints(callMode));
-        if (stateRef.current !== 'ringing' || callRef.current !== call) {
+        const perm = await ensureCallPermissions(callMode);
+        if (!perm.granted) {
+          emit('call:reject', { callId: call.callId, targetId: call.peerId, reason: 'permission' });
+          failCall(perm.error || 'Microphone permission is required.');
+          return;
+        }
+
+        await loadIceConfiguration();
+        await loadCallPreferences();
+        const preferredRoute = preferredRouteFor(callMode);
+        setSpeaker(preferredRoute === 'speaker');
+        setAudioRoute(preferredRoute);
+        const { stream, fallbackToVoice } = await acquireLocalMedia(callMode, callPrefsRef.current.camera_quality);
+        if (callRef.current !== call || !['accepted', 'connecting'].includes(stateRef.current)) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
+        if (fallbackToVoice) {
+          setCamera(false);
+        }
+
         localStreamRef.current = stream;
         setLocalStream(stream);
         stream.getAudioTracks().forEach((t) => {
@@ -833,8 +1166,12 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
           t.enabled = isCameraOn;
         });
 
+        // Set initial audio routing
+        setNativeAudioRoute(preferredRoute);
+
         const pc = createPeer(call.callId, call.peerId);
         stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+        await applyBandwidthLimits(pc);
         await pc.setRemoteDescription(offer);
         pendingOfferRef.current = null;
         await flushPendingIce(pc);
@@ -843,6 +1180,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
 
         applyState('connecting');
         startConnectingTimeout();
+        cancelIncomingCallNotification(call.callId).catch(() => {});
         emit('call:accept', {
           callId: call.callId,
           targetId: call.peerId,
@@ -850,8 +1188,9 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
         });
       } catch (e) {
         logger.error('acceptCall media/signaling failure', e);
+        cancelIncomingCallNotification(call.callId).catch(() => {});
         emit('call:reject', { callId: call.callId, targetId: call.peerId, reason: 'media' });
-        failCall('Could not access microphone');
+        failCall(mapMediaError(e, callMode));
       }
     })();
   };
@@ -859,38 +1198,47 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
   const declineCall = () => {
     const call = callRef.current;
     if (stateRef.current !== 'ringing' || !call) return;
+    cancelIncomingCallNotification(call.callId).catch(() => {});
     emit('call:reject', { callId: call.callId, targetId: call.peerId });
-    finish('declined', 'hangup');
+    finish('rejected', 'hangup');
   };
 
   const endCall = () => {
     if (stateRef.current === 'idle') return;
     const call = callRef.current;
-    const wasConnected = stateRef.current === 'connected';
+    const wasConnected = stateRef.current === 'active';
+    const wasAnswered = ['accepted', 'connecting', 'active', 'reconnecting'].includes(stateRef.current);
     if (call) {
-      if (stateRef.current === 'calling' || (stateRef.current === 'ringing' && direction === 'outgoing')) {
+      if (!wasAnswered) {
         emit('call:cancel', { callId: call.callId, targetId: call.peerId });
       } else {
         emit('call:end', { callId: call.callId, targetId: call.peerId });
       }
     }
-    finish('ended', wasConnected ? 'completed' : 'hangup');
+    finish(wasConnected ? 'ended' : wasAnswered ? 'failed' : 'cancelled', wasConnected ? 'completed' : 'hangup');
   };
 
   const toggleMute = () => setMuted((v) => !v);
-  const toggleSpeaker = () => {
-    setSpeaker(prev => {
-      const next = !prev;
-      setAudioRoute(next ? 'speaker' : 'earpiece');
-      return next;
-    });
+  const toggleSpeaker = async () => {
+    const next = !isSpeakerOn;
+    const route: AudioRouteType = next ? 'speaker' : 'earpiece';
+    const routed = await setNativeAudioRoute(route);
+    if (!routed) return;
+    setSpeaker(next);
+    setBluetooth(false);
+    setAudioRoute(route);
+    if (callRef.current) {
+      emit('call:audio-route', { callId: callRef.current.callId, targetId: callRef.current.peerId, route });
+    }
   };
-  const toggleBluetooth = () => {
-    setBluetooth(prev => {
-      const next = !prev;
-      setAudioRoute(next ? 'bluetooth' : 'speaker');
-      return next;
-    });
+  const toggleBluetooth = async () => {
+    if (isBluetoothOn) {
+      await selectAudioDevice(availableAudioDevices.find((device) => device.type === 'speaker')?.deviceId || '');
+      return;
+    }
+    const bluetoothDevice = availableAudioDevices.find((device) => device.type === 'bluetooth');
+    if (!bluetoothDevice) return;
+    await selectAudioDevice(bluetoothDevice.deviceId);
   };
   const toggleCamera = () => setCamera((v) => !v);
 
@@ -986,6 +1334,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
       setPartnerId(waiting.callerId);
       setPartnerName(waiting.callerName);
       setPartnerAvatar(waiting.callerAvatar || null);
+      applyState('ringing');
       acceptCall();
     }, 500);
   };
@@ -995,6 +1344,68 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     emit('call:reject', { callId: callWaiting.callId, targetId: callWaiting.callerId, reason: 'busy' });
     setCallWaiting(null);
   };
+
+  // ── Incoming call from a system notification (answer / decline) ──
+  useEffect(() => {
+    const onPushIncomingCall = async (event: Event) => {
+      const detail = (event as CustomEvent).detail as { callId?: string; action?: string } | undefined;
+      const callId = detail?.callId ? String(detail.callId) : '';
+      const action = detail?.action || 'ring';
+      if (!callId) return;
+
+      try {
+        const response = await api.get(`/calls/${encodeURIComponent(callId)}/offer`);
+        const call = response.data?.call;
+        if (!call?.sdp || !call.callerId) return;
+
+        if (stateRef.current !== 'idle' || pcRef.current || callRef.current) {
+          emit('call:reject', { callId, targetId: call.callerId, reason: 'busy' });
+          return;
+        }
+
+        const callMode: CallMode = call.mode === 'video' ? 'video' : 'voice';
+        loggedRef.current = false;
+        callRef.current = { callId, peerId: String(call.callerId), mode: callMode, direction: 'incoming' };
+        pendingOfferRef.current = call.sdp;
+        pendingIceRef.current = [];
+
+        setMode(callMode);
+        setDirection('incoming');
+        setPartnerId(String(call.callerId));
+        setPartnerName(call.callerName || 'Incoming User');
+        setPartnerAvatar(call.callerAvatar || null);
+        setFailureMessage(null);
+        setMuted(false);
+        setSpeaker(callMode === 'video');
+        setAudioRoute(callMode === 'video' ? 'speaker' : 'earpiece');
+        setBluetooth(false);
+        setCamera(callMode === 'video');
+        setIsFrontCamera(true);
+        setIsRemoteMuted(false);
+        setIsRemoteCameraOn(true);
+        setMinimized(false);
+        applyState('ringing');
+
+        if (action === 'decline') {
+          cancelIncomingCallNotification(callId).catch(() => {});
+          emit('call:reject', { callId, targetId: call.callerId });
+          finish('rejected', 'hangup');
+          return;
+        }
+
+        if (action === 'answer') {
+          cancelIncomingCallNotification(callId).catch(() => {});
+          acceptCall();
+        }
+      } catch (err) {
+        logger.warn('[CallProvider] Push call action failed:', err);
+      }
+    };
+
+    window.addEventListener('sparkle:incoming_call', onPushIncomingCall);
+    return () => window.removeEventListener('sparkle:incoming_call', onPushIncomingCall);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emit]);
 
   // ── Cleanup on unmount ──
   useEffect(() => {
@@ -1053,6 +1464,7 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
         selectedAudioDeviceId,
         audioRoute,
         selectAudioDevice,
+        connectionQuality,
         videoUpgradeRequested,
         requestVideoUpgrade,
         respondVideoUpgrade,

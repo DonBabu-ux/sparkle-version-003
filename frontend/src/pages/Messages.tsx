@@ -33,6 +33,9 @@ import { OfficialAccountBanner } from '../components/chat/OfficialAccountBanner'
 import { OfficialComposerFooter } from '../components/chat/OfficialComposerFooter';
 import '../components/chat/OfficialMessageCard';
 import { SparklePayCard } from '../components/chat/SparklePayCard';
+import { CallCard } from '../components/chat/CallCard';
+import type { CallOutcome } from '../components/chat/CallCard';
+import { inferCallBubbleView } from '../utils/callBubble';
 import '../components/chat/OfficialWelcomeCards';
 import { OfficialInteractiveOnboarding } from '../components/chat/OfficialInteractiveOnboarding';
 import { DeveloperEmergencyConsoleModal } from '../components/chat/DeveloperEmergencyConsoleModal';
@@ -3995,86 +3998,52 @@ export default function Messages() {
                     const msgId = msg.message_id || msg.id;
                     const isSelected = isSelectionMode && selectedMessageIds.has(msgId);
 
-                    // ── Call log bubbles: voice_call / video_call ──
+                    // ── Call log cards: voice_call / video_call ──
                     if (msg.type === 'voice_call' || msg.type === 'video_call') {
                       const isVoice = msg.type === 'voice_call';
-                      const meta = (() => {
-                        try { return typeof msg.metadata === 'string' ? JSON.parse(msg.metadata) : (msg.metadata || {}); } catch { return {}; }
-                      })();
-                      const outcome: string = meta.outcome || msg.call_outcome || (msg.content?.includes('missed') ? 'missed' : msg.content?.includes('declined') ? 'declined' : msg.content?.includes('cancelled') ? 'cancelled' : 'completed');
-                      const durationSec: number = meta.duration || msg.call_duration || 0;
-                      const formatDur = (s: number) => { const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}`; };
-                      const isMineCall = msg.sender_id === (user?.user_id || user?.id) || msg.senderId === (user?.user_id || user?.id);
+                      const callBubble = inferCallBubbleView({
+                        metadata: (msg.metadata ?? null) as any,
+                        content: msg.content,
+                        senderId: msg.sender_id ?? msg.senderId,
+                        recipientId: msg.recipient_id ?? msg.recipientId,
+                        currentUserId: user?.user_id ?? user?.id,
+                        fallbackPartnerId: selectedChat?.partner_id,
+                      });
+                      const outcome: CallOutcome = callBubble.outcome;
+                      const durationSec = callBubble.durationSeconds;
+                      const isMineCall = callBubble.isMine;
+                      const partnerTargetId = callBubble.partnerId;
 
-                      const colorMap: Record<string, string> = {
-                        completed: 'text-emerald-400',
-                        missed: 'text-red-400',
-                        declined: 'text-orange-400',
-                        cancelled: 'text-zinc-400',
-                        failed: 'text-red-400',
-                      };
-                      const labelMap: Record<string, string> = {
-                        completed: isVoice ? 'Voice call' : 'Video call',
-                        missed: isVoice ? 'Missed voice call' : 'Missed video call',
-                        declined: isVoice ? 'Declined voice call' : 'Declined video call',
-                        cancelled: isVoice ? 'Cancelled voice call' : 'Cancelled video call',
-                        failed: isVoice ? 'Failed voice call' : 'Failed video call',
-                      };
-
-                      const partnerTargetId = isMineCall
-                        ? (msg.recipient_id || msg.recipientId || selectedChat?.partner_id)
-                        : (msg.sender_id || msg.senderId);
-                      const isMissed = outcome === 'missed';
-
-                      const callBubble = (
+                      const callCardElement = (
                         <div
                           key={msgId || `call-${i}`}
-                          className={clsx('flex items-center my-1.5', marginTopClass, isMineCall ? 'justify-end' : 'justify-start')}
+                          className={clsx('flex items-center my-2', marginTopClass, isMineCall ? 'justify-end' : 'justify-start')}
                         >
-                          <div
-                            onClick={() => {
-                              if (partnerTargetId) {
+                          <CallCard
+                            id={msgId}
+                            mode={isVoice ? 'voice' : 'video'}
+                            outcome={outcome}
+                            durationSeconds={durationSec}
+                            direction={callBubble.direction}
+                            timestamp={msg.created_at || msg.sent_at || msg.createdAt}
+                            partnerId={String(partnerTargetId || selectedChat?.partner_id)}
+                            partnerName={selectedChat?.partner_name || selectedChat?.name}
+                            partnerAvatar={selectedChat?.partner_avatar}
+                            isMine={isMineCall}
+                            onCallback={(cbMode, targetId, tName, tAvatar) => {
+                              if (targetId) {
                                 startCall(
-                                  String(partnerTargetId),
-                                  isVoice ? 'voice' : 'video',
-                                  selectedChat?.partner_name || selectedChat?.name,
-                                  selectedChat?.partner_avatar
+                                  String(targetId),
+                                  cbMode,
+                                  tName || selectedChat?.partner_name || selectedChat?.name,
+                                  tAvatar || selectedChat?.partner_avatar
                                 );
                               }
                             }}
-                            className={clsx(
-                              'flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs font-semibold max-w-[240px] shadow-sm border cursor-pointer active:scale-95 transition-all',
-                              isMineCall
-                                ? 'bg-[#ff1493]/10 border-[#ff1493]/20 hover:border-[#ff1493]/40 text-white/90 rounded-br-sm'
-                                : isMissed
-                                ? 'bg-red-500/10 border-red-500/30 hover:border-red-500/60 text-white/90 rounded-bl-sm'
-                                : 'bg-white/[0.08] border-white/[0.12] hover:border-white/25 text-white/80 rounded-bl-sm'
-                            )}
-                          >
-                            <div className={clsx(
-                              'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
-                              isMissed ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-emerald-400'
-                            )}>
-                              {isVoice
-                                ? <Phone size={14} className={colorMap[outcome] || 'text-emerald-400'} />
-                                : <Video size={14} className={colorMap[outcome] || 'text-emerald-400'} />
-                              }
-                            </div>
-                            <span className="flex flex-col leading-tight min-w-0">
-                              <span className={clsx('font-bold truncate', colorMap[outcome] || 'text-emerald-400')}>
-                                {isMineCall ? '↗ ' : '↙ '}{labelMap[outcome] || (isVoice ? 'Voice call' : 'Video call')}
-                              </span>
-                              {durationSec > 0 && outcome === 'completed' && (
-                                <span className="text-[10px] text-white/50 font-normal mt-0.5">{formatDur(durationSec)}</span>
-                              )}
-                              {isMissed && (
-                                <span className="text-[9px] text-red-400/90 font-bold mt-0.5 uppercase tracking-wider">Tap to call back</span>
-                              )}
-                            </span>
-                          </div>
+                          />
                         </div>
                       );
-                      return dateSep ? [dateSep, callBubble] : [callBubble];
+                      return dateSep ? [dateSep, callCardElement] : [callCardElement];
                     }
 
                     // ── System messages render as a centred pill, not a bubble ──
@@ -4146,7 +4115,11 @@ export default function Messages() {
                           </button>
                         )}
 
-                        <div className={clsx((window as any).__sparkleIsOfficialChat && !isMe ? "max-w-[95%]" : "max-w-[75%]", "flex flex-col", isMe ? 'items-end' : 'items-start')}>
+                        <div className={clsx(
+                          (window as any).__sparkleIsOfficialChat && !isMe ? "official-message-bubble-shell" : "message-bubble-shell",
+                          "flex flex-col",
+                          isMe ? 'items-end' : 'items-start'
+                        )}>
                           <MessageBubbleWrapper
                             onLongPress={() => {
                               if (isSelectionMode) return;
@@ -4187,7 +4160,7 @@ export default function Messages() {
                             className={clsx(
                               (window as any).__sparkleIsOfficialChat && !isMe
                                 ? "px-4 py-3 text-[16px] leading-[1.65] transition-all duration-300 relative z-10 min-w-[120px] break-words whitespace-pre-wrap select-none cursor-pointer"
-                                : "px-2.5 py-1.5 text-[15px] leading-relaxed transition-all duration-300 relative z-10 min-w-[80px] break-words whitespace-pre-wrap select-none cursor-pointer",
+                                : "px-2.5 py-1.5 pb-5 text-[15px] leading-relaxed transition-all duration-300 relative z-10 min-w-[64px] break-words whitespace-pre-wrap select-none cursor-pointer",
                               isMe ? 'rounded-[14px]' : 'rounded-[14px]',
                               isMe && hasTail ? 'rounded-tr-none' : isMe ? 'rounded-tr-[14px]' : '',
                               isMe && isLast ? 'rounded-br-[14px]' : isMe ? 'rounded-br-md' : '',
@@ -4202,8 +4175,8 @@ export default function Messages() {
                               backdropFilter: currentChatTheme ? 'blur(10px)' : 'none',
                               maxWidth: '100%',
                               width: 'fit-content',
-                              minWidth: '80px',
-                              wordBreak: 'break-word',
+                              minWidth: (window as any).__sparkleIsOfficialChat && !isMe ? '120px' : '64px',
+                              wordBreak: 'normal',
                               overflowWrap: 'anywhere',
                               whiteSpace: 'pre-wrap'
                             }}

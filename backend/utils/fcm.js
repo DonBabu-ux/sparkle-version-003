@@ -111,6 +111,22 @@ const sendFcmNotification = async (tokens, title, body, data = {}) => {
 
     const resolvedImage = stringifiedData.senderAvatar ? String(stringifiedData.senderAvatar) : (stringifiedData.image ? String(stringifiedData.image) : BRAND_IMAGE_URL);
 
+    const androidNotification = {
+        channelId: ANDROID_CHANNEL_BY_TYPE[stringifiedData.type] || 'system',
+        icon: NOTIFICATION_ICON,
+        color: NOTIFICATION_COLOR,
+        imageUrl: resolvedImage,
+        visibility: 'private',
+        tag: stringifiedData.tag || (stringifiedData.chatId ? `chat_${stringifiedData.chatId}` : (stringifiedData.eventId ? String(stringifiedData.eventId) : undefined))
+    };
+
+    if (stringifiedData.type === 'incoming_call') {
+        androidNotification.priority = 'max';
+        androidNotification.sound = 'hangouts_ringtone';
+        androidNotification.defaultSound = false;
+        androidNotification.sticky = true;
+    }
+
     const message = {
         notification: {
             title: title,
@@ -120,18 +136,7 @@ const sendFcmNotification = async (tokens, title, body, data = {}) => {
         data: stringifiedData,
         android: {
             priority: 'high',
-            notification: {
-                channel_id: ANDROID_CHANNEL_BY_TYPE[stringifiedData.type] || 'system',
-                icon: NOTIFICATION_ICON,
-                color: NOTIFICATION_COLOR,
-                image: resolvedImage,
-                // Hide message content on the lock screen (Android default
-                // for FCM is "public"; keep previews private).
-                visibility: 'private',
-                // Tag notifications per-chat or event so consecutive messages from the same
-                // conversation update the existing tray card instead of creating duplicate cards.
-                tag: stringifiedData.tag || (stringifiedData.chatId ? `chat_${stringifiedData.chatId}` : (stringifiedData.eventId ? String(stringifiedData.eventId) : undefined))
-            }
+            notification: androidNotification
         },
         tokens: Array.isArray(tokens) ? tokens : [tokens]
     };

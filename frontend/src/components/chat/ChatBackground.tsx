@@ -54,7 +54,12 @@ const ChatBackground = ({ theme, mode = 'dark' }: { theme: SparkleTheme | null; 
   return (
     <div
       className="absolute inset-0 z-0 overflow-hidden pointer-events-none transition-all duration-700"
-      style={{ backgroundColor: base }}
+      style={{
+        backgroundColor: base,
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
+        contain: 'strict',
+      }}
     >
       {/* Base gradient — light in light mode, dark in dark mode */}
       <div

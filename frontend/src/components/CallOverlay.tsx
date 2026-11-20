@@ -20,6 +20,7 @@ export const CallOverlay = () => {
     endCall,
     toggleMute,
     toggleSpeaker,
+    toggleBluetooth,
     toggleCamera,
     switchCamera,
     isMuted,
@@ -36,6 +37,7 @@ export const CallOverlay = () => {
     selectedAudioDeviceId,
     audioRoute,
     selectAudioDevice,
+    connectionQuality,
     videoUpgradeRequested,
     requestVideoUpgrade,
     respondVideoUpgrade,
@@ -84,16 +86,7 @@ export const CallOverlay = () => {
     }
   }, [selectedAudioDeviceId]);
 
-  // Network signal strength simulation
-  const [signalStrength, setSignalStrength] = useState<number>(3);
-  useEffect(() => {
-    if (state === 'connected') {
-      const interval = setInterval(() => {
-        setSignalStrength(Math.floor(Math.random() * 2) + 2);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [state]);
+  const signalBars = connectionQuality === 'excellent' ? 4 : connectionQuality === 'good' ? 3 : connectionQuality === 'poor' ? 1 : 0;
 
   // Haptic feedback
   useEffect(() => {
@@ -128,13 +121,17 @@ export const CallOverlay = () => {
 
   const getStatusText = () => {
     switch (state) {
-      case 'calling': return 'Calling...';
+      case 'initiating': return 'Calling...';
       case 'ringing': return direction === 'incoming' ? 'Incoming call...' : 'Ringing...';
+      case 'accepted': return 'Accepted';
       case 'connecting': return 'Connecting...';
-      case 'connected': return formatDuration(callDuration);
+      case 'active': return formatDuration(callDuration);
+      case 'reconnecting': return 'Reconnecting...';
+      case 'held': return 'On hold';
       case 'failed': return failureMessage || 'Call failed';
-      case 'declined': return 'Call declined';
+      case 'rejected': return 'Call declined';
       case 'missed': return 'Missed call';
+      case 'cancelled': return 'Call cancelled';
       case 'ended': return 'Call ended';
       default: return '';
     }
@@ -153,7 +150,7 @@ export const CallOverlay = () => {
       >
         <div className="relative flex items-center justify-center shrink-0">
           <span className={`absolute inline-flex h-9 w-9 rounded-full opacity-35 ${
-            state === 'connected' ? 'bg-emerald-400 animate-ping' : 'bg-[#ff1493] animate-ping'
+            state === 'active' ? 'bg-emerald-400 animate-ping' : 'bg-[#ff1493] animate-ping'
           }`} />
           <img
             src={getAvatarUrl(partnerAvatar, partnerName)}
@@ -167,7 +164,7 @@ export const CallOverlay = () => {
             {partnerName || 'Call'}
           </span>
           <span className={`text-[9px] font-mono leading-none tracking-wider ${
-            state === 'connected' ? 'text-emerald-400 font-bold' : 'text-white/60'
+            state === 'active' ? 'text-emerald-400 font-bold' : 'text-white/60'
           }`}>
             {getStatusText()}
           </span>
@@ -204,7 +201,7 @@ export const CallOverlay = () => {
         
         {/* Background / Video Layer */}
         <div className="absolute inset-0 z-0">
-          {isVideo && state === 'connected' && remoteStream && isRemoteCameraOn ? (
+          {isVideo && state === 'active' && remoteStream && isRemoteCameraOn ? (
             <div className="absolute inset-0 bg-black overflow-hidden">
               <video
                 ref={remoteVideoRef}
@@ -213,7 +210,7 @@ export const CallOverlay = () => {
                 className="absolute inset-0 w-full h-full object-cover"
               />
             </div>
-          ) : isVideo && state === 'connected' && !isRemoteCameraOn ? (
+          ) : isVideo && state === 'active' && !isRemoteCameraOn ? (
             <div className="absolute inset-0 bg-[#0c0d14] flex flex-col items-center justify-center">
               <img
                 src={getAvatarUrl(partnerAvatar, partnerName)}
@@ -317,18 +314,18 @@ export const CallOverlay = () => {
             </button>
             <div className="flex items-center gap-1.5 text-[11px] text-white/60 font-mono bg-black/30 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/5">
               <ShieldAlert size={12} className="text-emerald-400" />
-              <span>End-to-End Encrypted</span>
+              <span>Encrypted media</span>
             </div>
           </div>
 
-          {state === 'connected' && (
+          {state === 'active' && (
             <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10">
               <div className="flex gap-0.5 items-end">
                 {[1, 2, 3, 4].map((bar) => (
                   <span
                     key={bar}
                     className={`w-1 rounded-sm transition-all duration-300 ${
-                      bar <= signalStrength ? 'bg-emerald-400' : 'bg-white/20'
+                      bar <= signalBars ? connectionQuality === 'poor' ? 'bg-amber-400' : 'bg-emerald-400' : 'bg-white/20'
                     }`}
                     style={{ height: `${bar * 3 + 4}px` }}
                   />
@@ -343,9 +340,9 @@ export const CallOverlay = () => {
 
         {/* MIDDLE SECTION: Large Avatar & Caller Details */}
         <div className="relative z-20 flex-1 flex flex-col items-center justify-center px-6">
-          {(!isVideo || state !== 'connected') && (
+          {(!isVideo || state !== 'active') && (
             <div className="relative mb-6 flex items-center justify-center">
-              {(state === 'calling' || state === 'ringing' || state === 'connected') && (
+              {(state === 'initiating' || state === 'ringing' || state === 'active') && (
                 <>
                   <div className="absolute w-44 h-44 rounded-full border border-[#ff1493]/30 animate-pulse-wave-1" />
                   <div className="absolute w-44 h-44 rounded-full border border-[#ff1493]/30 animate-pulse-wave-2" />
@@ -372,7 +369,7 @@ export const CallOverlay = () => {
               {getStatusText()}
             </div>
 
-            {isRemoteMuted && state === 'connected' && (
+            {isRemoteMuted && state === 'active' && (
               <span className="inline-flex items-center gap-1 mt-2 text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">
                 <MicOff size={11} /> Caller is muted
               </span>
@@ -381,7 +378,7 @@ export const CallOverlay = () => {
         </div>
 
         {/* FLOATING MINI PREVIEW (Local camera during video call) */}
-        {isVideo && state === 'connected' && isCameraOn && localStream && (
+        {isVideo && localStream && isCameraOn && ['initiating', 'accepted', 'connecting', 'active', 'reconnecting'].includes(state) && (
           <div className="relative z-20 px-6 pb-2">
             <div className="relative ml-auto w-28 h-40 rounded-2xl overflow-hidden bg-black/40 border-2 border-white/20 shadow-2xl">
               <video
@@ -417,7 +414,12 @@ export const CallOverlay = () => {
               </div>
 
               <button
-                onClick={() => { toggleSpeaker(); setShowAudioRouteMenu(false); }}
+                  onClick={() => {
+                    const device = availableAudioDevices.find((item) => item.type === 'speaker');
+                    if (device) void selectAudioDevice(device.deviceId);
+                    else if (!isSpeakerOn) void toggleSpeaker();
+                    setShowAudioRouteMenu(false);
+                  }}
                 className={`w-full p-3 rounded-2xl border flex items-center justify-between transition-colors ${
                   audioRoute === 'speaker' ? 'bg-[#ff1493]/15 border-[#ff1493] text-white' : 'bg-white/5 border-white/5 text-white/70'
                 }`}
@@ -430,7 +432,12 @@ export const CallOverlay = () => {
               </button>
 
               <button
-                onClick={() => { toggleSpeaker(); setShowAudioRouteMenu(false); }}
+                  onClick={() => {
+                    const device = availableAudioDevices.find((item) => item.type === 'earpiece');
+                    if (device) void selectAudioDevice(device.deviceId);
+                    else if (isSpeakerOn) void toggleSpeaker();
+                    setShowAudioRouteMenu(false);
+                  }}
                 className={`w-full p-3 rounded-2xl border flex items-center justify-between transition-colors ${
                   audioRoute === 'earpiece' ? 'bg-[#ff1493]/15 border-[#ff1493] text-white' : 'bg-white/5 border-white/5 text-white/70'
                 }`}
@@ -442,7 +449,7 @@ export const CallOverlay = () => {
                 {audioRoute === 'earpiece' && <Check size={14} className="text-[#ff1493]" />}
               </button>
 
-              {availableAudioDevices.filter(d => (d.label || '').toLowerCase().includes('bluetooth') || (d.label || '').toLowerCase().includes('bt')).map(d => (
+              {availableAudioDevices.filter(d => d.type === 'bluetooth' || d.type === 'headphones').map(d => (
                 <button
                   key={d.deviceId}
                   onClick={() => { selectAudioDevice(d.deviceId); setShowAudioRouteMenu(false); }}
@@ -451,7 +458,7 @@ export const CallOverlay = () => {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Bluetooth size={18} className="text-indigo-400" />
+                    {d.type === 'bluetooth' ? <Bluetooth size={18} className="text-indigo-400" /> : <Headphones size={18} className="text-indigo-400" />}
                     <span className="text-xs font-bold truncate max-w-[200px]">{d.label || 'Bluetooth Device'}</span>
                   </div>
                   {selectedAudioDeviceId === d.deviceId && <Check size={14} className="text-[#ff1493]" />}
@@ -517,6 +524,19 @@ export const CallOverlay = () => {
                   </div>
                   <span className="text-[10px] font-bold capitalize">{audioRoute}</span>
                 </button>
+
+                {availableAudioDevices.some((device) => device.type === 'bluetooth') && (
+                  <button
+                    onClick={() => void toggleBluetooth()}
+                    className={`flex flex-col items-center gap-1.5 focus:outline-none ${audioRoute === 'bluetooth' ? 'text-indigo-300' : 'text-white/80'}`}
+                    aria-label="Toggle Bluetooth audio"
+                  >
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${audioRoute === 'bluetooth' ? 'bg-white text-[#0A0B10]' : 'bg-white/10 hover:bg-white/15'}`}>
+                      <Bluetooth size={20} />
+                    </div>
+                    <span className="text-[10px] font-bold">Bluetooth</span>
+                  </button>
+                )}
 
                 {/* Video Call: Camera toggle. Voice Call: Switch to Video */}
                 {isVideo ? (

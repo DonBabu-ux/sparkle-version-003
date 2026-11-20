@@ -69,10 +69,15 @@ async function pushToUserDevices(userId, type, data, eventId) {
 
         if (JSON.stringify(fcmData).length > MAX_FCM_DATA_BYTES) {
             logger.warn(`FCM: oversized data payload for user ${userId} (${type}) — sending core fields only`);
+            const callFields = {};
+            for (const key of ['callId', 'callerId', 'callerName', 'callMode', 'callType']) {
+                if (data && data[key] !== undefined) callFields[key] = data[key];
+            }
             await sendFcmNotification(tokens.map(t => t.token), data.title, data.content, {
                 type,
                 ...(data.url ? { url: data.url } : {}),
                 ...(eventId ? { eventId } : {}),
+                ...callFields,
             });
             return;
         }

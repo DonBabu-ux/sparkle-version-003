@@ -9,7 +9,7 @@ import React, {
   type ReactNode,
 } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Bell, Volume2, Shield, Lock, UserX, MessageCircle, ChevronRight, ChevronLeft, RotateCcw, Play, Smartphone, Eye, EyeOff, Trash2, Palette, Wifi, Check, HelpCircle, Info, Archive, LogOut, Activity, Copy, Share2, Camera, Monitor, Vibrate, BellOff } from 'lucide-react';
+import { ArrowLeft, Bell, Volume2, Shield, Lock, UserX, MessageCircle, ChevronRight, ChevronLeft, RotateCcw, Play, Smartphone, Eye, EyeOff, Trash2, Palette, Wifi, Check, HelpCircle, Info, Archive, LogOut, Activity, Copy, Share2, Camera, Monitor, Vibrate, BellOff, Phone, Video, Mic } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
@@ -54,6 +54,7 @@ type SectionView =
   | 'active-status'
   | 'active-status-learn-more'
   | 'notifications'
+  | 'calls'
   | 'behavior-security'
   | 'message-privacy'
   | 'media-storage'
@@ -400,6 +401,19 @@ export default function MessagesSettings() {
     }
   });
 
+  // Calls
+  const [callSettings, setCallSettings] = useState({
+    silence_unknown_callers: false,
+    allow_calls_from: 'everyone',
+    ringtone: 'hangouts_ringingtone.mp3',
+    vibration: true,
+    incoming_call_notifications: true,
+    use_less_data: false,
+    default_audio_route: 'earpiece',
+    camera_quality: 'standard',
+  });
+  const [callSettingsSaving, setCallSettingsSaving] = useState(false);
+
   // Chat Lock (Local per-device only)
   const [lockedChats, setLockedChats] = useState<string[]>(() => {
     try {
@@ -469,6 +483,35 @@ export default function MessagesSettings() {
     },
     []
   );
+
+  const fetchCallSettings = useCallback(async () => {
+    try {
+      const res = await api.get('/calls/settings');
+      const settings = res.data?.settings;
+      if (settings) {
+        setCallSettings(prev => ({ ...prev, ...settings }));
+      }
+    } catch {
+      showError("Couldn't load call settings.");
+    }
+  }, []);
+
+  const saveCallSettings = useCallback(async (patch: Partial<typeof callSettings>) => {
+    const previous = callSettings;
+    const next = { ...previous, ...patch };
+    setCallSettings(next);
+    setCallSettingsSaving(true);
+    try {
+      const res = await api.put('/calls/settings', next);
+      const saved = res.data?.settings;
+      if (saved) setCallSettings(prev => ({ ...prev, ...saved }));
+    } catch {
+      setCallSettings(previous);
+      showError("Couldn't update call settings.");
+    } finally {
+      setCallSettingsSaving(false);
+    }
+  }, [callSettings]);
 
   const logoutAllOtherDevices = useCallback(async () => {
     try {
@@ -887,6 +930,14 @@ export default function MessagesSettings() {
               subtitle="Alert tones, volumes, haptics, and per-chat overrides"
               onClick={() => goTo('notifications')}
             />
+            <Divider />
+            <SettingsRow
+              icon={<Phone size={18} className="text-green-600" />}
+              iconBg="bg-green-50"
+              title="Calls"
+              subtitle="Ringtone, call permissions, audio routing and data usage"
+              onClick={() => goTo('calls')}
+            />
           </div>
 
           <SectionHeader title="Messaging" />
@@ -1195,6 +1246,216 @@ export default function MessagesSettings() {
   // ─────────────────────────────────────────────────────────────────────────
   // NOTIFICATIONS & SOUNDS
   // ─────────────────────────────────────────────────────────────────────────
+
+  const renderCalls = () => (
+    <SubPage title="Calls" onBack={goBack}>
+      <div className="pb-24">
+        <SectionHeader
+          title="Incoming Calls"
+          description="Control how Sparkle alerts you when somebody calls."
+        />
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+          <div className="px-4 py-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                <Bell size={15} className="text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Incoming call notifications</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-300 mt-0.5">
+                  Show a system notification and ring when a call arrives.
+                </p>
+              </div>
+            </div>
+            <TouchSafeSwitch
+              checked={callSettings.incoming_call_notifications}
+              onChange={(val) => void saveCallSettings({ incoming_call_notifications: val })}
+              aria-label="Incoming call notifications"
+            />
+          </div>
+          <Divider />
+          <div className="px-4 py-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                <Vibrate size={15} className="text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Vibration</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-300 mt-0.5">
+                  Vibrate the device while ringing.
+                </p>
+              </div>
+            </div>
+            <TouchSafeSwitch
+              checked={callSettings.vibration}
+              onChange={(val) => void saveCallSettings({ vibration: val })}
+              aria-label="Call vibration"
+            />
+          </div>
+          <Divider />
+          <div className="px-4 py-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <Volume2 size={15} className="text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Ringtone</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-300 mt-0.5">
+                  {callSettings.ringtone}
+                </p>
+              </div>
+            </div>
+            <Volume2 size={16} className="text-gray-300 shrink-0" />
+          </div>
+        </div>
+
+        <SectionHeader title="Who Can Call Me" />
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+          <div className="px-4 py-3.5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center shrink-0">
+                <Phone size={15} className="text-[#ff1493]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Call permissions</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-300 mt-0.5">
+                  Who is allowed to start a call with you.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {(['everyone', 'following', 'nobody'] as const).map(option => (
+                <button
+                  key={option}
+                  type="button"
+                  disabled={callSettingsSaving}
+                  onClick={() => void saveCallSettings({ allow_calls_from: option })}
+                  className={`px-2 py-2 rounded-xl text-xs font-bold capitalize transition-colors ${
+                    callSettings.allow_calls_from === option
+                      ? 'bg-[#ff1493] text-white'
+                      : 'bg-gray-100 dark:bg-zinc-700 text-gray-600 dark:text-zinc-200'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Divider />
+          <div className="px-4 py-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+                <BellOff size={15} className="text-gray-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Silence unknown callers</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-300 mt-0.5">
+                  Calls from people you never contacted are silenced.
+                </p>
+              </div>
+            </div>
+            <TouchSafeSwitch
+              checked={callSettings.silence_unknown_callers}
+              onChange={(val) => void saveCallSettings({ silence_unknown_callers: val })}
+              aria-label="Silence unknown callers"
+            />
+          </div>
+        </div>
+
+        <SectionHeader title="Call Quality & Routing" />
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+          <div className="px-4 py-3.5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
+                <Smartphone size={15} className="text-orange-500" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Default audio route</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-300 mt-0.5">
+                  Used for voice calls until you switch during a call.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(['earpiece', 'speaker'] as const).map(option => (
+                <button
+                  key={option}
+                  type="button"
+                  disabled={callSettingsSaving}
+                  onClick={() => void saveCallSettings({ default_audio_route: option })}
+                  className={`px-2 py-2 rounded-xl text-xs font-bold capitalize transition-colors ${
+                    callSettings.default_audio_route === option
+                      ? 'bg-[#ff1493] text-white'
+                      : 'bg-gray-100 dark:bg-zinc-700 text-gray-600 dark:text-zinc-200'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Divider />
+          <div className="px-4 py-3.5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                <Video size={15} className="text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Camera quality</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-300 mt-0.5">
+                  Video resolution used when you start a video call.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {(['low', 'standard', 'high'] as const).map(option => (
+                <button
+                  key={option}
+                  type="button"
+                  disabled={callSettingsSaving}
+                  onClick={() => void saveCallSettings({ camera_quality: option })}
+                  className={`px-2 py-2 rounded-xl text-xs font-bold capitalize transition-colors ${
+                    callSettings.camera_quality === option
+                      ? 'bg-[#ff1493] text-white'
+                      : 'bg-gray-100 dark:bg-zinc-700 text-gray-600 dark:text-zinc-200'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Divider />
+          <div className="px-4 py-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+                <Wifi size={15} className="text-teal-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Use less data</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-300 mt-0.5">
+                  Prefer lower bitrate media to save mobile data.
+                </p>
+              </div>
+            </div>
+            <TouchSafeSwitch
+              checked={callSettings.use_less_data}
+              onChange={(val) => void saveCallSettings({ use_less_data: val })}
+              aria-label="Use less data"
+            />
+          </div>
+        </div>
+
+        <div className="mx-4 mt-4 flex items-start gap-2 text-xs text-gray-500 dark:text-zinc-300">
+          <Mic size={14} className="mt-0.5 shrink-0 text-gray-400" />
+          <p>
+            Calls use DTLS-SRTP media encryption. End-to-end encryption with key verification is
+            not implemented.
+          </p>
+        </div>
+      </div>
+    </SubPage>
+  );
 
   const renderNotifications = () => (
     <SubPage title="Notifications & Sounds" onBack={goBack}>
@@ -2231,6 +2492,8 @@ export default function MessagesSettings() {
         return renderLearnMore();
       case 'notifications':
         return renderNotifications();
+      case 'calls':
+        return renderCalls();
       case 'behavior-security':
         return renderBehaviorSecurity();
       case 'message-privacy':
@@ -2256,7 +2519,10 @@ export default function MessagesSettings() {
     if (view === 'device-logins') {
       fetchDeviceSessions();
     }
-  }, [view, fetchDeviceSessions]);
+    if (view === 'calls') {
+      fetchCallSettings();
+    }
+  }, [view, fetchDeviceSessions, fetchCallSettings]);
 
   return (
     <div className="min-h-dvh bg-gray-50 dark:bg-zinc-800 text-gray-900 font-sans selection:bg-pink-100 animate-in fade-in duration-200">

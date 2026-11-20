@@ -195,6 +195,10 @@ export class AudioSessionManager {
     this.eventBus.emit('call_connecting');
   }
 
+  public stopCallSounds(): void {
+    this.eventBus.emit('call_stop');
+  }
+
   public endCall(status: 'hangup' | 'busy' | 'completed'): void {
     this.isCallActive = false;
     if (status === 'hangup') {

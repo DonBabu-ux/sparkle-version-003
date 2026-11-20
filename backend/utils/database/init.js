@@ -81,6 +81,20 @@ const ensureIndex = async (table, name, cols) => {
     return false;
 };
 
+const ensureUniqueIndex = async (table, name, cols) => {
+    const [rows] = await pool.query(
+        `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.STATISTICS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? AND NON_UNIQUE = 0`,
+        [table, name]
+    );
+    if (Number(rows[0].n) === 0) {
+        await pool.query(`CREATE UNIQUE INDEX \`${name}\` ON \`${table}\`(${cols})`);
+        logger.debug(`Created unique index ${name} on ${table}`);
+        return true;
+    }
+    return false;
+};
+
 const ensureForeignKey = async (table, name, definition) => {
     const [rows] = await pool.query(
         `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
@@ -895,10 +909,12 @@ const initMessagesTable = async () => {
         // Harmonize existing table structure
         const columnsToAdd = [
             { name: 'conversation_id', type: 'CHAR(36) DEFAULT NULL' },
-            { name: 'personal_chat_id', type: 'CHAR(36) DEFAULT NULL' }
+            { name: 'personal_chat_id', type: 'CHAR(36) DEFAULT NULL' },
+            { name: 'call_id', type: 'VARCHAR(64) DEFAULT NULL' }
         ];
 
         await ensureColumns('messages', columnsToAdd);
+        await ensureUniqueIndex('messages', 'uq_messages_call_id', 'call_id');
 
         // Ensure foreign keys are consistent
         try {
@@ -2707,15 +2723,34 @@ const RECOVERED_TABLES = [
             caller_id CHAR(36) NOT NULL,
             callee_id CHAR(36) NOT NULL,
             mode ENUM('voice','video') NOT NULL DEFAULT 'voice',
-            status ENUM('initiating','ringing','accepted','connecting','active','ended','missed','rejected','cancelled','failed') NOT NULL DEFAULT 'initiating',
+            status ENUM('initiating','ringing','accepted','connecting','active','reconnecting','held','ended','missed','rejected','cancelled','failed') NOT NULL DEFAULT 'initiating',
             started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             answered_at DATETIME NULL,
+            connected_at DATETIME NULL,
+            offer_sdp MEDIUMTEXT NULL,
             ended_at DATETIME NULL,
             duration_seconds INT UNSIGNED NOT NULL DEFAULT 0,
             end_reason VARCHAR(50) NULL,
             INDEX idx_cs_caller (caller_id, started_at),
             INDEX idx_cs_callee (callee_id, started_at),
             INDEX idx_cs_call_id (call_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+    },
+    {
+        name: 'user_call_settings',
+        sql: `CREATE TABLE IF NOT EXISTS user_call_settings (
+            user_id CHAR(36) PRIMARY KEY,
+            silence_unknown_callers TINYINT(1) NOT NULL DEFAULT 0,
+            allow_calls_from VARCHAR(32) NOT NULL DEFAULT 'everyone',
+            ringtone VARCHAR(100) NOT NULL DEFAULT 'hangouts_ringtone.mp3',
+            vibration TINYINT(1) NOT NULL DEFAULT 1,
+            incoming_call_notifications TINYINT(1) NOT NULL DEFAULT 1,
+            use_less_data TINYINT(1) NOT NULL DEFAULT 0,
+            default_audio_route VARCHAR(20) NOT NULL DEFAULT 'earpiece',
+            camera_quality VARCHAR(20) NOT NULL DEFAULT 'standard',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_ucs_updated (updated_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
     },
     {
@@ -2803,6 +2838,26 @@ const initRecoveredTables = async () => {
         }
     }
     logger.debug(`✅ Recovered tables verified: ${ok}/${RECOVERED_TABLES.length} ok, ${failed} failed/skipped`);
+};
+
+const initCallSessionsSchema = async () => {
+    const [tables] = await pool.query(
+        `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.TABLES
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'call_sessions'`
+    );
+    if (!tables[0] || Number(tables[0].n) === 0) return;
+    await ensureColumns('call_sessions', [
+        { name: 'connected_at', type: 'DATETIME NULL' },
+        { name: 'offer_sdp', type: 'MEDIUMTEXT NULL' },
+        { name: 'caller_device_id', type: 'VARCHAR(255) NULL' },
+        { name: 'callee_device_id', type: 'VARCHAR(255) NULL' },
+    ]);
+    await pool.query(
+        `ALTER TABLE call_sessions
+         MODIFY COLUMN status ENUM('initiating','ringing','accepted','connecting','active','reconnecting','held','ended','missed','rejected','cancelled','failed')
+         NOT NULL DEFAULT 'initiating'`
+    );
+    await ensureIndex('call_sessions', 'idx_cs_status_started', 'status, started_at');
 };
 
 const RECOVERED_COLUMNS = [
@@ -2965,6 +3020,7 @@ const initDB = async () => {
         try { await initWalletTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Wallet Tables Init Error:', getErrorMessage(e)); }
         try { await initBoostTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Boost Tables Init Error:', getErrorMessage(e)); }
         try { await initRecoveredTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Recovered Tables Init Error:', getErrorMessage(e)); }
+        try { await initCallSessionsSchema(); } catch (e) { if (!isDuplicateError(e)) logger.error('Call Sessions Schema Error:', getErrorMessage(e)); }
         try { await repairRecoveredSchemas(); } catch (e) { if (!isDuplicateError(e)) logger.error('Recovered Schemas Repair Error:', getErrorMessage(e)); }
         // Performance indexes (P1/P2/P4/P5 + M15 leftovers)
         try { await initPerfIndexes(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Perf indexes failed:', getErrorMessage(e)); }

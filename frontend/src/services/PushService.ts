@@ -230,6 +230,10 @@ export async function deregisterPushToken(authToken?: string | null): Promise<vo
 async function showForegroundHeadsUp(title: string | undefined, body: string | undefined, data: unknown): Promise<void> {
   const d = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
   const type = String(d.type || '');
+  if (type === 'incoming_call') {
+    void showIncomingCallNotification(d);
+    return;
+  }
   const extra: Record<string, unknown> = { ...d };
   extra.url = urlFromData(data) || '';
 
@@ -311,6 +315,50 @@ async function showForegroundHeadsUp(title: string | undefined, body: string | u
   }
 }
 
+async function showIncomingCallNotification(d: Record<string, unknown>): Promise<void> {
+  const callId = String(d.callId || d.call_id || '');
+  if (!callId) return;
+
+  const callerName = String(d.callerName || d.title || 'Someone');
+  const callMode = String(d.callMode || d.callType || 'voice');
+  const callerAvatar = typeof d.callerAvatar === 'string' ? d.callerAvatar : undefined;
+  const notifId = getStableNotificationId(`call_${callId}`);
+
+  try {
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: notifId,
+          title: `${callerName} is calling...`,
+          body: callMode === 'video' ? 'Incoming video call' : 'Incoming voice call',
+          channelId: 'calls',
+          smallIcon: 'ic_notification',
+          iconColor: '#22c55e',
+          largeIcon: callerAvatar || 'https://sparkleweb.app.vercel.app/logo.png',
+          actionTypeId: 'SPARKLE_CALL_ACTIONS',
+          ongoing: true,
+          autoCancel: false,
+          extra: {
+            ...d,
+            type: 'incoming_call',
+            callId,
+            callMode,
+            url: '/messages',
+          },
+        }
+      ]
+    });
+  } catch (err) {
+    logger.warn('[Push] Incoming call notification failed:', err);
+  }
+}
+
+export async function cancelIncomingCallNotification(callId?: string | null): Promise<void> {
+  if (!callId) return;
+  const notifId = getStableNotificationId(`call_${callId}`);
+  await LocalNotifications.cancel({ notifications: [{ id: notifId }] }).catch(() => {});
+}
+
 /**
  * Boot native push notifications (Android APK only):
  *  1. create the Sparkle notification channels,
@@ -354,6 +402,20 @@ export async function initPushNotifications(): Promise<void> {
             },
           ],
         },
+        {
+          id: 'SPARKLE_CALL_ACTIONS',
+          actions: [
+            {
+              id: 'answer_call',
+              title: 'Accept',
+            },
+            {
+              id: 'decline_call',
+              title: 'Decline',
+              destructive: true,
+            },
+          ],
+        },
       ],
     }).catch(err => {
       logger.warn('[Push] Failed to register action types:', err);
@@ -377,6 +439,11 @@ export async function initPushNotifications(): Promise<void> {
       // Foreground: system does NOT auto-display notification payloads —
       // surface message-ish events as a native heads-up ourselves.
       await PushNotifications.addListener('pushNotificationReceived', (n) => {
+        const type = n.data ? String((n.data as Record<string, unknown>).type || '') : '';
+        if (type === 'incoming_call') {
+          void showIncomingCallNotification(n.data as Record<string, unknown>);
+          return;
+        }
         if (!shouldHeadsUp(n)) return;
         void showForegroundHeadsUp(n.title, n.body, n.data);
       });
@@ -387,6 +454,18 @@ export async function initPushNotifications(): Promise<void> {
         const actionId = (n as any).actionId;
         const inputValue = (n as any).inputValue;
         const chatId = String(data.chatId || data.conversationId || '');
+        const callId = String(data.callId || data.call_id || '');
+        const callType = String(data.type || '');
+
+        if (callType === 'incoming_call' && callId) {
+          const callAction = actionId === 'answer_call' ? 'answer' : actionId === 'decline_call' ? 'decline' : 'ring';
+          if (callAction === 'decline') {
+            api.post(`/calls/${encodeURIComponent(callId)}/decline`).catch(() => {});
+          }
+          cancelIncomingCallNotification(callId).catch(() => {});
+          window.dispatchEvent(new CustomEvent('sparkle:incoming_call', { detail: { callId, action: callAction, mode: data.callMode } }));
+          return;
+        }
 
         if (actionId === 'mark_read' && chatId) {
           try {
@@ -420,6 +499,17 @@ export async function initPushNotifications(): Promise<void> {
         const actionId = n.actionId;
         const inputValue = (n as any).inputValue;
         const chatId = String(extra.chatId || extra.conversationId || '');
+
+        if (extra.type === 'incoming_call' && extra.callId) {
+          const callId = String(extra.callId);
+          const callAction = actionId === 'answer_call' ? 'answer' : actionId === 'decline_call' ? 'decline' : 'ring';
+          if (callAction === 'decline') {
+            api.post(`/calls/${encodeURIComponent(callId)}/decline`).catch(() => {});
+          }
+          cancelIncomingCallNotification(callId).catch(() => {});
+          window.dispatchEvent(new CustomEvent('sparkle:incoming_call', { detail: { callId, action: callAction, mode: extra.callMode } }));
+          return;
+        }
 
         if (actionId === 'mark_read' && chatId) {
           try {

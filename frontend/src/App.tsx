@@ -556,7 +556,7 @@ function App() {
           <GlobalThemeProvider>
             <PermissionModalProvider>
               <CallProvider>
-              <div className="app no-scrollbar">
+                <div className="app no-scrollbar">
                   <LoadingBar />
                   <GlobalEffects />
                   <MarketplaceModals />

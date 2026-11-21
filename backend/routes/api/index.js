@@ -105,5 +105,6 @@ router.use('/security', require('./security.routes'));
 router.use('/referral', require('./referral.routes'));
 router.use('/referrals', require('./referral.routes'));
 router.use('/legal', require('./legal.routes'));
+router.use('/telegram', require('./telegram.routes'));
 
 module.exports = router;

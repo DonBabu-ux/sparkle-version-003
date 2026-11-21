@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
 const { CompressedCloudinaryStorage } = require('../utils/compressStorage');
+const R2StorageEngine = require('../utils/r2Storage');
 require('dotenv').config();
 
 // Configuration
@@ -13,97 +14,80 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const https = require('https');
-let timeOffsetSeconds = 0;
+const isR2Primary = (process.env.MEDIA_STORAGE_PRIMARY || 'r2').toLowerCase() === 'r2';
 
-// Dynamically fix Cloudinary "Stale request" due to system time skew
-https.get('https://api.cloudinary.com', (res) => {
-    if (res.headers.date) {
-        const apiDate = new Date(res.headers.date);
-        timeOffsetSeconds = Math.round((apiDate - new Date()) / 1000);
-        console.log(`[Cloudinary] Time offset adjusted by ${timeOffsetSeconds} seconds`);
-    }
-}).on('error', () => {
-    timeOffsetSeconds = 0; // safe fallback – no offset
-});
+let storage;
+let marketplaceStorage;
+let messageStorage;
+let momentsStorage;
 
+if (isR2Primary) {
+    console.log('⚡ [UploadMiddleware] Cloudflare R2 enabled as PRIMARY media storage engine');
+    storage = new R2StorageEngine({ category: 'general', maxEdge: 1600, quality: 80 });
+    marketplaceStorage = new R2StorageEngine({ category: 'marketplace', maxEdge: 1200, quality: 80 });
+    messageStorage = new R2StorageEngine({ category: 'message', maxEdge: 1600, quality: 80 });
+    momentsStorage = new R2StorageEngine({ category: 'moment', maxEdge: 1920, quality: 85 });
+} else {
+    console.log('☁️ [UploadMiddleware] Cloudinary legacy enabled as media storage engine');
+    const baseStorage = new CloudinaryStorage({
+        cloudinary: cloudinary,
+        params: async (req, file) => {
+            const folder = file.fieldname === 'avatar' ? 'sparkle_avatars' : 'sparkle_uploads';
+            return {
+                folder: folder,
+                resource_type: 'auto',
+                public_id: `${file.fieldname}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+                allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'webm', 'm4v']
+            };
+        }
+    });
+    storage = new CompressedCloudinaryStorage(baseStorage, { maxEdge: 1600, quality: 80 });
 
-// Helper to get fresh drift (Real-Time Sync)
-const getDrift = () => new Promise((resolve) => {
-    https.get('https://api.cloudinary.com/v1_1/demo/ping', (res) => {
-        const serverDate = new Date(res.headers.date);
-        resolve(Math.round((serverDate.getTime() - Date.now()) / 1000));
-    }).on('error', () => resolve(21447)); // Fallback to last known good drift
-});
-
-const baseStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (req, file) => {
-        console.log('☁️ Starting Cloudinary Upload for field:', file.fieldname, '| Original Name:', file.originalname);
-        const dynamicDrift = await getDrift();
-        const patchedTimestamp = Math.round(Date.now() / 1000) + dynamicDrift;
-        const folder = file.fieldname === 'avatar' ? 'sparkle_avatars' : 'sparkle_uploads';
-        
-        console.log(`🕒 Time Drift Sync: ${dynamicDrift}s | Patched Timestamp: ${patchedTimestamp} | Folder: ${folder}`);
-        
-        return {
-            folder: folder,
-            resource_type: 'auto',
-            timestamp: patchedTimestamp,
-            public_id: `${file.fieldname}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
-            allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'webm', 'm4v'],
-            transformation: file.fieldname === 'avatar' ? [{ width: 500, height: 500, crop: 'limit' }] : []
-        };
-    },
-});
-// Compress images before they hit Cloudinary (videos pass through).
-const storage = new CompressedCloudinaryStorage(baseStorage, { maxEdge: 1600, quality: 80 });
-
-const baseMarketplaceStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (req, file) => {
-        const driftOffset = 21447;
-        const patchedTimestamp = Math.round(Date.now() / 1000) + driftOffset;
-        return {
+    const baseMarketplaceStorage = new CloudinaryStorage({
+        cloudinary: cloudinary,
+        params: async () => ({
             folder: 'marketplace_listings',
-            allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif', 'jfif', 'avif', 'heic', 'heif', 'bmp', 'svg'],
-            transformation: [{ width: 1000, height: 1000, crop: 'limit' }],
-            timestamp: patchedTimestamp
-        };
-    }
-});
-const marketplaceStorage = new CompressedCloudinaryStorage(baseMarketplaceStorage, { maxEdge: 1200, quality: 80 });
+            allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif']
+        })
+    });
+    marketplaceStorage = new CompressedCloudinaryStorage(baseMarketplaceStorage, { maxEdge: 1200, quality: 80 });
 
-const baseMessageStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (req, file) => {
-        return {
+    const baseMessageStorage = new CloudinaryStorage({
+        cloudinary: cloudinary,
+        params: async () => ({
             folder: 'sparkle_messages',
             resource_type: 'auto',
-            timestamp: Math.round(Date.now() / 1000) + timeOffsetSeconds,
             public_id: `msg-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
-            // We omit allowed_formats to allow 'raw' files like .pdf and 'video' like .mp3 and auto-detect
-        };
-    },
-});
-const messageStorage = new CompressedCloudinaryStorage(baseMessageStorage, { maxEdge: 1600, quality: 80 });
+        })
+    });
+    messageStorage = new CompressedCloudinaryStorage(baseMessageStorage, { maxEdge: 1600, quality: 80 });
+
+    momentsStorage = new CloudinaryStorage({
+        cloudinary: cloudinary,
+        params: async () => ({
+            folder: 'sparkle_moments_hd',
+            resource_type: 'video',
+            public_id: `moment-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+            allowed_formats: ['mp4', 'mov', 'avi', 'webm', 'mkv']
+        })
+    });
+}
+
+const fileFilterImagesAndVideos = (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const isImageOrVideoMime = file.mimetype ? (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/') || file.mimetype === 'application/octet-stream') : false;
+    const isImageOrVideoExt = /\.(jpg|jpeg|png|gif|webp|jfif|avif|heic|heif|bmp|svg|mp4|webm|mov|avi|m4v)$/i.test(ext);
+
+    if (isImageOrVideoMime || isImageOrVideoExt) {
+        return cb(null, true);
+    }
+    cb(new Error('Invalid file type! Only images and videos are allowed.'));
+};
 
 const upload = multer({
     storage: storage,
-    fileFilter: (req, file, cb) => {
-        const ext = path.extname(file.originalname || '').toLowerCase();
-        const isImageOrVideoMime = file.mimetype ? (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/') || file.mimetype === 'application/octet-stream') : false;
-        const isImageOrVideoExt = /\.(jpg|jpeg|png|gif|webp|jfif|avif|heic|heif|bmp|svg|mp4|webm|mov|avi|m4v)$/i.test(ext);
-
-        if (isImageOrVideoMime || isImageOrVideoExt) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Invalid file type! Only images and videos are allowed.'));
-        }
-    },
-    limits: { 
-        fileSize: 10 * 1024 * 1024 // 10MB limit
-    }
+    fileFilter: fileFilterImagesAndVideos,
+    limits: { fileSize: 15 * 1024 * 1024 }
 });
 
 const marketplaceUpload = multer({
@@ -115,74 +99,32 @@ const marketplaceUpload = multer({
 
         if (isImageMime || isImageExt) {
             return cb(null, true);
-        } else {
-            cb(new Error('Invalid file type! Only images are allowed for marketplace listings.'));
         }
+        cb(new Error('Invalid file type! Only images are allowed for marketplace listings.'));
     },
-    limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB per image
-    }
+    limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 const messageUpload = multer({
     storage: messageStorage,
-    limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB limit (Strictly match frontend logic for videos/docs)
-    }
-});
-
-const momentsStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (req, file) => {
-        const dynamicDrift = await getDrift();
-        const patchedTimestamp = Math.round(Date.now() / 1000) + dynamicDrift;
-        
-        console.log('🎥 MOMENT HD PIPELINE: Starting high-fidelity upload');
-        
-        return {
-            folder: 'sparkle_moments_hd',
-            resource_type: 'video',
-            timestamp: patchedTimestamp,
-            public_id: `moment-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
-            allowed_formats: ['mp4', 'mov', 'avi', 'webm', 'mkv'],
-            // HD Transcoding & Adaptive Streaming Strategy
-            streaming_profile: 'full_hd', // Generates HLS bitrates up to 1080p
-            eager: [
-                // 1080p High Quality MP4 (Preserve detail)
-                { width: 1080, height: 1920, crop: 'limit', quality: 'auto:best', format: 'mp4', bit_rate: '6m' },
-                // 720p Balanced MP4
-                { width: 720, height: 1280, crop: 'limit', quality: 'auto:good', format: 'mp4', bit_rate: '3.5m' },
-                // HD Thumbnail/Cover
-                { width: 1080, height: 1920, crop: 'limit', format: 'jpg', quality: 'auto:best' }
-            ],
-            eager_async: true, // Non-blocking upload
-            transformation: [
-                { quality: 'auto:best' }, // Global quality setting
-                { fetch_format: 'auto' }
-            ]
-        };
-    },
+    limits: { fileSize: 25 * 1024 * 1024 }
 });
 
 const momentsUpload = multer({
     storage: momentsStorage,
-    limits: {
-        fileSize: 100 * 1024 * 1024 // Increased to 100MB for 1080p HD videos
-    }
+    limits: { fileSize: 100 * 1024 * 1024 }
 });
 
 const postUpload = multer({
     storage: storage,
-    limits: {
-        fileSize: 15 * 1024 * 1024 // 15MB limit for posts (photos/small videos)
-    }
+    fileFilter: fileFilterImagesAndVideos,
+    limits: { fileSize: 25 * 1024 * 1024 }
 });
 
 const storiesUpload = multer({
     storage: storage,
-    limits: {
-        fileSize: 20 * 1024 * 1024 // 20MB limit for Stories (allows high-res videos/images)
-    }
+    fileFilter: fileFilterImagesAndVideos,
+    limits: { fileSize: 25 * 1024 * 1024 }
 });
 
 module.exports = {

@@ -94,6 +94,16 @@ capacitor-cordova-android-plugins
 # Copied web assets
 app/src/main/assets/public
 
+# Force-keep the tracked index.html that predates the rule above (cap sync
+# updates it; the deletion already made the PWA tags moot). Only the HTML
+# entrypoint is tracked — everything else in this dir stays ignored.
+!app/src/main/assets/public/index.html
+
+# Auto-written by app/build.gradle on every packaging build — build state,
+# not source: committing it just creates merge conflicts between release
+# branches. The gradle logic seeds from '7' if absent.
+version.properties
+
 # Generated Config files
 app/src/main/assets/capacitor.config.json
 app/src/main/assets/capacitor.plugins.json

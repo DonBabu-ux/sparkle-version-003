@@ -41,8 +41,11 @@ def versionPropsFile = rootProject.file('version.properties')
     }
     def nextVersionCode = isPackagingBuild ? lastVersionCode + 1 : lastVersionCode
     if (isPackagingBuild) {
+        // VERSION_NAME is intentionally not persisted: versionName is sourced
+        // from frontend/package.json at configuration time, so a copy here
+        // would only go stale on the next version bump. The file exists purely
+        // as the monotonic versionCode counter.
         versionProps.setProperty('VERSION_CODE', nextVersionCode.toString())
-        versionProps.setProperty('VERSION_NAME', frontendVersion)
         versionPropsFile.withOutputStream { versionProps.store(it, 'Auto-written by app/build.gradle. versionCode auto-increments per packaging build.') }
     }
 

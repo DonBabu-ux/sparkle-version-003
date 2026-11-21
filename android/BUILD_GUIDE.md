@@ -14,7 +14,11 @@ This guide documents all issues encountered during the build setup and their sol
 # frontend/.env.production MUST exist (gitignored) and contain:
 #   VITE_API_URL=https://sparkle-version-003-1-f4v3.onrender.com/api
 #   VITE_SOCKET_URL=https://sparkle-version-003-1-f4v3.onrender.com
-npx vite build           # run from frontend/ — production mode auto-loads .env.production
+npm run build:apk        # from repo root — sets VITE_PWA_DISABLE=true, builds, syncs, packages
+#   ^ preferred: one command, correct env, no PWA in the bundle
+# If you must build the web bundle by hand, the variable has to be in the
+# SAME environment as the vite build — see the wrapper at
+# frontend/scripts/buildForApk.cjs for the shell-agnostic way.
 ```
 
 ### Step 1: Sync web assets into the Android project
@@ -59,16 +63,51 @@ adb install -r "app\build\outputs\apk\debug\app-debug.apk"
 adb shell am start -n com.sparkleapp/.MainActivity
 ```
 
-### 3. Increment App Version (For Testing Updates)
-When creating a new build update to test on phone or emulator, bump `versionCode` and `versionName` in `android/app/build.gradle`:
+### 3. Versioning (automatic — do not bump manually)
 
-```groovy
-defaultConfig {
-    ...
-    versionCode 2
-    versionName "1.0.1"
-}
+`versionCode` and `versionName` are **not** edited by hand anymore:
+
+- `versionName` (what users see + the APK filename) is read from
+  `frontend/package.json` at configuration time. To rename a release, bump the
+  frontend version — never `android/app/build.gradle`.
+- `versionCode` auto-increments from `android/version.properties` on every
+  **packaging** build (`assemble*`, `bundle*`, `install*`, `package*`), so
+  `adb install -r` over an existing build never hits a downgrade error. Gradle
+  syncs and `clean` do **not** burn a code.
+
+Two consequences worth knowing:
+
+1. **Every `assembleRelease`/`assembleDebug` increments the counter.** Do not
+   run throwaway release builds expecting the same code to be reusable — it
+   will not be.
+2. **The counter is per-checkout.** Two machines building from different
+   branches each increment independently, so both can emit code 15. If you
+   branch for a release, the counter travels with the branch — fine for
+   Play-bound uploads, a hazard only for adb installs across branches.
+
+### 3a. Build the Release APK (R8 + resource shrinking)
+
+```powershell
+# from repo root — build:apk sets VITE_PWA_DISABLE=true for you
+npm run build:apk            # debug APK
+npm run build:apk:release    # release APK (R8, shrinkResources)
 ```
+
+Release builds without `-PSTORE_PASSWORD=... -PKEY_ALIAS=... -PKEY_PASSWORD=...`
+package **debug-signed** and print a loud warning. They are installable via
+adb for testing but **must never be uploaded to Play** — Play rejects them.
+
+### 3b. The WebView bundle must not contain a service worker
+
+`build:apk`/`build:apk:release` run the frontend build with
+`VITE_PWA_DISABLE=true`, which keeps `vite-plugin-pwa` from emitting
+`registerSW.js` + `manifest.webmanifest`. Without it the WebView would precache
+~8 MB of assets it is already served locally.
+
+If you hand-roll the build instead of using the script, set the variable in the
+same environment as the `vite build` invocation. The `prebuild` hook
+(`verifyRelease.cjs`) fails the build if PWA artifacts show up in `dist/` from
+a run that forgot it.
 
 ---
 
@@ -261,10 +300,11 @@ show the registered `Sparkle calls` PhoneAccount after a cold start.
 .\gradlew.bat app:assembleDebug app:assembleRelease
 ```
 
-Release builds without `STORE_PASSWORD` package successfully but are **unsigned**
-and print a loud warning — never upload them. See `PLAY_CONSOLE_CHECKLIST.md`
-for the console-side declarations the call stack requires (FGS types, app
-category, USE_FULL_SCREEN_INTENT category, Data safety).
+Release builds without `STORE_PASSWORD` package successfully but are
+**debug-signed** and print a loud warning — installable via adb, never
+uploadable (Play rejects them). See `PLAY_CONSOLE_CHECKLIST.md` for the
+console-side declarations the call stack requires (FGS types, app category,
+USE_FULL_SCREEN_INTENT category, Data safety).
 
 ## File Modifications Summary
 
@@ -272,7 +312,7 @@ category, USE_FULL_SCREEN_INTENT category, Data safety).
 | :--- | :--- | :--- |
 | `android/gradle.properties` | **Created** | Enabled `android.useAndroidX` & `android.enableJetifier`. |
 | `android/local.properties` | **Updated** | Corrected `sdk.dir` path to local Android SDK location. (Machine-specific — must NOT be committed; gitignored.) |
-| `android/app/build.gradle` | **Modified** | Made `signingConfigs.release` conditional on `hasProperty("STORE_PASSWORD")`; bumped `versionCode` (2) and `versionName` ("1.0.1") for update testing. |
+| `android/app/build.gradle` | **Modified** | `signingConfigs.release` conditional on `hasProperty("STORE_PASSWORD")`; **auto-versioning** — `versionName` from `frontend/package.json`, `versionCode` auto-incremented from `version.properties` on packaging builds only; R8 + `shrinkResources` in the release build type. |
 | `android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml` | **Deleted** | Removed vector overriding real app icon. |
 | `android/app/src/main/res/mipmap-*/ic_launcher*.png` | **Updated** | Replaced default green robot images with scaled Sparkle logo assets. |
 | `android/BUILD_GUIDE.md` | **Updated** | Developer guide, versioning instructions, and troubleshooting reference document. |

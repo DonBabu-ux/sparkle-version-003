@@ -41,7 +41,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Root package.json declares engines.node ">=22.0.0"; Node 20 makes
+          # `npm ci` fail with EBADENGINE before any build step runs.
+          node-version: 22
           cache: npm
           cache-dependency-path: |
             package-lock.json
@@ -78,25 +80,43 @@ jobs:
         working-directory: frontend
         run: npm run test
 
-      - name: Build web bundle
+      - name: Build web bundle (OTA — keeps the service worker)
         working-directory: frontend
-        run: npx vite build
-
-      - name: Sync Capacitor (picks up new native plugins)
-        run: npx cap sync android
+        # Deliberately the plain web build (build:web), NOT the build:apk
+        # wrapper: the OTA bundle is a web-target asset, so VitePWA stays
+        # enabled and offline caching ships.
+        run: npm run build:web
 
       - name: Release OTA bundle to OtaKit base channel
         if: env.OTAKIT_TOKEN != ''
+        # Uploads the web-flavoured dist just built (service worker included).
+        # MUST precede the APK rebuild below, which overwrites frontend/dist
+        # with the no-service-worker variant used only by the Android assets.
         run: npx -y @otakit/cli upload --release
 
       - name: Warn when OTA token missing
         if: env.OTAKIT_TOKEN == ''
         run: echo "::warning::OTAKIT_TOKEN secret not set — OTA bundle NOT released. Add it in repo Settings → Secrets → Actions."
 
+      # The APK is a different target from the OTA bundle. Inside the app the
+      # WebView is served locally, so a service worker only duplicates ~8MB of
+      # assets it is already given and slows cold start. Rebuild with the PWA
+      # disabled, then re-sync cap so it copies the slimmer bundle into the
+      # Android assets — the same package.json script `npm run build:apk` uses.
+      - name: Rebuild web bundle for the Android assets (no service worker)
+        working-directory: frontend
+        run: node scripts/buildForApk.cjs
+
+      - name: Sync Capacitor (picks up new native plugins)
+        run: npx cap sync android
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          # 17 fails with "invalid source release: 21" — the cordova plugin
+          # module (android/capacitor-cordova-android-plugins/build.gradle)
+          # sets sourceCompatibility/targetCompatibility JavaVersion.VERSION_21.
+          java-version: '21'
 
       # local.properties is committed with a Windows sdk.dir path; remove it so
       # the runner's ANDROID_HOME is used instead. gradle.properties carries

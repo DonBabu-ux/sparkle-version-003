@@ -10,8 +10,8 @@ const logger = require('../utils/logger');
 
 class TelegramBotService {
     constructor() {
-        this.token = process.env.TELEGRAM_BOT_TOKEN || '';
-        this.adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID || '';
+        this.token = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_API || '';
+        this.adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID || process.env.TELEGRAM_ADMIN_ID || '';
     }
 
     /**

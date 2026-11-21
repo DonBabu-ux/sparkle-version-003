@@ -202,11 +202,13 @@ class MediaMigrationService {
             { table: 'moments', column: 'media_url' },
             { table: 'moments', column: 'thumbnail_url' },
             { table: 'users', column: 'avatar_url' },
-            { table: 'profile_details', column: 'cover_image' },
+            { table: 'users', column: 'cover_url' },
             { table: 'messages', column: 'media_url' },
-            { table: 'reels', column: 'video_url' },
-            { table: 'reels', column: 'thumbnail_url' },
-            { table: 'community_items', column: 'image_url' }
+            { table: 'marketplace_listings', column: 'thumbnail_url' },
+            { table: 'listing_media', column: 'media_url' },
+            { table: 'lost_found_media', column: 'media_url' },
+            { table: 'media_objects', column: 'url' },
+            { table: 'canonical_media_assets', column: 'url' },
         ];
 
         for (const target of tables) {

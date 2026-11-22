@@ -82,10 +82,13 @@ jobs:
 
       - name: Build web bundle (OTA — keeps the service worker)
         working-directory: frontend
-        # Deliberately the plain web build (build:web), NOT the build:apk
-        # wrapper: the OTA bundle is a web-target asset, so VitePWA stays
-        # enabled and offline caching ships.
-        run: npm run build:web
+        # Deliberately the plain web build, NOT the build:apk wrapper: the OTA
+        # bundle is a web-target asset, so VitePWA stays enabled and offline
+        # caching ships. This must run the frontend's own "build" script —
+        # `npm run build:web` here would look for build:web in frontend/package.json,
+        # where it does not exist (it lives in the root package.json) and fail
+        # with "Missing script".
+        run: npm run build
 
       - name: Release OTA bundle to OtaKit base channel
         if: env.OTAKIT_TOKEN != ''

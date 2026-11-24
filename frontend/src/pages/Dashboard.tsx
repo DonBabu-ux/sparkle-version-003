@@ -12,6 +12,7 @@ import { Image, Video, Smile, Plus, TrendingUp, ChevronRight, Eye } from 'lucide
 import { useLiveStore } from '../store/liveStore';
 import VirtualizedFeed from '../components/VirtualizedFeed';
 import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import { useDeviceSeed } from '../hooks/useDeviceSeed';
 import { PullToRefreshProvider, usePullToRefresh } from '../components/PullToRefreshProvider';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -116,7 +117,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
   const [ ,  ] = useState(false);
   const [ ,  ] = useState<File[]>([]);
   const [trendingTags, setTrendingTags] = useState<TrendingTag[]>([]);
-  const [ , setLoading ] = useState(!lastFetched);
+  const [loading, setLoading] = useState(!lastFetched);
   const [ , setLoadingMore ] = useState(false);
   const [ , setHasMore ] = useState(true);
   const [ , setHiddenPostIds ] = useState<string[]>([]);
@@ -705,7 +706,22 @@ const posts = orderedPostIds.map(id => postsById[id]);
 
             {/* FEED */}
             <div className="space-y-3 pb-40 md:pb-8 animate-fade-in">
-              <VirtualizedFeed initialPosts={posts} suggestions={suggestions} />
+              {loading && posts.length === 0 ? (
+                <div className="space-y-4 px-4 pt-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="space-y-4">
+                      <Skeleton className="h-20 w-full" />
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-1/4 rounded-full" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                      <Skeleton className="h-4 w-3/5" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <VirtualizedFeed initialPosts={posts} suggestions={suggestions} />
+              )}
             </div>
           </section>
 

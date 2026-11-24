@@ -7,16 +7,18 @@ import {
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
+import { useUniversities } from '../hooks/useUniversities';
 import { useUserStore } from '../store/userStore';
 import { getPendingReferral, capturePendingReferral, clearPendingReferral } from '../services/referralAttribution';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
-const UNIVERSITIES = [
-  'Karatina University', 'Chuka University', 'Dedan Kimathi University',
-  'Mount Kenya University', "Murang'a University", 'Pwani University',
-  'Mount Media University', 'University of Nairobi',
-];
+/**
+ * Universities are fetched live from the backend API
+ * (GET /api/universities, seeded by migration 20261124_universities)
+ * via useUniversities() — kept out of this file so the list stays
+ * current without redeploying the frontend.
+ */
 
 const AFFILIATION_TYPES = [
   { id: 'University', icon: GraduationCap, label: 'University' },
@@ -66,6 +68,10 @@ export default function Signup() {
     name: '', username: '', email: '', password: '',
     affiliation_type: 'University', campus: '', major: '', year: '',
   });
+
+  // Universities fetched live from the API (with module-level cache)
+  const { universities } = useUniversities();
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -792,7 +798,7 @@ export default function Signup() {
                   <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Sparkle Region</label>
                   <select value={form.campus} onChange={(e) => update('campus', e.target.value)} className="w-full rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] px-4 py-3 text-sm text-[#18181b] outline-none transition-colors focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
                     <option value="">Select your Sparkle region...</option>
-                    {UNIVERSITIES.map((u) => <option key={u} value={u}>{u}</option>)}
+                    {universities.map((u) => <option key={u.name} value={u.name}>{u.name}</option>)}
                   </select>
                 </div>
 

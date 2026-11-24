@@ -10,6 +10,7 @@ import Spinner from '../ui/Spinner';
 import type { User } from '../../types/user';
 import { useModalA11y } from '../../hooks/useModalA11y';
 import { validateFile } from '../../utils/fileValidation';
+import { useUniversities } from '../../hooks/useUniversities';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -28,27 +29,12 @@ type SubView =
   | 'photo_sheet'
   | 'photo_view';
 
-const UNIVERSITIES = [
-  'Karatina University',
-  'Chuka University',
-  'Dedan Kimathi University of Technology',
-  'Mount Kenya University',
-  "Murang'a University of Technology",
-  'Pwani University',
-  'Multimedia University of Kenya',
-  'University of Nairobi',
-  'Jomo Kenyatta University of Agriculture & Technology (JKUAT)',
-  'Kenyatta University (KU)',
-  'Strathmore University',
-  'Egerton University',
-  'Moi University',
-  'Technical University of Kenya (TUK)',
-  'Maseno University',
-  'Kisii University',
-  'Daystar University',
-  'USIU Africa',
-];
-
+/**
+ * Universities are fetched live from the backend API
+ * (GET /api/universities, seeded by migration 20261124_universities)
+ * via useUniversities() — kept out of this file so the list stays
+ * current without redeploying the frontend.
+ */
 const MAJORS = [
   'Computer Science',
   'Information Technology',
@@ -156,6 +142,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   // Search queries for selectors
   const [campusSearch, setCampusSearch] = useState('');
   const [majorSearch, setMajorSearch] = useState('');
+
+  // Universities fetched live from the API (with module-level cache)
+  const { universities, loading: unisLoading } = useUniversities();
 
   // Hidden file input refs for Camera and Gallery
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -1252,15 +1241,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               </div>
 
               <div className="max-h-72 overflow-y-auto space-y-1 pr-1 divide-y divide-neutral-100 dark:divide-neutral-800/50">
-                {UNIVERSITIES.filter((u) =>
-                  u.toLowerCase().includes(campusSearch.toLowerCase())
+                {universities.filter((u) =>
+                  u.name.toLowerCase().includes(campusSearch.toLowerCase())
                 ).map((camp) => {
-                  const isSelected = draft.campus === camp;
+                  const isSelected = draft.campus === camp.name;
                   return (
                     <div
-                      key={camp}
+                      key={camp.name}
                       onClick={() => {
-                        setDraft((prev) => ({ ...prev, campus: camp }));
+                        setDraft((prev) => ({ ...prev, campus: camp.name }));
                         setCurrentView('main');
                       }}
                       className={`p-3 rounded-xl flex items-center justify-between cursor-pointer transition-all ${
@@ -1271,7 +1260,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     >
                       <div className="flex items-center gap-3">
                         <GraduationCap size={16} className={isSelected ? 'text-pink-500' : 'text-neutral-400 dark:text-neutral-500'} />
-                        <span className="text-sm">{camp}</span>
+                        <span className="text-sm">{camp.name}</span>
                       </div>
                       {isSelected && <Check size={16} className="text-pink-500 shrink-0" />}
                     </div>

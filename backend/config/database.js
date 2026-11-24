@@ -491,10 +491,12 @@ pool.query = async (sql, params = [], priority = false) => {
                 }
                 const message = error?.message || error?.sqlMessage || String(error).slice(0, 200) || '';
                 const isDuplicateErr = message.includes('Duplicate') || message.includes('already exists');
+                // ER_NO_SUCH_TABLE is expected during migrations that probe optional tables — suppress log noise
+                const isNoSuchTable = error?.code === 'ER_NO_SUCH_TABLE' || message.includes("doesn't exist");
 
                 if (isConnectionLimitError(error)) {
                     throttledError('connection_limit', 'ER_TOO_MANY_USER_CONNECTIONS — pool exhausted');
-                } else if (!isDuplicateErr && message.trim().length > 0) {
+                } else if (!isDuplicateErr && !isNoSuchTable && message.trim().length > 0) {
                     logger.error('[DB] Query error (wrapped pool.query): ' + String(message));
                 }
                 noteDbFailure(error);

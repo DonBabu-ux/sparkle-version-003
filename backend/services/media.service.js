@@ -5,16 +5,18 @@ const path = require('path');
 const https = require('https');
 const cloudinary = require('cloudinary').v2;
 const logger = require('../utils/logger');
+const storageManager = require('./storage/StorageManager');
+const MediaResolverService = require('./mediaResolver.service');
 
 class MediaService {
     /**
      * Registers a newly uploaded media asset in the registry.
-     * Optionally generates a local thumbnail cache.
+     * Supports both Cloudflare R2 and legacy Cloudinary.
      */
     static async registerMedia({
         ownerId,
         category,
-        cloudinaryPublicId,
+        cloudinaryPublicId = null,
         secureUrl,
         thumbnailUrl = null,
         lifecycleState = 'active',
@@ -23,22 +25,26 @@ class MediaService {
         referencedByFeatures = [],
         fileSizeBytes = 0,
         hashChecksum = null,
-        resolution = null
+        resolution = null,
+        storageProvider = 'r2',
+        bucketName = null,
+        objectKey = null,
+        mimeType = null,
+        checksumSha256 = null,
+        width = null,
+        height = null,
+        durationSeconds = null
     }) {
         const mediaId = crypto.randomUUID();
         
-        // Use provided thumbnail_url or generate one
+        // Use provided thumbnail_url or fallback
         let finalThumbnailUrl = thumbnailUrl;
-        
-        // Generate a local template for heavy feed rendering if no thumbnail provided
         let localTemplatePath = null;
+
+        // If Cloudinary legacy thumbnail generation was requested
         if (secureUrl && !finalThumbnailUrl && cloudinaryPublicId && !cloudinaryPublicId.startsWith('url_import_') && category !== 'message') {
             try {
-                // Determine resource type based on URL extension
                 const isVideo = secureUrl.match(/\.(mp4|webm|mov|avi)$/i);
-                
-                // Construct Cloudinary transformation URL for tiny preview
-                // format: auto, quality: low, width: 200, crop: fill
                 let thumbUrl = cloudinary.url(cloudinaryPublicId, {
                     resource_type: isVideo ? 'video' : 'image',
                     transformation: [
@@ -47,7 +53,6 @@ class MediaService {
                     ]
                 });
 
-                // If it's a video, get the jpg poster frame
                 if (isVideo) {
                     thumbUrl = thumbUrl.replace(/\.(mp4|webm|mov|avi)$/i, '.jpg');
                 }
@@ -61,7 +66,6 @@ class MediaService {
 
                 const filePath = path.join(cacheDir, fileName);
                 
-                // Download in background (non-blocking)
                 https.get(thumbUrl, (response) => {
                     if (response.statusCode === 200) {
                         const fileStream = fs.createWriteStream(filePath);
@@ -75,16 +79,22 @@ class MediaService {
             }
         }
 
+        const effectiveBucket = bucketName || (storageProvider === 'r2' ? process.env.R2_BUCKET_NAME : null);
+
         await pool.query(
             `INSERT INTO media_registry (
-                media_id, owner_id, category, cloudinary_public_id, secure_url, thumbnail_url,
+                media_id, owner_id, storage_provider, bucket_name, object_key, mime_type,
+                category, cloudinary_public_id, secure_url, thumbnail_url,
                 lifecycle_state, expires_at, is_reusable, referenced_by_features, 
-                file_size_bytes, hash_checksum, local_template_path, last_accessed_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+                file_size_bytes, hash_checksum, checksum_sha256, width, height, duration_seconds,
+                local_template_path, last_accessed_at, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())`,
             [
-                mediaId, ownerId, category, cloudinaryPublicId, secureUrl, finalThumbnailUrl,
+                mediaId, ownerId, storageProvider, effectiveBucket, objectKey, mimeType,
+                category, cloudinaryPublicId, secureUrl, finalThumbnailUrl,
                 lifecycleState, expiresAt, isReusable, JSON.stringify(referencedByFeatures),
-                fileSizeBytes, hashChecksum, localTemplatePath
+                fileSizeBytes, hashChecksum, checksumSha256, width, height, durationSeconds,
+                localTemplatePath
             ]
         );
         
@@ -98,8 +108,8 @@ class MediaService {
         if (!hashChecksum) return null;
         
         const [rows] = await pool.query(
-            `SELECT * FROM media_registry WHERE owner_id = ? AND hash_checksum = ? LIMIT 1`,
-            [ownerId, hashChecksum]
+            `SELECT * FROM media_registry WHERE owner_id = ? AND (hash_checksum = ? OR checksum_sha256 = ?) LIMIT 1`,
+            [ownerId, hashChecksum, hashChecksum]
         );
         
         return rows[0] || null;
@@ -129,18 +139,14 @@ class MediaService {
     }
 
     /**
-     * Escapes LIKE wildcards so a public id never accidentally matches
-     * sibling assets (public id "posts/ab_c" must not match "posts/abXc").
+     * Escapes LIKE wildcards
      */
     static escapeLike(value) {
         return String(value).replace(/[|%_]/g, (ch) => '|' + ch);
     }
 
     /**
-     * Pure helper: does this stored URL point at the given Cloudinary
-     * public id? Version segments and transformation prefixes are
-     * irrelevant (URLs are re-signed over time); the file extension is
-     * stripped because registry public ids are stored without one.
+     * Pure helper: does this stored URL point at the given Cloudinary public id?
      */
     static urlReferencesPublicId(url, publicId) {
         if (!url || typeof url !== 'string' || !publicId) return false;
@@ -150,13 +156,6 @@ class MediaService {
 
     /**
      * Parses a Cloudinary secure_url into its registry public id.
-     * Handles the documented shape
-     *   https://res.cloudinary.com/<cloud>/<image|video|raw>/upload/v<version>/<folder>/<public_id>.<ext>
-     * with or without the version segment (transformation segments before
-     * the version are tolerated). Returns null for non-Cloudinary URLs
-     * (data: URIs, remote hosts, local /uploads paths) so callers can skip
-     * them safely. The returned public id omits the file extension to
-     * match media_registry.cloudinary_public_id.
      */
     static extractCloudinaryRef(url) {
         if (!url || typeof url !== 'string') return null;
@@ -170,11 +169,6 @@ class MediaService {
         let rest = match[2];
         let version = null;
 
-        // The version segment (v<digits>) sits after any transformation
-        // prefix (so_5,du_10/...) and immediately before the public id —
-        // Cloudinary's grammar allows exactly one version, so take the
-        // FIRST match. A leading '/' is prepended so a version sitting in
-        // the first segment also matches.
         const versionMatch = /\/v(\d+)\//.exec(`/${rest}`);
         if (versionMatch) {
             version = versionMatch[1];
@@ -188,110 +182,113 @@ class MediaService {
     }
 
     /**
-     * Checks whether any LIVE row still references a Cloudinary public id.
-     * Covers posts.media_url, post_media.media_url, the story media columns
-     * and media_registry.cloudinary_public_id rows — excluding registry
-     * rows the caller is about to delete (they are not live references).
-     * URL columns are matched by public-id containment so version segments
-     * never matter; the match is intentionally conservative (a false
-     * positive keeps the asset, a false negative would destroy bytes that
-     * are still displayed somewhere).
+     * Checks whether any LIVE row still references a Cloudinary public id or R2 key.
      */
-    static async isMediaUrlReferenced(publicId, excludeMediaIds = []) {
-        if (!publicId) return false;
+    static async isMediaUrlReferenced(identifier, excludeMediaIds = []) {
+        if (!identifier) return false;
 
         const exclude = Array.isArray(excludeMediaIds) ? excludeMediaIds : [];
-        const pattern = `%${MediaService.escapeLike(publicId)}%`;
+        const pattern = `%${MediaService.escapeLike(identifier)}%`;
 
-        // 1. Registry rows for the same public id (exact column match),
-        //    minus the rows the caller is deleting right now.
         let registryNotIn = '';
-        const registryParams = [publicId];
+        const registryParams = [identifier, identifier];
         if (exclude.length > 0) {
             registryNotIn = ` AND media_id NOT IN (${exclude.map(() => '?').join(',')})`;
             registryParams.push(...exclude);
         }
         const [registry] = await pool.query(
-            `SELECT 1 FROM media_registry WHERE cloudinary_public_id = ?${registryNotIn} LIMIT 1`,
+            `SELECT 1 FROM media_registry WHERE (cloudinary_public_id = ? OR object_key = ?)${registryNotIn} LIMIT 1`,
             registryParams
         );
         if (registry.length > 0) return true;
 
-        // 2. Live content rows — URL columns, matched on public id.
+        // Content table reference check
         const urlChecks = [
             [`SELECT 1 FROM posts WHERE media_url LIKE ? ESCAPE '|' LIMIT 1`, [pattern]],
             [`SELECT 1 FROM post_media WHERE media_url LIKE ? ESCAPE '|' LIMIT 1`, [pattern]],
-            [`SELECT 1 FROM stories WHERE media_url LIKE ? ESCAPE '|' OR thumbnail_url LIKE ? ESCAPE '|' OR audio_url LIKE ? ESCAPE '|' LIMIT 1`, [pattern, pattern, pattern]]
+            [`SELECT 1 FROM stories WHERE media_url LIKE ? ESCAPE '|' OR thumbnail_url LIKE ? ESCAPE '|' OR audio_url LIKE ? ESCAPE '|' LIMIT 1`, [pattern, pattern, pattern]],
+            [`SELECT 1 FROM moments WHERE media_url LIKE ? ESCAPE '|' OR thumbnail_url LIKE ? ESCAPE '|' LIMIT 1`, [pattern, pattern]]
         ];
         for (const [sql, params] of urlChecks) {
-            const [rows] = await pool.query(sql, params);
-            if (rows.length > 0) return true;
+            try {
+                const [rows] = await pool.query(sql, params);
+                if (rows.length > 0) return true;
+            } catch (err) {
+                // Ignore missing tables
+            }
         }
 
         return false;
     }
 
     /**
-     * Destroys Cloudinary assets for the given URLs and deletes their
-     * media_registry rows — but ONLY when no other live row still
-     * references them. Destructive steps are individually wrapped so one
-     * failing asset never aborts the sweep or bubbles up into a
-     * user-facing delete path. Returns { destroyed, kept, errors }.
+     * Destroys media assets across providers (R2, B2, Cloudinary)
+     * and deletes their media_registry rows ONLY when unreferenced.
      */
     static async deleteMediaForUrls(urls) {
         const summary = { destroyed: 0, kept: 0, errors: [] };
         if (!Array.isArray(urls)) return summary;
 
-        // Dedupe on public id + resource type: the same asset may appear
-        // as media_url and (derived) thumbnail_url of one story.
-        const refs = new Map();
         for (const url of urls) {
             if (!url || typeof url !== 'string') continue;
-            const ref = MediaService.extractCloudinaryRef(url);
-            if (!ref) continue;
-            const key = `${ref.publicId}|${ref.resourceType}`;
-            if (!refs.has(key)) refs.set(key, ref);
-        }
 
-        for (const ref of refs.values()) {
-            const { publicId, resourceType } = ref;
             try {
-                // Registry rows carrying this public id are the deletion
-                // candidates; they must not count as live references.
-                const [registryRows] = await pool.query(
-                    'SELECT media_id, cloudinary_public_id FROM media_registry WHERE cloudinary_public_id = ?',
-                    [publicId]
+                // Find matching registry rows
+                const [rows] = await pool.query(
+                    'SELECT * FROM media_registry WHERE secure_url = ? OR object_key = ? OR cloudinary_public_id = ?',
+                    [url, url, url]
                 );
-                const mediaIds = registryRows.map((row) => row.media_id);
 
-                const referenced = await MediaService.isMediaUrlReferenced(publicId, mediaIds);
-                if (referenced) {
-                    summary.kept++;
-                    logger.debug(`Media cleanup kept referenced asset ${publicId}`);
+                if (rows.length === 0) {
+                    // Check if it's a Cloudinary URL not in registry
+                    const ref = MediaService.extractCloudinaryRef(url);
+                    if (ref) {
+                        const referenced = await MediaService.isMediaUrlReferenced(ref.publicId);
+                        if (!referenced) {
+                            try {
+                                await cloudinary.uploader.destroy(ref.publicId, { resource_type: ref.resourceType });
+                                summary.destroyed++;
+                            } catch (e) {
+                                summary.errors.push(`${ref.publicId}: ${e.message}`);
+                            }
+                        } else {
+                            summary.kept++;
+                        }
+                    }
                     continue;
                 }
 
-                // Synthetic import markers ('url_import_...') are not real
-                // Cloudinary assets — never call destroy on them.
-                const isSynthetic = registryRows.some((row) => row.cloudinary_public_id.startsWith('url_import_'));
-                if (!isSynthetic) {
-                    try {
-                        await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
-                    } catch (destroyErr) {
-                        // Keep the registry row so a later sweep can retry.
-                        summary.errors.push(`${publicId}: ${destroyErr.message}`);
-                        logger.error(`Cloudinary destroy failed for ${publicId}:`, destroyErr.message);
+                for (const row of rows) {
+                    const identifier = row.object_key || row.cloudinary_public_id;
+                    const referenced = await MediaService.isMediaUrlReferenced(identifier, [row.media_id]);
+
+                    if (referenced) {
+                        summary.kept++;
+                        logger.debug(`Media cleanup kept referenced asset ${identifier}`);
                         continue;
                     }
-                }
-                summary.destroyed++;
 
-                if (mediaIds.length > 0) {
-                    await pool.query('DELETE FROM media_registry WHERE media_id IN (?)', [mediaIds]);
+                    // Delete from authoritative provider
+                    try {
+                        if (row.storage_provider === 'r2' && row.object_key) {
+                            await storageManager.getAdapter('r2').deleteObject({ key: row.object_key, bucket: row.bucket_name });
+                        } else if (row.storage_provider === 'b2' && row.object_key) {
+                            await storageManager.getAdapter('b2').deleteObject({ key: row.object_key, bucket: row.bucket_name });
+                        } else if (row.cloudinary_public_id && !row.cloudinary_public_id.startsWith('url_import_')) {
+                            const isVideo = row.secure_url && row.secure_url.match(/\.(mp4|webm|mov|avi)$/i);
+                            await cloudinary.uploader.destroy(row.cloudinary_public_id, { resource_type: isVideo ? 'video' : 'image' });
+                        }
+
+                        await pool.query('DELETE FROM media_registry WHERE media_id = ?', [row.media_id]);
+                        summary.destroyed++;
+                    } catch (delErr) {
+                        summary.errors.push(`${identifier}: ${delErr.message}`);
+                        logger.error(`Media delete failed for ${identifier}:`, delErr.message);
+                    }
                 }
             } catch (err) {
-                summary.errors.push(`${publicId}: ${err.message}`);
-                logger.error(`Media cleanup failed for ${publicId}:`, err.message);
+                summary.errors.push(`${url}: ${err.message}`);
+                logger.error(`Media sweep error for ${url}:`, err.message);
             }
         }
 

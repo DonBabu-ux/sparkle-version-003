@@ -17,6 +17,17 @@ const IMAGEKIT_ID = '9o04vzsnf';
 const CLOUDINARY_PREFIX = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/`;
 const IMAGEKIT_PREFIX = `https://ik.imagekit.io/${IMAGEKIT_ID}/`;
 
+// Cloudflare R2 public CDN — primary storage for new uploads
+// r2.dev subdomain serves objects publicly; custom domain can be substituted later
+const R2_PUBLIC_PREFIXES = [
+  'https://pub-c4e59fbe4541454193123e8ba0730243.r2.dev',
+];
+
+const isR2Url = (url: string): boolean =>
+  R2_PUBLIC_PREFIXES.some(p => url.startsWith(p)) ||
+  url.includes('.r2.dev/') ||
+  url.includes('.r2.cloudflarestorage.com/');
+
 const isDeadCloudinaryUrl = (url: string) =>
   url.includes('res.cloudinary.com') && !url.includes(CLOUDINARY_PREFIX);
 
@@ -52,8 +63,10 @@ export const getAvatarUrl = (url?: string | null, _seed?: string | null): string
     if (isDeadCloudinaryUrl(url)) return defaultAvatar;
     // Backend default avatar file — use the bundled grey version
     if (isBackendDefaultAvatar(url)) return defaultAvatar;
-    // If it's already a full URL — route live Cloudinary images via ImageKit
+    // If it's already a full URL — route live Cloudinary images via ImageKit; R2 URLs pass through
     if (url.startsWith('http')) {
+      // R2 public CDN URLs serve directly — no rewrite needed
+      if (isR2Url(url)) return url;
       return rewriteToImageKit(url);
     }
     // If it's a relative upload path from our server
@@ -87,6 +100,9 @@ export const getMediaUrl = (url?: string | null): string => {
   if (url.startsWith('/uploads')) {
     return `${BASE_URL}${url}`;
   }
+
+  // R2 public CDN URLs — serve directly
+  if (isR2Url(url)) return url;
 
   return rewriteToImageKit(url);
 };
@@ -139,6 +155,9 @@ export const getOptimizedMediaUrl = (
 ): string => {
   const base = getMediaUrl(url);
   if (!base) return '';
+
+  // 0. R2 public CDN — serve directly (no transforms needed; Cloudflare optimises at edge)
+  if (isR2Url(base)) return base;
 
   // 1. Pexels Optimization
   if (base.includes('pexels.com')) {

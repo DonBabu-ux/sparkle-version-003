@@ -5,7 +5,10 @@ const KEY_PREFIX = 'sparkle:identity:bloom';
 const DEFAULT_CAPACITY = 1000000;
 const DEFAULT_ERROR_RATE = 0.001;
 const DEFAULT_VERSION = 'v1';
-const DEFAULT_TIMEOUT_MS = 1500;
+// 1500ms was tuned for in-region Upstash REST. Managed TCP endpoints over
+// TLS plus wake-on-connect routinely exceed that on real networks; 8s keeps
+// ops in the primary provider instead of failing over on every slow call.
+const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_VERSION_CACHE_TTL_MS = 10000;
 const DEFAULT_PENDING_TTL_MS = 15 * 60 * 1000;
 

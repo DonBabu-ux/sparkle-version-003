@@ -39,7 +39,7 @@ function buildTcpProvider(label, url) {
             connectTimeout: 8000,
             maxRetriesPerRequest: 1,
             retryStrategy: (times) => Math.min(times * 500, 15000),
-            tls: url.startsWith('rediss://') ? {} : undefined,
+            tls: url.startsWith('rediss://') ? { servername: new URL(url).hostname } : undefined,
             lazyConnect: false
         });
         client.on('error', (err) => {

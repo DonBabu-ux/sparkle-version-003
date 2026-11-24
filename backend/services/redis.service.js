@@ -48,6 +48,9 @@ const io = new IORedis(url, {
       connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT || '20000', 10),
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
+      // Managed providers (Layerbase et al.) route TLS by SNI — the handshake
+      // is rejected unless the database hostname is sent as the TLS servername.
+      tls: url.startsWith('rediss://') ? { servername: new URL(url).hostname } : undefined,
         retryStrategy(times) {
             return Math.min(times * 500, 15000);
         },

@@ -15,7 +15,7 @@ if (redisUrl) {
       connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT || '20000', 10),
       keepAlive: 30000,
       enableReadyCheck: false,
-      tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
+      tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false, servername: new URL(redisUrl).hostname } : undefined,
       // Exponential backoff retry strategy
       retryStrategy(times) {
         const delay = Math.min(times * 500, 15000);

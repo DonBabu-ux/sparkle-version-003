@@ -41,10 +41,13 @@ function encode(v) {
  * to stale L1 / their own error paths instead of buffering for seconds.
  */
 function makeTcpClient(url) {
-    const io = new IORedis(url, {
-        connectTimeout: 5000,
-        maxRetriesPerRequest: 1,
-        enableOfflineQueue: false,
+const io = new IORedis(url, {
+      // Managed Redis endpoints (Aiven, Redis Cloud, etc.) do TLS handshakes that
+      // routinely exceed 5s on flaky networks — 20s matches utils/queue.js's default
+      // and avoids a spurious ETIMEDOUT on every reconnect.
+      connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT || '20000', 10),
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
         retryStrategy(times) {
             return Math.min(times * 500, 15000);
         },

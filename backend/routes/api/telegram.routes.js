@@ -6,8 +6,8 @@
  */
 const express = require('express');
 const router = express.Router();
-const telegramBotService = require('../services/telegramBot.service');
-const logger = require('../utils/logger');
+const telegramBotService = require('../../services/telegramBot.service');
+const logger = require('../../utils/logger');
 
 // Webhook — receives messages from Telegram Bot API
 // No auth middleware: Telegram sends these; we validate by checking the bot token in URL

@@ -508,12 +508,14 @@ function App() {
     })();
   }, [isAuthenticated]);
 
-  // Show a calm, on-brand splash while the store rehydrates. Reads the stored
-  // theme directly rather than a dark: class (the effect below only runs after
-  // this renders), so a dark-mode user never sees a light flash. Gated on
-  // hydration alone: `hydrated` is already true on authenticated reloads and
-  // SPA navigation, so the splash never appears there.
-  if (!hydrated) {
+  // Show a calm, on-brand splash while the store rehydrates AND the startup
+  // navigation target is still being resolved. Reads the stored theme directly
+  // rather than a dark: class (the effect below only runs after this renders),
+  // so a dark-mode user never sees a light flash. `hydrated` alone fired too
+  // early — it flips true the moment persist hydration finishes, before the
+  // auth validation API calls resolve — so we also gate on `navigationCompleted`
+  // which performStartupNavigation() only sets once the boot target is known.
+  if (!hydrated || !navigationCompleted) {
     const dark = theme === 'dark';
     return (
       <div className={`flex min-h-dvh flex-col items-center justify-center font-sans transition-colors duration-500 ${dark ? 'bg-zinc-900' : 'bg-[#f8e7ed]'}`}>

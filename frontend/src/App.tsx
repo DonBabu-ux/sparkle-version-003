@@ -149,7 +149,7 @@ import { getRoleFromToken } from './utils/tokenUtils';
 import { getPostLoginRoute, resolveAdminAccess } from './utils/adminRoute';
 import { ensureFreshAccessToken } from './services/tokenRefresh';
 import { useAppPermissions } from './hooks/useAppPermissions';
-import { BlockingLoader } from './components/ui/BlockingLoader';
+
 import { SplashScreen } from './components/ui/SplashScreen';
 import { isDefinitiveAuthFailure } from './utils/startupAuth';
 import { installGlobalImageFallback } from './utils/imageFallback';
@@ -552,7 +552,7 @@ function App() {
                   <NotificationPermissionReminder />
                   <UploadNotificationCenter />
                   <Suspense fallback={
-                        <BlockingLoader show label="Loading" sublabel="Just a moment" />
+                        <SplashScreen theme={theme === 'dark' ? 'dark' : 'light'} autoRelease={false} />
                       }>
                     <Routes>
                     {/* ── Phase 1: Auth & Core ── */}
@@ -671,7 +671,7 @@ function App() {
                         isAuthenticated ? (
                           <Suspense
                             fallback={
-                              <BlockingLoader show label="Loading" sublabel="Just a moment" />
+                        <SplashScreen theme={theme === 'dark' ? 'dark' : 'light'} autoRelease={false} />
                             }
                           >
                             <LearnMorePage />

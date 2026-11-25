@@ -12,6 +12,7 @@ import { Image, Video, Smile, Plus, TrendingUp, ChevronRight, Eye } from 'lucide
 import { useLiveStore } from '../store/liveStore';
 import VirtualizedFeed from '../components/VirtualizedFeed';
 import Skeleton from '../components/ui/Skeleton';
+import { PostCardSkeleton } from '../components/ui/skeletons';
 import { useDeviceSeed } from '../hooks/useDeviceSeed';
 import { PullToRefreshProvider, usePullToRefresh } from '../components/PullToRefreshProvider';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -706,18 +707,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
             {/* FEED */}
             <div className="space-y-3 pb-40 md:pb-8 animate-fade-in">
               {loading && posts.length === 0 ? (
-                <div className="space-y-4 px-4 pt-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="space-y-4">
-                      <Skeleton className="h-20 w-full" />
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-4 w-1/4 rounded-full" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </div>
-                      <Skeleton className="h-4 w-3/5" />
-                    </div>
-                  ))}
-                </div>
+                <PostCardSkeleton count={3} />
               ) : (
                 <VirtualizedFeed initialPosts={posts} suggestions={suggestions} />
               )}

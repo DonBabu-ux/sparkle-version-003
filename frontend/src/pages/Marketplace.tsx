@@ -12,7 +12,7 @@ import { useLocationDetection } from '../hooks/useLocationDetection';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAvatarUrl } from '../utils/imageUtils';
 import clsx from 'clsx';
-import Skeleton from '../components/ui/Skeleton';
+import { ListingCardSkeleton } from '../components/ui/skeletons';
 import { useDebounce } from '../hooks/useDebounce'; // Assuming this exists or I will create it
 
 import ListingCard from '../components/marketplace/ListingCard';
@@ -442,9 +442,7 @@ export default function Marketplace() {
               {/* Listings Grid */}
               {loading ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-[2px]">
-                  {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="aspect-square" />
-                  ))}
+                  <ListingCardSkeleton count={6} />
                 </div>
               ) : error ? (
                 <ErrorRetry onRetry={() => fetchListings()} />

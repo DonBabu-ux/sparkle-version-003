@@ -9,6 +9,7 @@ import { useModalStore } from '../store/modalStore';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import { logger } from '../utils/logger';
 import Skeleton from '../components/ui/Skeleton';
+import { PollCardSkeleton } from '../components/ui/skeletons';
 import { showSuccess, showError } from '../utils/toast';
 
 interface PollOption {
@@ -213,20 +214,7 @@ export default function Polls() {
         <div className="relative z-10">
           {loading && polls.length === 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-20">
-              {[...Array(2)].map((_, i) => (
-<div key={i} className="h-64 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-8 space-y-6 relative overflow-hidden">
-                  <div className="absolute inset-0 animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
-                   <div className="flex justify-between items-center">
-                      <Skeleton className="w-24 h-4 rounded-lg" />
-                      <Skeleton className="w-16 h-4 rounded-lg" />
-                   </div>
-                   <Skeleton className="w-full h-8 rounded-xl" />
-                   <div className="space-y-3">
-                      <Skeleton className="w-full h-12 rounded-2xl" />
-                      <Skeleton className="w-full h-12 rounded-2xl" />
-                   </div>
-                 </div>
-               ))}
+              <PollCardSkeleton count={2} />
             </div>
           ) : polls.length === 0 ? (
             <div className="py-20">

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
-import Skeleton from '../components/ui/Skeleton';
+import { EventCardSkeleton } from '../components/ui/skeletons';
 import { useModalStore } from '../store/modalStore';
 import { logger } from '../utils/logger';
 import { showError } from '../utils/toast';
@@ -189,9 +189,7 @@ export default function Events() {
         {/* List */}
         <div className="space-y-4 pb-24">
           {loading ? (
-            [1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-40 border border-[#e6d8e1] dark:border-zinc-700" />
-            ))
+            <EventCardSkeleton count={3} />
           ) : events.length === 0 ? (
             <div className="py-16 flex flex-col items-center text-center px-6 bg-[#f6eef3] dark:bg-zinc-800 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl">
               <Calendar size={40} className="text-slate-600 dark:text-zinc-300 mb-3" />

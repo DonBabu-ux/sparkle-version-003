@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Orbit, Trash2, ExternalLink, ArrowLeft } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import Skeleton from '../ui/Skeleton';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
@@ -93,14 +94,14 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto no-scrollbar bg-[#0a0a0a]">
         {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-            <div className="relative">
-              <Spinner size="medium" color="text-primary" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-2 h-2 bg-white dark:bg-zinc-800 rounded-full animate-pulse" />
-              </div>
+          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+            <Spinner size="medium" color="text-primary" />
+            <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Accessing Archive...</span>
+            <div className="w-full max-w-sm space-y-3 mt-4">
+              {[1, 2, 3].map(i => (
+                <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+              ))}
             </div>
-            <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] animate-pulse">Accessing Archive...</span>
           </div>
         ) : stories.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-10 gap-8">

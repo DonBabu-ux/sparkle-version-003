@@ -5,6 +5,7 @@ import { Search, PackageOpen, AlertCircle, CheckCircle2, Plus, MapPin, Calendar,
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { logger } from '../utils/logger';
+import Skeleton from '../components/ui/Skeleton';
 
 type FilterType = 'all' | 'lost' | 'found';
 
@@ -147,7 +148,7 @@ export default function LostFound() {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="h-72 bg-[#f6eef3] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl animate-pulse" />
+                <Skeleton key={i} className="h-72 border border-[#e6d8e1] dark:border-zinc-700" />
               ))}
             </div>
           ) : items.length === 0 ? (

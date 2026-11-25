@@ -5,6 +5,7 @@ import PostCard from '../components/PostCard';
 import api from '../api/api';
 import type { Post } from '../types/post';
 import { logger } from '../utils/logger';
+import Skeleton from '../components/ui/Skeleton';
 
 export default function Hashtag() {
   const { tag } = useParams();
@@ -70,7 +71,7 @@ export default function Hashtag() {
         <div className="flex flex-col gap-2 animate-fade-in relative z-10 pb-20 px-2">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
-              <div key={i} className="h-64 bg-[#f6eef3] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl animate-pulse" />
+              <Skeleton key={i} className="h-64 border border-[#e6d8e1] dark:border-zinc-700" />
             ))
           ) : posts.length === 0 ? (
             <div className="py-16 flex flex-col items-center justify-center text-center gap-4 bg-[#f6eef3] dark:bg-zinc-900 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl px-6">

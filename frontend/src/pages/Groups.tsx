@@ -6,6 +6,7 @@ import type { Group } from '../types/group';
 import { useNavigate } from 'react-router-dom';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import { logger } from '../utils/logger';
+import Skeleton from '../components/ui/Skeleton';
 
 export default function Groups() {
   const { user } = useUserStore();
@@ -123,7 +124,7 @@ export default function Groups() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="h-64 rounded-3xl animate-pulse bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700" />
+              <Skeleton key={i} className="h-64 border border-[#e6d8e1] dark:border-zinc-700" />
             ))}
           </div>
         ) : !filtered.length ? (

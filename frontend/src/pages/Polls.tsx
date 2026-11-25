@@ -8,6 +8,7 @@ import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import { logger } from '../utils/logger';
+import Skeleton from '../components/ui/Skeleton';
 import { showSuccess, showError } from '../utils/toast';
 
 interface PollOption {
@@ -213,19 +214,19 @@ export default function Polls() {
           {loading && polls.length === 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-20">
               {[...Array(2)].map((_, i) => (
-                <div key={i} className="h-64 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-8 space-y-6 relative overflow-hidden">
+<div key={i} className="h-64 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-8 space-y-6 relative overflow-hidden">
                   <div className="absolute inset-0 animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
                    <div className="flex justify-between items-center">
-                      <div className="w-24 h-4 bg-[#f6eef3] dark:bg-zinc-700 rounded-lg animate-pulse" />
-                      <div className="w-16 h-4 bg-[#f6eef3] dark:bg-zinc-700 rounded-lg animate-pulse" />
+                      <Skeleton className="w-24 h-4 rounded-lg" />
+                      <Skeleton className="w-16 h-4 rounded-lg" />
                    </div>
-                   <div className="w-full h-8 bg-[#f6eef3] dark:bg-zinc-700 rounded-xl animate-pulse" />
+                   <Skeleton className="w-full h-8 rounded-xl" />
                    <div className="space-y-3">
-                      <div className="w-full h-12 bg-[#f6eef3] dark:bg-zinc-700 rounded-2xl animate-pulse" />
-                      <div className="w-full h-12 bg-[#f6eef3] dark:bg-zinc-700 rounded-2xl animate-pulse" />
+                      <Skeleton className="w-full h-12 rounded-2xl" />
+                      <Skeleton className="w-full h-12 rounded-2xl" />
                    </div>
-                </div>
-              ))}
+                 </div>
+               ))}
             </div>
           ) : polls.length === 0 ? (
             <div className="py-20">
@@ -381,11 +382,11 @@ export default function Polls() {
               {loadingMore && (
                 <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">
                    {[...Array(2)].map((_, i) => (
-                    <div key={i} className="h-48 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-6 relative overflow-hidden">
+                    <div key={i} className="h-48 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-6 relative overflow-hidden">
                        <div className="absolute inset-0 animate-shimmer" />
-                       <div className="w-1/3 h-4 bg-[#f6eef3] dark:bg-zinc-700 rounded-full animate-pulse mb-4" />
-                       <div className="w-full h-8 bg-[#f6eef3] dark:bg-zinc-700 rounded-xl animate-pulse" />
-                       <div className="w-2/3 h-4 bg-[#f6eef3] dark:bg-zinc-700 rounded-full animate-pulse mt-4" />
+                       <Skeleton className="w-1/3 h-4 rounded-full mb-4" />
+                       <Skeleton className="w-full h-8 rounded-xl" />
+                       <Skeleton className="w-2/3 h-4 rounded-full mt-4" />
                     </div>
                   ))}
                 </div>

@@ -6,8 +6,8 @@ import { Package, ChevronLeft } from 'lucide-react';
 import api from '../api/api';
 import type { Listing } from '../types/listing';
 import ListingCard from '../components/marketplace/ListingCard';
-import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
+import Skeleton from '../components/ui/Skeleton';
 import ErrorRetry from '../components/ui/ErrorRetry';
 
 export default function MyListings() {
@@ -76,9 +76,10 @@ export default function MyListings() {
 
       <main className="max-w-6xl mx-auto px-4 pt-6">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Spinner size="large" color="text-primary" />
-            <p className="text-marketplace-muted font-medium animate-pulse">Loading your shop...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <Skeleton key={i} className="aspect-[3/4] rounded-3xl" />
+            ))}
           </div>
         ) : error ? (
           <ErrorRetry onRetry={fetchMyListings} />

@@ -4,10 +4,10 @@ import { ShoppingCart, Package, ChevronLeft, CreditCard, Clock, ChevronRight } f
 import api from '../api/api';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
-import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
 import ErrorRetry from '../components/ui/ErrorRetry';
 import { useUserStore } from '../store/userStore';
+import Skeleton from '../components/ui/Skeleton';
 
 interface Order {
   order_id: string;
@@ -66,9 +66,10 @@ export default function Orders() {
 
       <main className="max-w-4xl mx-auto px-4 pt-6 pb-[env(safe-area-inset-bottom)]">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Spinner size="large" color="text-primary" />
-            <p className="text-marketplace-muted font-medium animate-pulse">Loading your orders...</p>
+          <div className="space-y-4">
+            {[1, 2, 3, 4].map(i => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
           </div>
         ) : error ? (
           <ErrorRetry onRetry={fetchOrders} />

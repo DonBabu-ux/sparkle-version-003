@@ -55,7 +55,15 @@ const io = new IORedis(url, {
             return Math.min(times * 500, 15000);
         },
     });
-    io.on('error', (err) => logger.error('Redis Service (TCP):', err.message));
+    // Transient network conditions (managed-Redis idle sleep/reset, local DNS
+// flaps during reconnect) are self-healing — warn, not error, so operators
+// aren't paged for a reconnect that succeeds on its own.
+const TRANSIENT = /ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNREFUSED|socket hang up/i;
+io.on('error', (err) => {
+    const msg = err.message || String(err);
+    if (TRANSIENT.test(msg)) logger.warn('Redis Service (TCP): reconnecting —', msg);
+    else logger.error('Redis Service (TCP):', msg);
+});
     io.on('ready', () => logger.info('Redis Service (TCP): connected'));
     return {
         get: (key) => io.get(key).then(tryParse),

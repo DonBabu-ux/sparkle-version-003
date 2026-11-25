@@ -33,8 +33,13 @@ if (redisUrl) {
       }
     });
     // Attach error listener to avoid uncaught exceptions
+    // Transient network conditions (idle sleep/reset, DNS flaps) are self-
+    // healing via retryStrategy — warn instead of error.
+    const TRANSIENT = /ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNREFUSED|socket hang up/i;
     connection.on('error', (err) => {
-      logger.error('Redis Queue Connection Error:', err.message);
+      const msg = err.message || String(err);
+      if (TRANSIENT.test(msg)) logger.warn('Redis Queue Connection: reconnecting —', msg);
+      else logger.error('Redis Queue Connection Error:', msg);
     });
   } catch (err) {
     logger.error('Failed to initialize Redis Queue connection:', err.message);

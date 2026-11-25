@@ -9,15 +9,18 @@ const RETRY_INTERVALS_SEC = [1, 2, 5, 10, 20, 30, 60, 300, 900];
 
 /**
  * How often to poll when there is nothing pending (ms).
- * Increased to avoid hammering the DB when the queue is mostly blocked/empty.
+ * 30s: the shared MySQL pool (10 connections) has a ~200ms network floor
+ * per query on a remote host — 5s polling starved API traffic of
+ * connections (queries queued behind pool wait, showing as 4-5s "slow
+ * queries"). Offline-delivery backstop tolerates a 30s lag.
  */
-const IDLE_POLL_MS = 5000;
+const IDLE_POLL_MS = 30000;
 
 /**
  * How often to poll when items were found on the last cycle (ms).
- * Keep this fast so real messages get retried quickly.
+ * Still fast enough for near-real-time retry of undelivered messages.
  */
-const ACTIVE_POLL_MS = 2000;
+const ACTIVE_POLL_MS = 5000;
 
 /**
  * Successful-push dedupe: `${messageId}:${token}` -> timestamp.

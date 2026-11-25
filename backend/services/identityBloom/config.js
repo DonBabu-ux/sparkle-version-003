@@ -67,7 +67,11 @@ function getConfig() {
         timeoutMs: readInt('SPARKLE_IDENTITY_BLOOM_TIMEOUT_MS', DEFAULT_TIMEOUT_MS, 100, 30000),
         versionCacheTtlMs: readInt('SPARKLE_IDENTITY_BLOOM_VERSION_TTL_MS', DEFAULT_VERSION_CACHE_TTL_MS, 1000, 600000),
         pendingTtlMs: readInt('SPARKLE_IDENTITY_BLOOM_PENDING_TTL_MS', DEFAULT_PENDING_TTL_MS, 60000, 24 * 60 * 60 * 1000),
-        workerIntervalMs: readInt('SPARKLE_IDENTITY_BLOOM_WORKER_INTERVAL_MS', 5000, 1000, 600000),
+        // 30s default: each cycle issues 2-3 queries against a 10-connection pool
+        // with a ~200ms per-query network floor on the remote MySQL host; 5s
+        // polling caused pool-wait spikes (4-5s "slow queries") that starved
+        // API traffic. Outbox drain tolerates a 30s lag at current volume.
+        workerIntervalMs: readInt('SPARKLE_IDENTITY_BLOOM_WORKER_INTERVAL_MS', 30000, 1000, 600000),
         workerBatchSize: readInt('SPARKLE_IDENTITY_BLOOM_WORKER_BATCH_SIZE', 100, 1, 1000),
         workerMaxAttempts: readInt('SPARKLE_IDENTITY_BLOOM_WORKER_MAX_ATTEMPTS', 12, 1, 100),
         rebuildBatchSize: readInt('SPARKLE_IDENTITY_BLOOM_REBUILD_BATCH_SIZE', 50, 1, 5000),

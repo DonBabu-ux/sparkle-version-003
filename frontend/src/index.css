@@ -441,9 +441,13 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* color inherits into every descendant — !important here would beat any
+   container-level text color that isn't itself !important (the "body style
+   suppresses smaller containers" bug). The background can stay important;
+   the color cannot. */
 .dark body {
   background: #18181b !important;
-  color: #FFFFFF !important;
+  color: #FFFFFF;
 }
 
 /* Base text visibility in dark mode - only for standard containers */

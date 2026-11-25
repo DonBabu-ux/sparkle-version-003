@@ -195,13 +195,13 @@ export const FullEmojiPickerModal: React.FC<{
             role="dialog" aria-modal="true" tabIndex={-1}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="msg-emoji-sheet fixed bottom-0 left-0 right-0 h-[75vh] bg-black rounded-t-[20px] z-(--z-modal) overflow-hidden flex flex-col shadow-2xl border-t border-white/10"
+            className="msg-emoji-sheet fixed bottom-0 left-0 right-0 h-[75vh] bg-zinc-900 rounded-t-[20px] z-(--z-modal) overflow-hidden flex flex-col shadow-2xl border-t border-white/10"
             style={{
               paddingBottom: 'var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))',
             }}
           >
             <div className="w-10 h-1.5 bg-white/20 rounded-full mx-auto my-3 shrink-0" />
-            <div className="flex-1 w-full relative bg-black flex justify-center">
+            <div className="flex-1 w-full relative bg-zinc-900 flex justify-center">
               <style dangerouslySetInnerHTML={{__html: `
                 .msg-emoji-sheet em-emoji-picker {
                   width: 100vw !important;
@@ -209,8 +209,8 @@ export const FullEmojiPickerModal: React.FC<{
                   height: 100% !important;
                   --em-rgb-color: 255, 255, 255;
                   --em-color-border: transparent;
-                  --em-bg-color: #000000;
-                  background: #000000 !important;
+                  --em-bg-color: #18181b;
+                  background: #18181b !important;
                   border: none !important;
                   border-radius: 0 !important;
                 }

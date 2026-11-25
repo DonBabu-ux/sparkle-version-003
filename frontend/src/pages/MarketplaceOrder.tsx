@@ -5,6 +5,7 @@ import { ChevronLeft, ShieldCheck, MapPin, CreditCard, Clock, CheckCircle2 } fro
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import { logger } from '../utils/logger';
 
 export default function MarketplaceOrder() {
@@ -91,8 +92,42 @@ export default function MarketplaceOrder() {
   };
 
   if (loading) return (
-    <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 flex items-center justify-center">
-      <Spinner size="medium" color="text-primary" />
+    <div className="min-h-dvh bg-slate-50 dark:bg-zinc-800 pb-10 animate-fade-in">
+      <div className="bg-white dark:bg-zinc-800 sticky top-0 z-50 border-b border-slate-100 px-4 h-16 flex items-center gap-4">
+        <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+        <Skeleton className="h-6 w-44" />
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 pt-6 space-y-6">
+        {/* Listing summary card */}
+        <div className="bg-white dark:bg-zinc-800 rounded-3xl p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center gap-4">
+            <Skeleton className="w-20 h-20 rounded-2xl shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+        </div>
+
+        {/* Order form */}
+        <div className="bg-white dark:bg-zinc-800 rounded-3xl p-6 shadow-sm border border-slate-100 space-y-5">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-12 w-full rounded-2xl" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-12 w-full rounded-2xl" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
+          </div>
+          <Skeleton className="h-14 w-full rounded-2xl" />
+        </div>
+      </div>
     </div>
   );
 

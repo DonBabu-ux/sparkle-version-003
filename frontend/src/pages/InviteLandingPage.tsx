@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Download, Smartphone, Copy, Check, AlertCircle, ArrowRight, CheckCircle2, LogIn } from 'lucide-react';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import QRCode from 'react-qr-code';
 import { validateReferralCode, recordReferralClick } from '../services/referralService';
 import type { PublicInviteInfo } from '../services/referralService';
@@ -118,9 +118,39 @@ export default function InviteLandingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0c] text-white flex flex-col items-center justify-center p-4">
-        <Spinner size="xl" color="#ff006e" className="w-12 h-12 mb-4" />
-        <p className="text-zinc-300 text-sm font-medium">Validating Sparkle invite...</p>
+      <div
+        style={{
+          minHeight: '100vh',
+          background: 'radial-gradient(120% 90% at 50% 0%, #231234 0%, #130e1f 45%, #07060a 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px 16px',
+          overflow: 'hidden',
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        }}
+      >
+        <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/[0.06] p-6 space-y-5">
+          {/* Insignia */}
+          <Skeleton className="mx-auto w-16 h-16 !rounded-2xl !bg-white/10" />
+
+          {/* Inviter */}
+          <div className="flex flex-col items-center gap-3">
+            <Skeleton className="w-20 h-20 !rounded-full !bg-white/10" />
+            <Skeleton className="h-4 w-32 !bg-white/10" />
+            <Skeleton className="h-3 w-24 !bg-white/10" />
+          </div>
+
+          {/* Code block */}
+          <Skeleton className="h-12 w-full !rounded-2xl !bg-white/10" />
+
+          {/* CTAs */}
+          <div className="space-y-3">
+            <Skeleton className="h-12 w-full !rounded-full !bg-white/10" />
+            <Skeleton className="h-12 w-full !rounded-full !bg-white/10" />
+            <Skeleton className="h-10 w-full !rounded-full !bg-white/10" />
+          </div>
+        </div>
       </div>
     );
   }

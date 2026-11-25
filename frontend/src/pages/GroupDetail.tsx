@@ -12,7 +12,7 @@ import GroupInviteModal from '../components/modals/GroupInviteModal';
 import GroupPostModal from '../components/modals/GroupPostModal';
 import type { Group, GroupMember } from '../types/group';
 import type { Post } from '../types/post';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import { logger } from '../utils/logger';
 import { showError } from '../utils/toast';
 import { validateFile } from '../utils/fileValidation';
@@ -137,8 +137,56 @@ export default function GroupDetail() {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900">
-      <Spinner size="medium" color="text-primary" />
+    <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 animate-fade-in">
+      {/* HEADER SECTION */}
+      <div className="bg-[#fdf8fa] dark:bg-zinc-800 shadow-sm overflow-hidden border-b border-[#e6d8e1] dark:border-zinc-700">
+        <Skeleton className="relative h-36 sm:h-64 w-full rounded-none" />
+
+        <div className="max-w-3xl mx-auto px-4 pb-6">
+          <div className="relative flex items-end -mt-10 sm:-mt-12">
+            <Skeleton className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-[#fdf8fa] dark:border-zinc-800 shrink-0" />
+            <div className="ml-4 flex-1 min-w-0 space-y-2 pb-1">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+
+          <div className="mt-5 flex items-center gap-2">
+            <Skeleton className="h-10 w-28 rounded-full" />
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <Skeleton className="h-10 w-10 rounded-full" />
+          </div>
+        </div>
+      </div>
+
+      {/* Post composer + feed */}
+      <div className="max-w-3xl mx-auto px-4 py-5">
+        <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 p-4 flex items-center gap-3 shadow-sm">
+          <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+          <Skeleton className="h-10 flex-1 rounded-full" />
+        </div>
+
+        <div className="mt-4 space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+              <Skeleton className="mt-4 h-4 w-full" />
+              <Skeleton className="mt-2 h-4 w-3/4" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 

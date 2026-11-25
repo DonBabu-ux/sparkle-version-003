@@ -1742,11 +1742,13 @@ export default function Moments() {
         onTouchEnd={handleTouchEnd}
       >
         {loading ? (
-             <div className="h-dvh flex flex-col items-center justify-center">
-                <div className="mb-20">
-                  <Spinner size="large" color="text-primary" />
+             <div className="h-dvh w-full flex items-center justify-center bg-black">
+                <div className="relative h-[85vh] w-full max-w-[420px] overflow-hidden rounded-3xl bg-zinc-900 animate-pulse">
+                    <div className="absolute inset-x-0 bottom-0 space-y-2 p-4">
+                        <div className="h-3 w-24 rounded-full bg-white/10" />
+                        <div className="h-3 w-40 rounded-full bg-white/10" />
+                    </div>
                 </div>
-                <p className="text-xs font-semibold text-white/70 tracking-wide animate-pulse">Loading moments...</p>
              </div>
         ) : moments.length === 0 && !loading ? (
             <div className="h-full flex items-center justify-center p-6 md:ml-(--rail-w)">

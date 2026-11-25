@@ -17,6 +17,7 @@ import { getAvatarUrl } from '../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import SparkleHub from '../components/SparkleHub';
 import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
@@ -404,12 +405,55 @@ export default function Profile() {
   if (loading) {
     return (
       <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
-        <div className="flex-1 flex flex-col items-center justify-center transition-all text-[#18181b] dark:text-white">
-          <div className="relative mb-20">
-            <Spinner size="xl" color="text-primary" />
+        <div className="flex-1 flex flex-col animate-fade-in">
+          {/* Banner */}
+          <Skeleton className="w-full h-40 sm:h-64 md:h-80 rounded-none" />
+
+          {/* Identity block */}
+          <div className="px-6 md:px-12 -mt-12 sm:-mt-16 md:-mt-20">
+            <Skeleton className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-[#f8e7ed] dark:border-zinc-900" />
+            <div className="mt-4 space-y-3 max-w-sm">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+
+            {/* Stats */}
+            <div className="mt-6 flex items-center gap-8">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-10" />
+                <Skeleton className="h-3 w-14" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-10" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-10" />
+                <Skeleton className="h-3 w-14" />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-6 flex items-center gap-3">
+              <Skeleton className="h-11 w-28 rounded-full" />
+              <Skeleton className="h-11 w-24 rounded-full" />
+            </div>
           </div>
-          <div className="text-[12px] font-bold text-black/60 dark:text-white/40 uppercase tracking-widest">
-            Loading your profile
+
+          {/* Tabs */}
+          <div className="mt-8 flex items-center gap-8 px-6 md:px-12 border-t border-black/5 dark:border-white/5 pt-4">
+            <Skeleton className="h-4 w-14" />
+            <Skeleton className="h-4 w-14" />
+            <Skeleton className="h-4 w-14" />
+            <Skeleton className="h-4 w-14" />
+          </div>
+
+          {/* Post tiles grid */}
+          <div className="mt-6 grid grid-cols-3 gap-1 md:gap-3 px-1 md:px-8 pb-10">
+            {[...Array(12)].map((_, i) => (
+              <Skeleton key={i} className="aspect-square rounded-none md:rounded-xl" />
+            ))}
           </div>
         </div>
       </div>

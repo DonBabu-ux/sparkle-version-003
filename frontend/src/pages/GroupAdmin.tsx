@@ -4,7 +4,7 @@ import api from '../api/api';
 import type { Group } from '../types/group';
 import { Shield, ArrowLeft, Check, X, Users, Sparkles, AlertCircle } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import { logger } from '../utils/logger';
 
 interface GroupRequest {
@@ -60,11 +60,34 @@ export default function GroupAdmin() {
   };
 
   if (loading) return (
-    <div className="flex min-h-dvh bg-[#f8e7ed]">
-      <div className="flex-1 flex flex-col items-center justify-center gap-4">
-        <Spinner size="large" color="text-primary" />
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Loading...</p>
-      </div>
+    <div className="flex min-h-dvh bg-[#fdf8fa] text-[#18181b] dark:text-white font-sans pb-20">
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-2xl mx-auto w-full animate-fade-in">
+        <header className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <Skeleton className="w-8 h-8 rounded-full" />
+            <Skeleton className="h-6 w-28 rounded-full" />
+          </div>
+          <div className="text-center md:text-left space-y-2">
+            <Skeleton className="h-5 w-36 mx-auto md:mx-0" />
+            <Skeleton className="h-3 w-48 mx-auto md:mx-0" />
+          </div>
+        </header>
+
+        {/* Join request rows */}
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="bg-white dark:bg-zinc-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-white/10 flex items-center gap-3">
+              <Skeleton className="w-11 h-11 rounded-full shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+              <Skeleton className="h-9 w-16 rounded-xl" />
+              <Skeleton className="h-9 w-16 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      </main>
     </div>
   );
 

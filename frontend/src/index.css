@@ -450,6 +450,23 @@ body {
   color: #FFFFFF;
 }
 
+/* App chrome (rail/nav surfaces): own theme colors, immune to the legacy
+   remap below. The legacy rules are html-scoped, so they hit chrome too —
+   the sidebar shell's bg-[#f6eef3] was being flattened to the body color
+   (#18181b) in dark mode and its dark:bg-zinc-950 never applied. */
+.rail-shell {
+  background-color: #f6eef3;
+}
+.dark .rail-shell {
+  background-color: #18181b;
+}
+.rail-logo {
+  background-color: #FFFFFF;
+}
+.dark .rail-logo {
+  background-color: #27272a;
+}
+
 /* Base text visibility in dark mode - only for standard containers */
 .dark .bg-black h1, .dark .bg-black h2, .dark .bg-black h3, .dark .bg-black h4, .dark .bg-black h5, .dark .bg-black h6, 
 .dark .bg-black p, .dark .bg-black span, .dark .bg-black label {

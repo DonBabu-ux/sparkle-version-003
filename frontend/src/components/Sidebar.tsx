@@ -97,7 +97,7 @@ export default function Sidebar() {
       animate={{ width: isHovered ? 240 : 72 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="fixed left-0 top-0 h-dvh bg-[#f6eef3] dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 border-r border-slate-200 dark:border-zinc-800 flex flex-col z-(--z-chrome) overflow-hidden transition-all duration-300 shadow-[2px_0_12px_rgba(0,0,0,0.03)]"
+      className="fixed left-0 top-0 h-dvh rail-shell text-slate-800 dark:text-zinc-100 border-r border-slate-200 dark:border-zinc-800 flex flex-col z-(--z-chrome) overflow-hidden transition-all duration-300 shadow-[2px_0_12px_rgba(0,0,0,0.03)]"
       style={{
         paddingTop: 'max(1.5rem, var(--safe-area-inset-top, 0px))',
         paddingBottom: 'max(1.5rem, var(--safe-area-inset-bottom, 0px))',
@@ -108,7 +108,7 @@ export default function Sidebar() {
         className="flex items-center px-6 mb-8 cursor-pointer h-12"
         onClick={() => navigate('/dashboard')}
       >
-        <div className="shrink-0 flex items-center justify-center transition-transform hover:scale-105 w-12 h-12 overflow-hidden bg-white dark:bg-zinc-800 rounded-full shadow-md border border-slate-200/60 p-1">
+        <div className="shrink-0 flex items-center justify-center transition-transform hover:scale-105 w-12 h-12 overflow-hidden rail-logo rounded-full shadow-md border border-slate-200/60 p-1">
           <img src="/logo.png" alt="Sparkle" className="w-full h-full object-contain" />
         </div>
         <AnimatePresence>

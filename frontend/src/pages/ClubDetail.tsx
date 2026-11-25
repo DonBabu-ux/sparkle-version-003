@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, MapPin, MessageSquare, ChevronRight, Sparkles } from 'lucide-react';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
 import type { Post } from '../types/post';
@@ -88,10 +88,44 @@ export default function ClubDetail() {
 
   if (loading) return (
     <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-zinc-100 overflow-x-hidden font-sans">
-      <div className="flex-1 flex flex-col items-center justify-center gap-8">
-        <Spinner size="large" color="text-primary" />
-        <p className="text-sm font-semibold text-slate-600 dark:text-zinc-300">Loading club...</p>
-      </div>
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full animate-fade-in">
+        {/* Back button */}
+        <Skeleton className="mb-12 w-12 h-12 rounded-2xl" />
+
+        {/* Club header */}
+        <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm mb-8">
+          <div className="flex items-center gap-5">
+            <Skeleton className="w-20 h-20 rounded-2xl shrink-0" />
+            <div className="flex-1 space-y-3">
+              <Skeleton className="h-6 w-56" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-full max-w-md" />
+            </div>
+          </div>
+          <div className="mt-6 flex items-center gap-3">
+            <Skeleton className="h-11 w-32 rounded-full" />
+            <Skeleton className="h-11 w-28 rounded-full" />
+          </div>
+        </div>
+
+        {/* Post cards */}
+        <div className="space-y-5">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-5 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-11 h-11 rounded-full shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+              <Skeleton className="mt-4 h-4 w-full" />
+              <Skeleton className="mt-2 h-4 w-3/4" />
+              <Skeleton className="mt-4 w-full aspect-video rounded-2xl" />
+            </div>
+          ))}
+        </div>
+      </main>
     </div>
   );
 

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Shield } from 'lucide-react';
 import api, { setAdminSession, setAdminSessionExpires, setAdminClockOffset, hasAdminSession, clearAdminSession } from '../../api/api';
 import { useUserStore } from '../../store/userStore';
-import Spinner from '../../components/ui/Spinner';
+import Skeleton from '../../components/ui/Skeleton';
 import { showSuccess } from '../../utils/toast';
 
 type Mode = 'loading' | 'unlock' | 'set-password' | 'expired';
@@ -126,7 +126,11 @@ export default function AdminUnlock() {
   return (
     <GateShell>
       {mode === 'loading' && (
-        <div className="flex justify-center py-8"><Spinner /></div>
+        <div className="space-y-3 animate-fade-in">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-11 w-full rounded-xl" />
+          <Skeleton className="h-11 w-full rounded-full" />
+        </div>
       )}
 
       {mode === 'expired' && (

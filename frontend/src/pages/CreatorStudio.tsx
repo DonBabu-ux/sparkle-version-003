@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { motion } from 'framer-motion';
 import { ArrowLeft, RefreshCw, Video, Flame, Play, Sparkles, FileText, Image as ImageIcon, Radio } from 'lucide-react';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import { logger } from '../utils/logger';
 
 interface StudioStats {
@@ -68,8 +68,45 @@ export default function CreatorStudio() {
 
       <main className="max-w-[1000px] mx-auto p-4 md:p-6 space-y-6">
         {loading ? (
-          <div className="flex items-center justify-center py-40">
-            <Spinner size="large" color="text-[#ff1493]" />
+          <div className="animate-fade-in space-y-6">
+            {/* Quick Actions Panel */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="bg-[#fdf8fa] dark:bg-zinc-800 p-5 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 shadow-sm flex items-start justify-between gap-3">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                  <Skeleton className="h-5 w-5 rounded-full shrink-0" />
+                </div>
+              ))}
+            </div>
+
+            {/* Studio Stats Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="bg-[#fdf8fa] dark:bg-zinc-800 p-6 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 shadow-sm space-y-3">
+                  <Skeleton className="h-8 w-8 rounded-2xl" />
+                  <Skeleton className="h-7 w-24" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+              ))}
+            </div>
+
+            {/* Recent content list */}
+            <div className="bg-[#fdf8fa] dark:bg-zinc-800 p-6 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 shadow-sm space-y-4">
+              <Skeleton className="h-4 w-32" />
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="w-14 h-14 rounded-2xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="h-8 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div>

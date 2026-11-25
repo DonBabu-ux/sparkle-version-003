@@ -10,7 +10,7 @@ import ShareModal from '../components/modals/ShareModal';
 import { formatCount } from '../utils/format';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import { ShieldCheck, Plus, Orbit, ArrowLeft, Flame, Globe, Star, Snowflake, ShieldOff, MoreHorizontal, Download, Flag, X, MessageCircle, Send } from 'lucide-react';
 import { logger } from '../utils/logger';
 
@@ -428,11 +428,29 @@ export default function Confessions() {
           {/* ── Feed Cards ── */}
           <div className="flex flex-col gap-0 sm:gap-4 px-0 sm:px-4 pb-8">
             {loading ? (
-              <div className="py-24 flex flex-col items-center justify-center">
-                <div className="mb-20">
-                  <Spinner size="large" color="text-primary" />
-                </div>
-                <p className="text-[13px] font-medium text-slate-600 dark:text-zinc-300 animate-pulse">Loading confessions...</p>
+              <div className="flex flex-col gap-0 sm:gap-4 px-0 sm:px-0 animate-fade-in">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-none sm:rounded-[28px] overflow-hidden border-b sm:border border-[#ede3e9] dark:border-zinc-700 shadow-none sm:shadow-[0_8px_32px_rgba(0,0,0,0.04)] flex flex-col relative">
+                    <div className="p-5 flex items-center gap-3">
+                      <Skeleton className="w-11 h-11 rounded-full shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                    <div className="px-5 pb-5 space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                    <div className="px-5 pb-5 flex items-center gap-6">
+                      <Skeleton className="h-4 w-12" />
+                      <Skeleton className="h-4 w-12" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : fetchError ? (
               <div className="py-32 flex flex-col items-center gap-6 text-center">
@@ -812,9 +830,19 @@ export default function Confessions() {
             {/* Comments List */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar bg-[#fdf8fa] dark:bg-zinc-800">
               {commentsLoading[activeCommentsModal] ? (
-                <div className="py-20 flex flex-col items-center gap-4 text-center">
-                  <Spinner size="large" color="text-primary" />
-                  <p className="text-[13px] font-medium text-slate-600 dark:text-zinc-300">Loading replies...</p>
+                <div className="space-y-4 animate-fade-in">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex gap-3">
+                      <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl rounded-tl-sm p-3 space-y-2">
+                          <Skeleton className="h-3 w-24" />
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-3/4" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : commentsError[activeCommentsModal] ? (
                 <div className="py-20 flex flex-col items-center gap-4 text-center">

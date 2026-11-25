@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { motion } from 'framer-motion';
 import { ArrowLeft, RefreshCw, BarChart2, TrendingUp, Radio, Video, MessageSquare, Share2, Heart, Award, ArrowUpRight, BookOpen } from 'lucide-react';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import { logger } from '../utils/logger';
 
 interface AnalyticsData {
@@ -62,8 +62,44 @@ export default function CreatorAnalytics() {
 
       <main className="max-w-[1000px] mx-auto p-4 md:p-6 space-y-6">
         {loading ? (
-          <div className="flex items-center justify-center py-40">
-            <Spinner size="large" color="text-[#ff1493]" />
+          <div className="space-y-6 animate-fade-in">
+            {/* Reach summary */}
+            <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
+              <div className="flex justify-between items-start">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-36" />
+                  <Skeleton className="h-7 w-40" />
+                </div>
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+              <Skeleton className="mt-6 h-32 w-full rounded-2xl" />
+            </div>
+
+            {/* Stat tiles */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-5 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm space-y-3">
+                  <Skeleton className="h-8 w-8 rounded-xl" />
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              ))}
+            </div>
+
+            {/* Breakdown list */}
+            <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm space-y-4">
+              <Skeleton className="h-4 w-32" />
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                  <Skeleton className="h-4 w-12" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : !data ? (
           <div className="text-center py-20 bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">

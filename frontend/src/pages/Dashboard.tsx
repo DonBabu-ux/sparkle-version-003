@@ -11,7 +11,6 @@ import { storyCache, consumeStoryPostedFlag } from '../utils/storyCache';
 import { Image, Video, Smile, Plus, TrendingUp, ChevronRight, Eye } from 'lucide-react';
 import { useLiveStore } from '../store/liveStore';
 import VirtualizedFeed from '../components/VirtualizedFeed';
-import Spinner from '../components/ui/Spinner';
 import Skeleton from '../components/ui/Skeleton';
 import { useDeviceSeed } from '../hooks/useDeviceSeed';
 import { PullToRefreshProvider, usePullToRefresh } from '../components/PullToRefreshProvider';
@@ -732,7 +731,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
                 <h3 className="text-sm font-semibold text-slate-600 dark:text-zinc-300">Connect</h3>
                 <Link to="/connect" className="text-sm font-semibold text-[#ff1493] hover:underline">View all</Link>
               </div>
-              <div className="space-y-3">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4"><Spinner size="medium" color="#475569" /><p className="text-xs font-medium text-slate-600 dark:text-zinc-300 text-center">No suggestions</p></div>}</div>
+              <div className="space-y-3">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="space-y-2">{[1, 2, 3].map(i => (<div key={i} className="flex items-center gap-3 p-2"><Skeleton className="w-10 h-10 rounded-full" /><div className="flex-1 min-w-0 space-y-2"><Skeleton className="h-3 w-1/2" /><Skeleton className="h-2.5 w-3/4" /></div><Skeleton className="h-7 w-16 rounded-full" /></div>))}</div>}</div>
             </div>
             {/* Trending */}
             <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 p-5 sm:p-6 shadow-sm overflow-hidden group">

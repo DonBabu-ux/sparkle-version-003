@@ -8,7 +8,7 @@ import { ChevronLeft, Share2, MessageCircle, Search, MoreHorizontal, Bell, UserP
 import '../utils/imageUtils';
 import { timeAgo } from '../utils/format';
 import type { Listing } from '../types/listing';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
 import { logger } from '../utils/logger';
 
@@ -175,8 +175,51 @@ export default function ListingDetail() {
   };
 
   if (loading) return (
-    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-slate-900 justify-center items-center">
-      <Spinner size="medium" color="text-primary" />
+    <div className="flex flex-col bg-white dark:bg-zinc-800 min-h-dvh text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)] max-w-screen-md mx-auto shadow-sm animate-fade-in">
+      {/* Header */}
+      <header className="sticky top-0 z-[1100] bg-white dark:bg-zinc-800 border-b border-marketplace-border px-3 pb-2.5 pt-[calc(0.625rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] flex items-center gap-3">
+        <Skeleton className="w-11 h-11 rounded-full shrink-0" />
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="w-11 h-11 rounded-full ml-auto shrink-0" />
+      </header>
+
+      {/* Media gallery */}
+      <Skeleton className="w-full aspect-[4/3] rounded-none" />
+
+      <div className="p-4 space-y-5">
+        {/* Title + price */}
+        <div className="space-y-3">
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-7 w-32" />
+        </div>
+
+        {/* Meta chips */}
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-7 w-24 rounded-full" />
+          <Skeleton className="h-7 w-20 rounded-full" />
+        </div>
+
+        {/* Seller card */}
+        <div className="flex items-center gap-3 rounded-2xl border border-marketplace-border p-3">
+          <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <Skeleton className="h-10 w-24 rounded-full" />
+        </div>
+
+        {/* Description */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+
+        {/* CTA */}
+        <Skeleton className="h-14 w-full rounded-2xl" />
+      </div>
     </div>
   );
 

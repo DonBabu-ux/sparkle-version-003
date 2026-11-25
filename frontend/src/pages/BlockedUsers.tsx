@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, UserX, Shield, Search } from 'lucide-react';
 import api from '../api/api';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import { logger } from '../utils/logger';
 
 interface BlockedUser {
@@ -84,9 +84,19 @@ export default function BlockedUsers() {
         {/* List */}
         <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           {loading ? (
-            <div className="p-12 flex flex-col items-center justify-center gap-4">
-              <Spinner size="medium" color="text-primary" />
-              <p className="text-slate-500 dark:text-zinc-300 text-sm font-medium">Loading blocked users...</p>
+            <div className="divide-y divide-slate-50 dark:divide-zinc-700 animate-fade-in">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-9 w-20 rounded-xl" />
+                </div>
+              ))}
             </div>
           ) : filteredUsers.length > 0 ? (
             <div className="divide-y divide-slate-50">

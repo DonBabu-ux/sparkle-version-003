@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import Avatar from '../components/Avatar';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 
 /**
  * zustand persist hydrates from localStorage after the first render. Until it
@@ -56,8 +56,61 @@ export default function AccountsCenter() {
 
   if (!hydrated) {
     return (
-      <div className="flex bg-[#f8e7ed] dark:bg-zinc-950 min-h-dvh items-center justify-center text-marketplace-text">
-        <Spinner size="xl" color="text-primary" />
+      <div className="flex flex-col bg-white dark:bg-zinc-950 min-h-dvh text-marketplace-text font-sans overflow-x-hidden pb-[env(safe-area-inset-bottom)] animate-fade-in">
+        {/* Header */}
+        <header className="sticky top-0 z-[1100] bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-marketplace-border px-4 pb-3 pt-[calc(0.75rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] flex items-center gap-3">
+          <Skeleton className="w-11 h-11 rounded-full shrink-0" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+        </header>
+
+        <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 space-y-6">
+          {/* Section: accounts */}
+          <div className="space-y-3">
+            <Skeleton className="h-3 w-24" />
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-2xl border border-marketplace-border p-4">
+                <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-9 w-16 rounded-full" />
+              </div>
+            ))}
+            <Skeleton className="h-12 w-full rounded-2xl" />
+          </div>
+
+          {/* Section: security */}
+          <div className="space-y-3">
+            <Skeleton className="h-3 w-20" />
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-2xl border border-marketplace-border p-4">
+                <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-36" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Section: profile */}
+          <div className="space-y-3">
+            <Skeleton className="h-3 w-20" />
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-2xl border border-marketplace-border p-4">
+                <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-36" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
       </div>
     );
   }

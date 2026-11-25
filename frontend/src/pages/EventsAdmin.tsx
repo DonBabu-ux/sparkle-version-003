@@ -5,7 +5,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { Calendar, Users, QrCode, Power, Settings, Plus, Check, X, Trash2, ArrowLeft, Shield, AlertCircle } from 'lucide-react';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import { logger } from '../utils/logger';
 
 interface Event {
@@ -289,9 +289,27 @@ export default function EventsAdmin() {
           </div>
 
           {loading ? (
-            <div className="py-20 text-center">
-              <Spinner size="medium" color="text-primary" />
-              <p className="text-[13px] text-slate-600 dark:text-zinc-400 font-medium">Loading events...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-4 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="min-w-0 space-y-2">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Skeleton className="h-5 w-12 rounded-full" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                      <Skeleton className="h-5 w-40" />
+                    </div>
+                    <div className="flex gap-1.5 shrink-0">
+                      <Skeleton className="w-8 h-8 rounded-xl" />
+                      <Skeleton className="w-8 h-8 rounded-xl" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="mt-2 h-3 w-2/3" />
+                  <Skeleton className="mt-4 h-32 w-full rounded-2xl" />
+                </div>
+              ))}
             </div>
           ) : events.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

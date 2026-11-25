@@ -129,6 +129,11 @@ export const useUserStore = create<UserState>()(
             .catch(() => {});
         }
 
+          // Also drop the browser web-push subscription for this account
+          import('../services/WebPushService')
+            .then((m) => m.deregisterWebPush(outgoingToken))
+            .catch(() => {});
+
         // Clear all UI blocking states (Modals)
         try {
           const { closeModal } = require('./modalStore').useModalStore.getState();
@@ -210,6 +215,10 @@ export const useUserStore = create<UserState>()(
               .then((m) => m.deregisterPushToken(outgoingToken))
               .catch(() => {});
           }
+
+            import('../services/WebPushService')
+              .then((m) => m.deregisterWebPush(outgoingToken))
+              .catch(() => {});
           if (accounts.length > 0) {
             const nextAccount = accounts[0];
             set({ 

@@ -28,6 +28,7 @@ import { CallOverlay } from './components/CallOverlay';
 import { AppLockOverlay } from './components/security/AppLockOverlay';
 import { UploadManager } from './services/UploadManager';
 import { initPushNotifications, startPushAuthSync } from './services/PushService';
+import { ensureWebPushSubscription, startWebPushAuthSync } from './services/WebPushService';
 import UploadNotificationCenter from './components/notifications/UploadNotificationCenter';
 import { useSocket } from './hooks/useSocket';
 import { useFeedStore } from './store/feedStore';
@@ -148,8 +149,8 @@ import { getRoleFromToken } from './utils/tokenUtils';
 import { getPostLoginRoute, resolveAdminAccess } from './utils/adminRoute';
 import { ensureFreshAccessToken } from './services/tokenRefresh';
 import { useAppPermissions } from './hooks/useAppPermissions';
-import Spinner from './components/ui/Spinner';
 import { BlockingLoader } from './components/ui/BlockingLoader';
+import { SplashScreen } from './components/ui/SplashScreen';
 import { isDefinitiveAuthFailure } from './utils/startupAuth';
 import { installGlobalImageFallback } from './utils/imageFallback';
 import { logger } from './utils/logger';
@@ -380,12 +381,18 @@ function App() {
     pushInitRef.current = true;
     logger.log('[App] Initializing native push notifications...');
     initPushNotifications().catch(err => logger.warn('[App] Push init error:', err));
+    // Web push (browser/PWA): same auth state as FCM, different transport
+    ensureWebPushSubscription().catch(err => logger.warn('[App] Web push ensure error:', err));
   }, [hydrated, isAuthenticated]);
 
   // ── Native push: re-sync the device token on login/account switch ──
   useEffect(() => {
     const unsubscribe = startPushAuthSync();
-    return () => unsubscribe();
+    const unsubscribeWeb = startWebPushAuthSync();
+    return () => {
+      unsubscribe();
+      unsubscribeWeb();
+    };
   }, []);
 
   // ── Native push: notification taps navigate in-app (PushService dispatches) ──
@@ -516,35 +523,8 @@ function App() {
   // auth validation API calls resolve — so we also gate on `navigationCompleted`
   // which performStartupNavigation() only sets once the boot target is known.
   if (!hydrated || !navigationCompleted) {
-    const dark = theme === 'dark';
-    return (
-      <div className={`flex min-h-dvh flex-col items-center justify-center font-sans transition-colors duration-500 ${dark ? 'bg-zinc-900' : 'bg-[#f8e7ed]'}`}>
-        <div className="flex flex-col items-center justify-center p-8 text-center animate-fade-in">
-          {/* Brand mark — explicit dimensions reserve the box, so the logo never
-              shifts the layout while it decodes */}
-          <img
-            src="/sparklelogo.png"
-            alt="Sparkle"
-            width={128}
-            height={128}
-            decoding="async"
-            className="h-24 w-24 object-contain md:h-32 md:w-32"
-          />
-
-          <h1 className={`mt-6 font-heading text-3xl font-bold tracking-tight md:text-4xl ${dark ? 'text-zinc-100' : 'text-[#18181b]'}`}>
-            Sparkle
-          </h1>
-          <p className={`mt-2 text-sm ${dark ? 'text-zinc-300' : 'text-slate-600'}`}>
-            Connect. Share. Shine.
-          </p>
-
-          {/* The one shared brand loader */}
-          <div className="mt-10 flex items-center justify-center">
-            <Spinner size="large" />
-          </div>
-        </div>
-      </div>
-    );
+    // Branded logo splash (theme-gated, min-hold) until the boot target is known
+    return <SplashScreen theme={theme === 'dark' ? 'dark' : 'light'} />;
   }
 
   return (

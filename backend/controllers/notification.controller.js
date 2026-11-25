@@ -62,6 +62,23 @@ const notificationController = {
         }
     },
 
+    unsubscribePush: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const { endpoint } = req.body;
+
+            if (!endpoint) {
+                return res.status(400).json({ error: 'Endpoint is required' });
+            }
+
+            await pool.query('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [userId, endpoint]);
+            res.status(200).json({ success: true, message: 'Push subscription removed' });
+        } catch (error) {
+            console.error('Push unsubscribe error:', error);
+            res.status(500).json({ error: 'Failed' });
+        }
+    },
+
     registerFcmToken: async (req, res) => {
         try {
             const userId = req.user.userId || req.user.user_id;
@@ -372,14 +389,14 @@ const notificationController = {
                 UPDATE capture_notifications 
                 SET is_read = 1 
                 WHERE recipient_user_id = ? AND is_read = 0
-            `).catch(() => {});
+            `, [userId]).catch(() => {});
 
             // Also mark push notifications as read
             await pool.query(`
                 UPDATE push_notifications 
                 SET is_read = 1, read_at = CURRENT_TIMESTAMP 
                 WHERE user_id = ? AND is_read = 0
-            `).catch(() => {});
+            `, [userId]).catch(() => {});
 
             res.json({ success: true, message: 'All notifications marked as read' });
         } catch (error) {

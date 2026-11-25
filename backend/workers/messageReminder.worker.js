@@ -12,6 +12,10 @@ const SCHEDULE = '10,40 * * * *';
 const sendReminder = async (row) => {
   const senderLabel = row.sender_name || row.sender_username || 'Someone';
   const count = Number(row.unread_count) || 1;
+  // Self-chat (you messaged yourself): label it "(you)" so it isn't mistaken
+  // for someone else waiting on your reply.
+  const isSelfReminder = row.sender_id === row.recipient_id;
+  const label = isSelfReminder ? `${senderLabel} (you)` : senderLabel;
   const plural = count === 1 ? 'message' : 'messages';
 
   await NotificationService.send({
@@ -20,7 +24,7 @@ const sendReminder = async (row) => {
     recipients: [row.recipient_id],
     data: {
       title: `You've got ${count} unread ${plural}!`,
-      content: `Don't leave your conversations hanging. ${senderLabel} is waiting for your reply.`,
+      content: `Don't leave your conversations hanging. ${label} is waiting for your reply.`,
       url: `/messages/${row.chat_id}`,
       chatId: row.chat_id,
       unreadCount: String(count),
@@ -55,7 +59,8 @@ cron.schedule(SCHEDULE, async () => {
          sender.name                     AS sender_name,
          r.reminder_id,
          r.reminders_sent,
-         r.last_reminded_at
+         r.last_reminded_at,
+       r.unread_count                  AS recorded_unread_count
        FROM messages m
        JOIN personal_chats pc ON pc.chat_id = m.conversation_id
        JOIN users sender      ON sender.user_id = m.sender_id
@@ -65,7 +70,15 @@ cron.schedule(SCHEDULE, async () => {
                                   THEN pc.participant2_id
                                   ELSE pc.participant1_id END
        WHERE m.is_read = 0
-       GROUP BY m.conversation_id, m.sender_id, recipient_id, r.reminder_id
+          -- The recipient soft-deleted this chat: it is invisible in
+          -- their list, so reminding them reports messages they cannot see.
+          AND NOT (m.sender_id = pc.participant2_id AND pc.is_deleted_p1 = 1)
+         AND NOT (m.sender_id = pc.participant1_id AND pc.is_deleted_p2 = 1)
+       GROUP BY m.conversation_id, m.sender_id,
+                CASE WHEN pc.participant1_id = m.sender_id
+                     THEN pc.participant2_id
+                     ELSE pc.participant1_id END,
+                r.reminder_id
        HAVING MIN(m.sent_at) <= NOW() - INTERVAL ? HOUR
           AND COUNT(*) > 0
        ORDER BY oldest_unread_at ASC
@@ -107,8 +120,14 @@ cron.schedule(SCHEDULE, async () => {
           // Already nudged as often as policy allows. Clear it so this
           // conversation can be reminded again after they return and new
           // messages arrive, but never badgered in between.
+          // Only clear the row when the unread count CHANGED since the last
+          // nudge (new messages arrived = a fresh stretch). Clearing
+          // unconditionally re-arms the schedule on the very next sweep and
+          // never stops while the same messages stay unread.
+          if (Number(row.unread_count) !== Number(row.recorded_unread_count)) {
           await MessageReminderService.clearReminder({ userId: recipientId, chatId });
           cleared += 1;
+          }
           continue;
         }
         const lastAt = new Date(row.last_reminded_at).getTime();

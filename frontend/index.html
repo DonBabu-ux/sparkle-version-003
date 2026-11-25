@@ -15,12 +15,125 @@
     <meta name="description" content="Sparkle is the social platform built exclusively for campus life." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+    <!-- Fonts: preload warms the cache; the stylesheet itself is injected after
+         first paint by /boot.js so the boot splash never waits on it. -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" />
+    </noscript>
     <!-- Icons across the application are rendered using lucide-react. -->
     <!-- tiktok embed.js is a LIVE mutable script; it is allow-listed in vercel.json CSP. -->
+    <!-- CSP is script-src 'self' + tiktok (no 'unsafe-inline'), so boot logic
+         lives in the external /boot.js below. Runs before first paint: applies
+         the stored theme, injects fonts after paint, and retires the boot
+         splash once React mounts. -->
+    <script src="/boot.js"></script>
+
+    <style>
+      html, body { background-color: #f8e7ed; }
+      html.dark, html.dark body { background-color: #18181b; }
+      /* The splash paints only once /boot.js has applied the stored theme, so
+         the first visible frame is never the wrong theme (no light flash for a
+         dark-mode user). Until then the theme-coloured html/body above shows.
+         First visits (no stored theme) stay light, matching the app default. */
+      #boot-splash { visibility: hidden; }
+      html[data-theme-ready] #boot-splash { visibility: visible; }
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #f8e7ed;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .boot-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        text-align: center;
+      }
+      .boot-logo {
+        position: relative;
+        height: 96px;
+        width: 96px;
+      }
+      .boot-logo img {
+        height: 100%;
+        width: 100%;
+        object-fit: contain;
+        will-change: transform;
+        filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
+        animation: bootPulse 2s ease-in-out infinite;
+      }
+      .boot-shine {
+        pointer-events: none;
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .boot-shine::before {
+        content: '';
+        display: block;
+        height: 100%;
+        width: 50%;
+        background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.45), transparent);
+        animation: bootShine 2.2s ease-in-out infinite;
+      }
+      .boot-title {
+        margin: 24px 0 0;
+        font-size: 30px;
+        line-height: 36px;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        color: #18181b;
+      }
+      .boot-tagline {
+        margin: 8px 0 0;
+        font-size: 14px;
+        color: #475569;
+      }
+      html.dark #boot-splash { background: #18181b; }
+      html.dark .boot-title { color: #f4f4f5; }
+      html.dark .boot-tagline { color: #d4d4d8; }
+      html.dark .boot-shine::before {
+        background: linear-gradient(to right, transparent, rgba(251, 113, 133, 0.35), transparent);
+      }
+      @keyframes bootPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.14); }
+      }
+      @keyframes bootShine {
+        0% { transform: translateX(-100%) skewX(-14deg); }
+        55% { transform: translateX(300%) skewX(-14deg); }
+        100% { transform: translateX(300%) skewX(-14deg); }
+      }
+@media (min-width: 768px) {
+        .boot-logo { height: 128px; width: 128px; }
+        .boot-title { font-size: 36px; line-height: 40px; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static boot splash: paints as soon as the stored theme is known
+           (before the JS bundle boots), never the wrong theme. React's
+           <SplashScreen> replaces it on mount (identical visuals, so the
+           handoff is invisible). -->
+      <div id="boot-splash">
+        <div class="boot-inner">
+          <div class="boot-logo">
+            <img src="/sparklelogo.png" alt="Sparkle" width="128" height="128" />
+            <div class="boot-shine"></div>
+          </div>
+          <h1 class="boot-title">Sparkle</h1>
+          <p class="boot-tagline">Connect. Share. Shine.</p>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
     <script async src="https://www.tiktok.com/embed.js"></script>
   </body>

@@ -466,6 +466,22 @@ body {
 .dark .rail-logo {
   background-color: #27272a;
 }
+/* Feed composer trigger — same immunity rationale as the rail chrome:
+   bg-[#f6eef3] / text-[#18181b] / hover tokens are legacy-remapped. */
+.composer-btn {
+  background-color: #f6eef3;
+  color: #18181b;
+}
+.composer-btn:hover {
+  background-color: #f0e5ec;
+}
+.dark .composer-btn {
+  background-color: #18181b;
+  color: #f4f4f5;
+}
+.dark .composer-btn:hover {
+  background-color: #3f3f46;
+}
 
 /* Base text visibility in dark mode - only for standard containers */
 .dark .bg-black h1, .dark .bg-black h2, .dark .bg-black h3, .dark .bg-black h4, .dark .bg-black h5, .dark .bg-black h6, 

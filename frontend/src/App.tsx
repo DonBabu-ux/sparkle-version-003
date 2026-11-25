@@ -504,6 +504,15 @@ function App() {
     themeHydrated.current = true;
     (async () => {
       try {
+        // The local (persisted) choice always wins: only adopt the server
+        // value when this device has no stored theme yet (new device /
+        // cleared storage). Otherwise a stale server row would flip a
+        // dark-mode user back to light on every boot.
+        let hasLocalChoice = false;
+        try {
+          hasLocalChoice = Boolean(JSON.parse(localStorage.getItem('user-storage') || 'null')?.state?.theme);
+        } catch { /* storage blocked - fall through to the server value */ }
+        if (hasLocalChoice) return;
         const res = await api.get('/users/advanced-settings');
         const settings = res.data?.data?.settings || res.data?.settings;
         if (settings && typeof settings.dark_mode_enabled === 'boolean') {

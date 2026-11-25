@@ -6,6 +6,7 @@ import { ArrowLeft, Sparkles, Bell, Link2, Copy, Check, Share2, Users, Coins, St
 import QRCode from 'react-qr-code';
 import { useUserStore } from '../store/userStore';
 import Avatar from '../components/Avatar';
+import Skeleton from '../components/ui/Skeleton';
 import { 
   getReferralStats, 
   getLeaderboard, 
@@ -253,7 +254,7 @@ export default function Invite() {
               </span>
               <div className="flex items-center gap-3 mt-0.5">
                 {loading ? (
-                  <div className="h-8 w-28 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded-lg" />
+                  <Skeleton className="h-8 w-28 rounded-lg" />
                 ) : (
                   <>
                     <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-widest font-mono select-all">
@@ -319,7 +320,7 @@ export default function Invite() {
                 Total Invites
               </span>
               {loading ? (
-                <div className="h-8 w-16 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded mt-1" />
+                <Skeleton className="h-8 w-16 rounded mt-1" />
               ) : (
                 <>
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5 block">
@@ -343,7 +344,7 @@ export default function Invite() {
                 Friends Joined
               </span>
               {loading ? (
-                <div className="h-8 w-16 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded mt-1" />
+                <Skeleton className="h-8 w-16 rounded mt-1" />
               ) : (
                 <>
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5 block">
@@ -367,7 +368,7 @@ export default function Invite() {
                 Total Earned
               </span>
               {loading ? (
-                <div className="h-8 w-20 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded mt-1" />
+                <Skeleton className="h-8 w-20 rounded mt-1" />
               ) : (
                 <>
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5 block">
@@ -391,7 +392,7 @@ export default function Invite() {
                 Pending Rewards
               </span>
               {loading ? (
-                <div className="h-8 w-20 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded mt-1" />
+                <Skeleton className="h-8 w-20 rounded mt-1" />
               ) : (
                 <>
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5 block">
@@ -428,16 +429,16 @@ export default function Invite() {
               {loading ? (
                 <div className="space-y-3 py-4">
                   {[1, 2, 3].map(n => (
-                    <div key={n} className="flex items-center gap-3 animate-pulse">
-                      <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-zinc-800" />
-                      <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-zinc-800" />
+                    <div key={n} className="flex items-center gap-3">
+                      <Skeleton className="w-6 h-6 rounded-full" />
+                      <Skeleton className="w-9 h-9 rounded-full" />
                       <div className="flex-1 space-y-1">
-                        <div className="h-3 w-24 bg-slate-200 dark:bg-zinc-800 rounded" />
-                        <div className="h-2 w-16 bg-slate-200 dark:bg-zinc-800 rounded" />
+                        <Skeleton className="h-3 w-24 rounded" />
+                        <Skeleton className="h-2 w-16 rounded" />
                       </div>
                     </div>
-                  ))}
-                </div>
+))}
+                 </div>
               ) : topReferrers.length === 0 ? (
                 <div className="py-8 text-center flex flex-col items-center">
                   <Users size={32} className="text-slate-300 dark:text-zinc-700 mb-2" />
@@ -577,14 +578,14 @@ export default function Invite() {
           {loading ? (
             <div className="space-y-3 py-6">
               {[1, 2].map(n => (
-                <div key={n} className="flex items-center gap-3 animate-pulse">
-                  <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-zinc-800" />
-                  <div className="flex-1 space-y-1">
-                    <div className="h-3 w-32 bg-slate-200 dark:bg-zinc-800 rounded" />
-                    <div className="h-2 w-20 bg-slate-200 dark:bg-zinc-800 rounded" />
+<div key={n} className="flex items-center gap-3">
+                    <Skeleton className="w-9 h-9 rounded-full" />
+                    <div className="flex-1 space-y-1">
+                      <Skeleton className="h-3 w-32 rounded" />
+                      <Skeleton className="h-2 w-20 rounded" />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           ) : history.length === 0 ? (
             // Empty State (Section 53 requirement: "No referrals yet...")

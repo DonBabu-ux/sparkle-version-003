@@ -3,6 +3,7 @@ import { Search, Users, Sparkles, Orbit, Compass, UserPlus } from 'lucide-react'
 import UserCard from '../components/UserCard';
 import api from '../api/api';
 import '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 
 const TABS = [
   { label: 'Discovery', icon: Compass },
@@ -193,16 +194,16 @@ export default function Connect() {
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {Array.from({ length: 15 }).map((_, i) => (
-                <div key={i} className="flex aspect-[4/5] w-full animate-pulse flex-col items-center rounded-[28px] border border-[#e6d8e1] bg-[#fdf8fa] p-5 dark:border-zinc-700 dark:bg-zinc-800">
-                   <div className="mb-3 h-20 w-20 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
-                   <div className="mb-1.5 h-4 w-2/3 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
-                   <div className="mb-2 h-2.5 w-1/3 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
+<div key={i} className="flex aspect-[4/5] w-full flex-col items-center rounded-[28px] border border-[#e6d8e1] p-5 dark:border-zinc-700">
+                   <Skeleton className="mb-3 h-20 w-20 rounded-full" />
+                   <Skeleton className="mb-1.5 h-4 w-2/3 rounded-full" />
+                   <Skeleton className="mb-2 h-2.5 w-1/3 rounded-full" />
                    <div className="mb-3 flex gap-1.5">
-                     <div className="h-5 w-16 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
-                     <div className="h-5 w-12 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
+                     <Skeleton className="h-5 w-16 rounded-full" />
+                     <Skeleton className="h-5 w-12 rounded-full" />
                    </div>
-                   <div className="mt-auto h-9 w-full rounded-2xl bg-[#ede3e9] dark:bg-zinc-700" />
-                </div>
+                   <Skeleton className="mt-auto h-9 w-full rounded-2xl" />
+                 </div>
               ))}
             </div>
           ) : users.length === 0 ? (
@@ -252,11 +253,11 @@ export default function Connect() {
               {/* Load More Skeleton */}
               {offset > 0 && loadingMore && (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <div key={`load-more-${i}`} className="flex aspect-[4/5] w-full animate-pulse flex-col items-center rounded-[28px] border border-[#e6d8e1] bg-[#fdf8fa] p-5 dark:border-zinc-700 dark:bg-zinc-800">
-                    <div className="mb-3 h-20 w-20 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
-                    <div className="mb-1.5 h-4 w-2/3 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
-                    <div className="mb-2 h-2.5 w-1/3 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
-                    <div className="mt-auto h-9 w-full rounded-2xl bg-[#ede3e9] dark:bg-zinc-700" />
+                  <div key={`load-more-${i}`} className="flex aspect-[4/5] w-full flex-col items-center rounded-[28px] border border-[#e6d8e1] p-5 dark:border-zinc-700">
+                    <Skeleton className="mb-3 h-20 w-20 rounded-full" />
+                    <Skeleton className="mb-1.5 h-4 w-2/3 rounded-full" />
+                    <Skeleton className="mb-2 h-2.5 w-1/3 rounded-full" />
+                    <Skeleton className="mt-auto h-9 w-full rounded-2xl" />
                   </div>
                 ))
               )}

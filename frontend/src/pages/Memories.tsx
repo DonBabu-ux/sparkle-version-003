@@ -5,6 +5,7 @@ import api from '../api/api';
 import type { Post } from '../types/post';
 import { logger } from '../utils/logger';
 import { showSuccess } from '../utils/toast';
+import Skeleton from '../components/ui/Skeleton';
 
 export default function Memories() {
   const navigate = useNavigate();
@@ -92,7 +93,7 @@ export default function Memories() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {loading ? (
                   Array(4).fill(0).map((_, i) => (
-                    <div key={i} className="aspect-square bg-[#f6eef3] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl animate-pulse" />
+                    <Skeleton key={i} className="aspect-square border border-[#e6d8e1] dark:border-zinc-700" />
                   ))
                 ) : memories.map(memory => (
                   <div

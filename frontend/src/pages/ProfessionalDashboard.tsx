@@ -4,6 +4,7 @@ import api from '../api/api';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { ArrowLeft, X, Settings, BadgeCheck, DollarSign, Zap, Shield, Plus, HelpCircle, Heart, MessageSquare, Share2, TrendingUp, Wallet, ArrowDownCircle, ArrowUpCircle, History, Eye, Users, Radio, Video, Banknote, Store, Megaphone, BarChart2, Activity, RefreshCw, CheckCircle2, XCircle, AlertCircle, Building2, Smartphone, CreditCard } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import '../components/ui/Spinner';
 import { useUserStore } from '../store/userStore';
 import { AutoWithdrawalModal } from '../components/modals/AutoWithdrawalModal';
@@ -75,11 +76,6 @@ function AnimatedCounter({ value, formatter = String }: { value: number; formatt
 
   return <span ref={ref}>{formatter(0)}</span>;
 }
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-const Skeleton = ({ className = '' }: { className?: string }) => (
-  <div className={`bg-[#ede3e9] dark:bg-zinc-700 animate-pulse rounded-xl ${className}`} />
-);
 
 // ─── Mini Sparkline ───────────────────────────────────────────────────────────
 const Sparkline = ({ data, color }: { data: number[]; color: string }) => {

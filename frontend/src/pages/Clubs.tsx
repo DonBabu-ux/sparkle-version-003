@@ -4,6 +4,7 @@ import { Users, Plus, MapPin, X, Camera, Image as ImageIcon, Search } from 'luci
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { logger } from '../utils/logger';
+import Skeleton from '../components/ui/Skeleton';
 
 const CATEGORIES = ['All Communities', 'Academic', 'Social', 'Sports', 'Music/Arts', 'Technology', 'Volunteer'];
 const CATEGORY_LABELS: Record<string, string> = { 'All Communities': 'All' };
@@ -123,7 +124,7 @@ export default function Clubs() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pb-24">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="h-64 bg-[#f6eef3] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl animate-pulse" />
+              <Skeleton key={i} className="h-64 border border-[#e6d8e1] dark:border-zinc-700" />
             ))}
           </div>
         ) : clubs.length === 0 ? (

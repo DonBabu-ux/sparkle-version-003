@@ -6,6 +6,7 @@ import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { logger } from '../../utils/logger';
+import Skeleton from '../ui/Skeleton';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
 export interface PeopleHubUser {
@@ -404,13 +405,13 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
                 /* Skeleton Loader */
                 <div className="space-y-3 pt-2">
                   {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-16 bg-white/5 rounded-2xl animate-pulse flex items-center px-4 gap-3">
-                      <div className="w-11 h-11 rounded-full bg-white/10" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-3 w-1/3 bg-white/10 rounded" />
-                        <div className="h-2 w-1/4 bg-white/10 rounded" />
-                      </div>
-                    </div>
+<div key={i} className="h-16 rounded-2xl flex items-center px-4 gap-3">
+                     <Skeleton className="w-11 h-11 rounded-full" />
+                     <div className="flex-1 space-y-2">
+                       <Skeleton className="h-3 w-1/3 rounded" />
+                       <Skeleton className="h-2 w-1/4 rounded" />
+                     </div>
+                   </div>
                   ))}
                 </div>
               ) : mutualUsers.length === 0 ? (

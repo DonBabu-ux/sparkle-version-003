@@ -5,6 +5,7 @@ import ErrorRetry from '../components/ui/ErrorRetry';
 import api from '../api/api';
 import type { Post } from '../types/post';
 import { logger } from '../utils/logger';
+import Skeleton from '../components/ui/Skeleton';
 
 function LazyMediaCard({ m, onClick }: { m: Post; idx: number; onClick: () => void }) {
   const [isVisible, setIsVisible] = useState(false);
@@ -147,7 +148,7 @@ export default function Gallery() {
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="aspect-square bg-[#f6eef3] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl animate-pulse" />
+                <Skeleton key={i} className="aspect-square border border-[#e6d8e1] dark:border-zinc-700" />
               ))}
             </div>
           ) : error ? (

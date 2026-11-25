@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, Lock, Smartphone, Mail, MessageSquare, Key, ChevronRight, CheckCircle2, AlertCircle, X, Eye, EyeOff, Copy, Download, Clock, Check, RotateCcw, AtSign, KeyRound } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import { SettingCardGroup } from '../components/settings/SettingCardGroup';
 import { SettingRow } from '../components/settings/SettingRow';
 import api from '../api/api';
@@ -1654,7 +1655,7 @@ export default function SecurityCentre() {
         {loading && (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 rounded-2xl bg-slate-100 dark:bg-zinc-900 animate-pulse" />
+              <Skeleton key={i} className="h-16 rounded-2xl" />
             ))}
           </div>
         )}

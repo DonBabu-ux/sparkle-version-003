@@ -18,6 +18,7 @@ import { useUserStore } from "../../store/userStore";
 import { getAvatarUrl } from "../../utils/imageUtils";
 import { VerifiedBadge } from "../common/VerifiedBadge";
 import { logger } from "../../utils/logger";
+import Skeleton from "../ui/Skeleton";
 import { showError, showSuccess } from "../../utils/toast";
 
 type TabType = "followers" | "following" | "flagged" | "mutual";
@@ -114,11 +115,11 @@ function ListSkeleton({ count = 5 }: { count?: number }) {
   return (
     <div className="space-y-3 pt-2">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-black/[0.04] dark:bg-white/[0.04] animate-pulse">
-          <div className="w-12 h-12 rounded-full bg-black/10 dark:bg-white/10 shrink-0" />
+        <div key={i} className="flex items-center gap-3 p-3 rounded-2xl">
+          <Skeleton className="w-12 h-12 rounded-full shrink-0" />
           <div className="flex-1 space-y-2">
-            <div className="h-3.5 bg-black/10 dark:bg-white/10 rounded w-1/3" />
-            <div className="h-2.5 bg-black/5 dark:bg-white/5 rounded w-1/2" />
+            <Skeleton className="h-3.5 rounded w-1/3" />
+            <Skeleton className="h-2.5 rounded w-1/2" />
           </div>
         </div>
       ))}

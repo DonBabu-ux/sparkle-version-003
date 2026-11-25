@@ -5,6 +5,7 @@ import { BellOff, CheckCheck } from 'lucide-react';
 import api from '../../api/api';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { logger } from '../../utils/logger';
+import Skeleton from '../ui/Skeleton';
 
 interface BellNotification {
   notification_id: string;
@@ -171,11 +172,11 @@ export default function NotificationsPanel({ open, onClose, anchorRect }: Notifi
         <div className="overflow-y-auto flex-1">
           {loading ? (
             [1, 2, 3, 4].map(i => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
-                <div className="w-9 h-9 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 shrink-0" />
+              <div key={i} className="flex items-center gap-3 px-4 py-3">
+                <Skeleton className="w-9 h-9 rounded-full shrink-0" />
                 <div className="flex-1 space-y-1.5">
-                  <div className="h-3 w-2/3 bg-[#f0e5ec] dark:bg-zinc-700 rounded" />
-                  <div className="h-2.5 w-1/3 bg-[#f0e5ec] dark:bg-zinc-700 rounded" />
+                  <Skeleton className="h-3 w-2/3 rounded" />
+                  <Skeleton className="h-2.5 w-1/3 rounded" />
                 </div>
               </div>
             ))

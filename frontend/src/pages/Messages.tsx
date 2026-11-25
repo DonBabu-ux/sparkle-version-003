@@ -5496,7 +5496,7 @@ export default function Messages() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black z-(--z-modal) flex flex-col"
+            className="fixed inset-0 bg-zinc-900 z-(--z-modal) flex flex-col"
           >
             {/* Top Bar */}
             <div className="flex items-center justify-between px-5 pt-[calc(1rem+var(--safe-area-inset-top))] pb-4">

@@ -112,7 +112,7 @@ function InAppCaptureModal({ mode, onCapture, onClose }: InAppCaptureModalProps)
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[1600] bg-black flex flex-col overflow-hidden"
+      className="fixed inset-0 z-[1600] bg-zinc-900 flex flex-col overflow-hidden"
     >
       {/* ── Top Bar ── */}
       <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-5 bg-gradient-to-b from-black/70 to-transparent safe-area-top">

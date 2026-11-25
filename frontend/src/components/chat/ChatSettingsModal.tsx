@@ -877,7 +877,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'customize' ? (
-            <motion.div key="customize" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+            <motion.div key="customize" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
               <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/95 backdrop-blur-xl z-20 border-b border-white/5">
                 <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Customize</h2>
@@ -944,9 +944,9 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 )}
 
                 {customizeTab === 'reaction' && (
-                  <div className="flex flex-col h-full bg-[#000000]">
+                  <div className="flex flex-col h-full bg-[#18181b]">
                     {/* Top Half: Preview Area */}
-                    <div className="flex-[0.8] flex flex-col items-center justify-center pt-24 p-6 bg-[#000000] border-b border-white/5 relative overflow-hidden">
+                    <div className="flex-[0.8] flex flex-col items-center justify-center pt-24 p-6 bg-[#18181b] border-b border-white/5 relative overflow-hidden">
                       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--color-primary)_0%,_transparent_70%)]" />
                       
                       <div className="relative z-10 flex flex-col items-center">
@@ -962,7 +962,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                     </div>
 
                     {/* Bottom Half: Emoji Grid with Sleek Search */}
-                    <div className="flex-[1.2] flex flex-col w-full bg-[#000000] border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
+                    <div className="flex-[1.2] flex flex-col w-full bg-[#18181b] border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
                       <div className="p-5 pt-8">
                         <div className="bg-white/10 rounded-full flex items-center px-5 h-11 border border-white/20 focus-within:border-[#ff1493]/50 focus-within:bg-white/[0.15] transition-all">
                           <Search size={18} className="text-white/40" />
@@ -1030,7 +1030,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
 
               {customizeTab === 'words' && (
-                <div className="p-4 bg-[#000000] border-t border-white/5 relative z-30 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                <div className="p-4 bg-[#18181b] border-t border-white/5 relative z-30 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                   <div className="bg-white/5 rounded-full flex items-center px-3 py-1.5 border border-white/5 focus-within:bg-white/10 focus-within:border-[#ff1493]/30 transition-all">
                     <button 
                       onClick={() => setView('word_emoji_picker')} 
@@ -1060,7 +1060,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               )}
             </motion.div>
           ) : view === 'preview_theme' && previewTheme ? (
-            <motion.div key="preview_theme" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }} className="flex flex-col h-full relative overflow-hidden bg-[#000000]">
+            <motion.div key="preview_theme" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }} className="flex flex-col h-full relative overflow-hidden bg-[#18181b]">
               {/* Fake Live Background for Preview */}
               <div className="absolute inset-0 z-0">
                 {!previewTheme.wallpaperUrl ? (
@@ -1122,14 +1122,14 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
 
               {/* Apply Bar */}
-              <div className="absolute bottom-0 inset-x-0 p-4 bg-[#000000] z-20 flex gap-4 pb-safe">
+              <div className="absolute bottom-0 inset-x-0 p-4 bg-[#18181b] z-20 flex gap-4 pb-safe">
                 <button onClick={() => setView('customize')} className="flex-1 py-4 rounded-2xl bg-white/10 text-white font-bold text-sm">Cancel</button>
                 <button onClick={handleApplyTheme} className="flex-[2] py-4 rounded-2xl bg-[#ff1493] text-white font-bold text-sm shadow-[0_0_20px_rgba(255,20,147,0.4)]">Apply Theme</button>
               </div>
             </motion.div>
           ) : view === 'ai_generator' ? (
-            <motion.div key="ai_generator" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+            <motion.div key="ai_generator" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#18181b] z-10 border-b border-white/5">
                 <button onClick={() => setView('customize')} className="p-2 text-white"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Generate Theme with AI</h2>
               </div>
@@ -1182,8 +1182,8 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'custom_photo' ? (
-            <motion.div key="custom_photo" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+            <motion.div key="custom_photo" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#18181b] z-10 border-b border-white/5">
                 <button onClick={() => setView('customize')} className="p-2 text-white"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Custom Photo Editor</h2>
               </div>
@@ -1369,8 +1369,8 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'media' ? (
-            <motion.div key="media" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+            <motion.div key="media" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#18181b] z-10 border-b border-white/5">
                 <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Media, Files & Links</h2>
               </div>
@@ -1384,8 +1384,8 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'pinned' ? (
-            <motion.div key="pinned" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+            <motion.div key="pinned" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#18181b] z-10 border-b border-white/5">
                 <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Pinned Messages</h2>
               </div>
@@ -1398,8 +1398,8 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'search_chat' ? (
-            <motion.div key="search_chat" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+            <motion.div key="search_chat" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#18181b] z-10 border-b border-white/5">
                 <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                   <div className="flex-1 bg-white/5 rounded-full flex items-center px-4 h-10 border border-white/5 transition-all focus-within:bg-white/10">
                     <Search size={16} className="text-white/20" />
@@ -1419,7 +1419,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'notifications_sounds' ? (
-            <motion.div key="notifications_sounds" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+            <motion.div key="notifications_sounds" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
               <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/95 backdrop-blur-xl z-20 border-b border-white/5">
                 <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Notifications & Sounds</h2>
@@ -1573,8 +1573,8 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'word_emoji_picker' ? (
-            <motion.div key="word_emoji_picker" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+            <motion.div key="word_emoji_picker" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#18181b] z-10 border-b border-white/5">
                 <button onClick={() => setView('customize')} className="p-2 text-white"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Select Emoji</h2>
               </div>
@@ -1597,7 +1597,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'encryption_verification' ? (
-            <motion.div key="encryption_verification" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+            <motion.div key="encryption_verification" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
               {/* Header */}
               <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/90 backdrop-blur-xl z-20 border-b border-white/5">
                 <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
@@ -1664,7 +1664,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'create_group' ? (
-            <motion.div key="create_group" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+            <motion.div key="create_group" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
               {/* Header */}
               <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/90 backdrop-blur-xl z-20 border-b border-white/5">
                 <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
@@ -1789,7 +1789,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
             </motion.div>
 
           ) : view === 'share_contact' ? (
-            <motion.div key="share_contact" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+            <motion.div key="share_contact" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#18181b]">
               {/* Header */}
               <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/90 backdrop-blur-xl z-20 border-b border-white/5">
                 <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>

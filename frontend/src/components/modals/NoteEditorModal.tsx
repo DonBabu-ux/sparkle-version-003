@@ -123,7 +123,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
   if (screen === 'choose_people') {
     return (
       <motion.div ref={peopleRef} role="dialog" aria-modal="true" tabIndex={-1} initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'tween', duration: 0.22 }}
-        className="fixed inset-0 z-[10001] bg-black flex flex-col"
+        className="fixed inset-0 z-[10001] bg-zinc-900 flex flex-col"
       >
         <div className="flex items-center justify-between px-4 pt-[calc(1rem+var(--safe-area-inset-top))] pb-3 shrink-0">
           <div className="flex items-center gap-3">
@@ -202,7 +202,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
   if (screen === 'settings') {
     return (
       <motion.div ref={settingsRef} role="dialog" aria-modal="true" tabIndex={-1} initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'tween', duration: 0.22 }}
-        className="fixed inset-0 z-[10001] bg-black flex flex-col"
+        className="fixed inset-0 z-[10001] bg-zinc-900 flex flex-col"
       >
         <div className="flex items-center justify-between px-4 pt-[calc(1rem+var(--safe-area-inset-top))] pb-3 shrink-0">
           <div className="flex items-center gap-3">
@@ -303,7 +303,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-(--z-toast) bg-black flex flex-col"
+      className="fixed inset-0 z-(--z-toast) bg-zinc-900 flex flex-col"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {/* Top Bar */}

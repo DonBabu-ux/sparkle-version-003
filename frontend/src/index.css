@@ -375,7 +375,7 @@ body.note-modal-open nav {
 
   /* Prevents white flashes during AnimatePresence phase transitions */
   .no-white-flash {
-    background-color: #000000;
+    background-color: #18181b;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
   }

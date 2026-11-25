@@ -144,7 +144,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [majorSearch, setMajorSearch] = useState('');
 
   // Universities fetched live from the API (with module-level cache)
-  const { universities, loading: unisLoading } = useUniversities();
+  const { universities } = useUniversities();
 
   // Hidden file input refs for Camera and Gallery
   const cameraInputRef = useRef<HTMLInputElement>(null);

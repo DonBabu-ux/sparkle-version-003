@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { Preferences } from '@capacitor/preferences';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { OtaKit, BundleStatus } from '@otakit/capacitor-updater';
+import { OtaKit } from '@otakit/capacitor-updater';
 import api from '../api/api';
 import { logger } from '../utils/logger';
 

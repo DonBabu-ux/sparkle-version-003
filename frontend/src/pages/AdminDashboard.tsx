@@ -458,7 +458,8 @@ export default function AdminDashboard() {
         navigate('/admin/login', { replace: true });
         return;
       }
-      setStepUpError(err.response?.data?.message || err.response?.data?.error || 'Verification failed. Please try again.');
+      const stepUpErr = err as { response?: { data?: { message?: string; error?: string } } };
+      setStepUpError(stepUpErr?.response?.data?.message || stepUpErr?.response?.data?.error || 'Verification failed. Please try again.');
       setStepUpBusy(false);
     }
   };

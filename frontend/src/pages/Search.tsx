@@ -7,6 +7,7 @@ import api from '../api/api';
 import UserCard from '../components/UserCard';
 import PostCard from '../components/PostCard';
 import type { Post as PostCardPost } from '../components/PostCard';
+import type { User as UserType } from '../types/user';
 import ListingCard from '../components/marketplace/ListingCard';
 import { useUserStore } from '../store/userStore';
 import '../utils/identityManager';
@@ -48,6 +49,10 @@ interface SearchResult {
   reshare_count?: number;
   is_sparked?: boolean;
   is_saved?: boolean;
+  // User-result fields (why-this-result explainer for the people tab)
+  suggestion_reason?: string;
+  mutual_connections?: number | string;
+  is_followed?: boolean;
   updates: string[];
 }
 
@@ -527,7 +532,8 @@ export default function Search() {
                                 <div className="grid gap-3">
                                     {type === 'users' && Array.isArray(visible) && visible.map((u, j) => (
                                         <div key={`res-u-${u.user_id || u.id || j}`} className="hover:scale-[1.02] transition-transform duration-500">
-                                            <UserCard u={u} />
+                                            {/* search results are a superset of the user shape (extra explainer fields) */}
+                                            <UserCard u={u as unknown as UserType} />
                                         </div>
                                     ))}
                                     {type === 'posts' && Array.isArray(visible) && visible.map((p, j) => (

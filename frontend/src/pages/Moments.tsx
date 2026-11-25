@@ -22,7 +22,7 @@ import { isWatermarkVisible } from '../utils/watermark';
 import { emitHeart } from '../components/TikTokHearts';
 import clsx from 'clsx';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
-import MentionText from '../components/MentionText';
+
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
 import StatusBarController from '../components/StatusBarController';
 import { logger } from '../utils/logger';
@@ -56,7 +56,7 @@ const parseMusicInfo = (raw: Moment['music_info']): { title?: string; artist?: s
   return raw;
 };
 
-interface Comment {
+export interface Comment {
   comment_id: string;
   username: string;
   avatar_url?: string;
@@ -183,7 +183,7 @@ const ReelItem = React.memo(({
     return parseResolutionRatio(moment?.resolution);
   }, [moment?.resolution]);
 
-  const [mediaDimensions, setMediaDimensions] = useState<{
+  const [, setMediaDimensions] = useState<{
     width: number;
     height: number;
     ratio: number;
@@ -221,7 +221,6 @@ const ReelItem = React.memo(({
     }
   }, []);
 
-  const effectiveRatio = mediaDimensions?.ratio || initialRatio || null;
   // Carousel swipe handling (horizontal only, no bubble to vertical FYP swipe)
   const carouselTouchStart = useRef<{ x: number; y: number } | null>(null);
   const handleCarouselTouchStart = (e: React.TouchEvent) => {
@@ -895,7 +894,7 @@ export default function Moments() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [isFallback, setIsFallback] = useState(false);
-  const searchCache = useRef<Record<string, { moments: unknown[]; isFallback?: boolean; timestamp?: number; [key: string]: unknown }>>({});
+  const searchCache = useRef<Record<string, { moments: Moment[]; isFallback?: boolean; timestamp?: number; [key: string]: unknown }>>({});
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   // Monotonic sequence so a slow response for an old query can never
   // overwrite the results of a newer one (stale-request guard).

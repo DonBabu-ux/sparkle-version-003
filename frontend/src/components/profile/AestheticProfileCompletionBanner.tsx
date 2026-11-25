@@ -331,7 +331,7 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
                             {item.isCompleted ? (
                               <CheckCircle2 size={14} strokeWidth={2.2} />
                             ) : (
-                              <Icon size={13} strokeWidth={2} />
+                              <Icon size={13} />
                             )}
                           </div>
                           <div className="min-w-0 flex-1">

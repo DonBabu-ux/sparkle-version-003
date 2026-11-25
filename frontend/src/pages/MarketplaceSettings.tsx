@@ -28,8 +28,8 @@ const MarketplaceSettings = () => {
 
   // Sub-view state (ported from MarketplaceSettingsModal — one marketplace settings surface)
   const [activeView, setActiveView] = useState<'main' | 'analytics' | 'payouts' | 'privacy' | 'support' | 'blocked'>('main');
-  const [viewLoading, setViewLoading] = useState(false);
-  const [viewData, setViewData] = useState<any>(null);
+  const [viewLoading] = useState(false);
+  const [viewData] = useState<any>(null);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
 
   const sections = [

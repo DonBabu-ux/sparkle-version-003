@@ -35,9 +35,11 @@ export const useDialogStore = create<DialogState>((set) => ({
   dismiss: () => set({ pending: null }),
 }));
 
+type ResolvedValue<T extends PendingDialog> = T extends { kind: 'confirm' } ? boolean : string | null;
+
 function open<T extends PendingDialog>(
-  build: (resolve: (value: T extends { kind: 'confirm' } ? boolean : string | null) => void) => T
-): Promise<T extends { kind: 'confirm' } ? boolean : string | null> {
+  build: (resolve: (value: ResolvedValue<T>) => void) => T
+): Promise<ResolvedValue<T>> {
   return new Promise((resolve) => {
     useDialogStore.getState().open(build(resolve as never));
   });
@@ -48,7 +50,7 @@ export function confirmDialog(
   message: string,
   opts?: { title?: string; confirmLabel?: string; danger?: boolean }
 ): Promise<boolean> {
-  return open<boolean>((resolve) => ({
+  return open<Extract<PendingDialog, { kind: 'confirm' }>>((resolve) => ({
     kind: 'confirm',
     message,
     title: opts?.title,
@@ -63,7 +65,7 @@ export function promptDialog(
   message: string,
   opts?: { title?: string; defaultValue?: string; confirmLabel?: string }
 ): Promise<string | null> {
-  return open<string | null>((resolve) => ({
+  return open<Extract<PendingDialog, { kind: 'prompt' }>>((resolve) => ({
     kind: 'prompt',
     message,
     title: opts?.title,

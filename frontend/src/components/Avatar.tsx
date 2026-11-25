@@ -8,6 +8,7 @@ interface AvatarProps {
   name?: string;
   size?: 'xs' | 'nav' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'xxl';
   className?: string;
+  style?: React.CSSProperties;
   userId?: string | null;
   isLive?: boolean;
   streamId?: string | null;
@@ -19,6 +20,7 @@ const Avatar: React.FC<AvatarProps> = ({
   name,
   size = 'md',
   className = '',
+  style,
   userId,
   isLive: explicitLive,
   streamId: explicitStreamId,
@@ -103,11 +105,12 @@ const Avatar: React.FC<AvatarProps> = ({
       alt={name || 'User'} 
       width={SIZE_PX[size]}
       height={SIZE_PX[size]}
+      style={style}
       className={`${sizeClasses[size]} rounded-full object-cover shrink-0 ${liveRingClass} ${className}`}
       onError={() => setError(true)}
     />
   ) : (
-    <div className={`${sizeClasses[size]} ${getColor(name || 'User')} rounded-full flex items-center justify-center text-white font-black shrink-0 shadow-sm border border-white/10 ${liveRingClass} ${className}`}>
+    <div style={style} className={`${sizeClasses[size]} ${getColor(name || 'User')} rounded-full flex items-center justify-center text-white font-black shrink-0 shadow-sm border border-white/10 ${liveRingClass} ${className}`}>
       {getInitials(name || 'User')}
     </div>
   );

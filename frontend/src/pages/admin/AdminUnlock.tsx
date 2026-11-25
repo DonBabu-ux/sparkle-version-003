@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Shield } from 'lucide-react';
 import api, { setAdminSession, setAdminSessionExpires, setAdminClockOffset, hasAdminSession, clearAdminSession } from '../../api/api';
@@ -76,7 +76,7 @@ export default function AdminUnlock() {
         setMode('expired');
         return;
       }
-      setError(err.response?.data?.message || 'That admin password is incorrect.');
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'That admin password is incorrect.');
     } finally {
       setBusy(false);
     }

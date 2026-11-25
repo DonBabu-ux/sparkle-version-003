@@ -208,7 +208,7 @@ const MessageBubbleWrapper: React.FC<{
     }
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handlePointerUp = () => {
     if (isSwiping) {
       const shouldReply = dragX >= SWIPE_THRESHOLD && !!onSwipeReply;
       setDragX(0);
@@ -229,7 +229,7 @@ const MessageBubbleWrapper: React.FC<{
     lp.onPointerUp();
   };
 
-  const handlePointerCancel = (e: React.PointerEvent) => {
+  const handlePointerCancel = () => {
     setDragX(0);
     setIsSwiping(false);
     pointerStartRef.current = null;
@@ -338,7 +338,7 @@ const MAX_UNREAD_PAGES = 5;
 // Distance from the top of the list (px) that triggers older-page loading.
 const OLDER_PAGE_THRESHOLD_PX = 200;
 
-const sortMessagesAsc = (msgs: any[]): any[] => sortMessagesChronologically(msgs);
+
 
 // Dedupe by message_id with property merging then sort ascending chronologically.
 const mergeMessageLists = (base: any[], incoming: any[]): any[] => {
@@ -878,8 +878,7 @@ export default function Messages() {
   }, [chatId, replyTargetId]);
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [forwardingMessage, setForwardingMessage] = useState<any | null>(null);
-  const [selectedForwardChatIds, setSelectedForwardChatIds] = useState<string[]>([]);
-  const [forwardSearchQuery, setForwardSearchQuery] = useState('');
+  const [, setSelectedForwardChatIds] = useState<string[]>([]);
   const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
   const [infoModalMessageId, setInfoModalMessageId] = useState<string | null>(null);
 
@@ -4672,7 +4671,6 @@ export default function Messages() {
                                     )}
 
                                     {msg.type === 'document' && (() => {
-                                      const uploadItem = uploadQueue.find(u => u.id.includes(msg.message_id || msg.id));
                                       const isUploading = isMe && (msg.status === 'sending' || msg.status === 'uploading');
                                       const isFailed = isMe && msg.status === 'failed';
 

@@ -18,6 +18,7 @@ export interface Moment {
   media_type?: string;
   is_liked?: boolean;
   is_saved?: boolean;
+  follower_count?: number;
   is_following?: boolean;
   user_id?: string;
   /** 1/0 (or '1'/'0'); absent = default on. See utils/watermark.ts. */

@@ -165,7 +165,7 @@ export async function loadDraftMedia(draft: StoryDraftRecord): Promise<Array<Sto
 export function buildDraftRecord(input: {
   draftId: string;
   title: string;
-  pages: Array<Omit<StoryDraftPage, 'mediaKey'>>;
+  pages: StoryDraftPage[];
   mediaRefs: Array<{ key: string; name: string; kind: string; isVideo: boolean; storageBytes: number }>;
   stickers: unknown[];
   selectedMusic: unknown | null;

@@ -97,8 +97,8 @@ const StickerItem: FC<{
   if (sticker.hidden) return null;
 
   return (
-    <motion.div
-      {...(isEditing ? bind() : {})}
+      <motion.div
+      {...(isEditing ? (bind() as Record<string, unknown>) : {})}
       style={{
         position: 'absolute',
         left: `${sticker.x}%`,

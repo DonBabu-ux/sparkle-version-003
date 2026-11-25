@@ -232,7 +232,7 @@ export default function ResetPassword() {
               {otpValues.map((val, i) => (
                 <input
                   key={i}
-                  ref={(el) => (otpRefs.current[i] = el)}
+                  ref={(el) => { otpRefs.current[i] = el; }}
                   type="text"
                   inputMode="numeric"
                   maxLength={1}

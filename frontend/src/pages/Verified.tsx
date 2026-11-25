@@ -57,7 +57,7 @@ export default function Verified() {
   // handleSearchSubmit reads these, and the JSX that rendered the input was
   // removed in an earlier pass, leaving the handler referencing names that no
   // longer existed.
-  const [searchQuery, setSearchQuery] = useState('');
+  
   const [showHub, setShowHub] = useState(false);
 
   // Evolution Application form data (accessible when user opens evolution or application)
@@ -102,15 +102,6 @@ export default function Verified() {
   }, []);
 
   const isEligible = stats.followers >= 1000 && stats.engagement >= 70 && stats.trustLevel >= 3;
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/explore?q=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      navigate('/explore');
-    }
-  };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();

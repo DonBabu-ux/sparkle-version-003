@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Preferences } from '@capacitor/preferences';
 import { EnvironmentService } from './EnvironmentService';
 import { logger } from '../utils/logger';
@@ -196,14 +196,14 @@ export class OtaService {
                 path: jsPath,
                 data: jsContent,
                 directory: Directory.Data,
-                encoding: 'utf8'
+                encoding: Encoding.UTF8
             });
 
             const cssWriteResult = await Filesystem.writeFile({
                 path: cssPath,
                 data: cssContent,
                 directory: Directory.Data,
-                encoding: 'utf8'
+                encoding: Encoding.UTF8
             });
 
             // Register dynamic paths into preferences

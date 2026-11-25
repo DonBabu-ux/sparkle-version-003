@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { ArrowLeft, Search, X, Check, MessageSquare } from 'lucide-react';
 import Spinner from '../ui/Spinner';
 import clsx from 'clsx';
@@ -380,7 +380,9 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
 
   const selectedCount = selectedUserIds.size;
 
-  const slideVariants = {
+  // Explicit Variants typing makes the ease arrays contextually typed as
+  // the 4-tuple framer-motion expects (a plain number[] is rejected).
+  const slideVariants: Variants = {
     initial: { x: '100%', opacity: 0.9 },
     animate: { x: 0, opacity: 1, transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] } },
     exit: { x: '100%', opacity: 0.9, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] } }

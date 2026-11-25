@@ -6,7 +6,8 @@ export type VolumeCategory =
   | 'media'
   | 'calls'
   | 'ui'
-  | 'stories';
+  | 'stories'
+  | 'marketplace';
 
 export interface VolumeProfiles {
   master: number;
@@ -16,6 +17,7 @@ export interface VolumeProfiles {
   calls: number;
   ui: number;
   stories: number;
+  marketplace: number;
 }
 
 const DEFAULT_VOLUMES: VolumeProfiles = {
@@ -26,6 +28,7 @@ const DEFAULT_VOLUMES: VolumeProfiles = {
   calls: 1.0,
   ui: 0.7,
   stories: 0.85,
+  marketplace: 0.85,
 };
 
 export class VolumeController {

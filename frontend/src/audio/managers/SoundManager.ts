@@ -177,6 +177,10 @@ export class SoundManager {
     }
   }
 
+  public getToggles(): Record<string, boolean> {
+    return { ...this.enabledToggles };
+  }
+
   public getSettings() {
     return {
       ...this.enabledToggles,

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { List } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { isToday, isYesterday, subDays, isAfter } from 'date-fns';
@@ -16,17 +16,14 @@ type FlatItem =
   | { type: 'grouped-card'; key: string; notifications: SparkleNotification[] };
 
 export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ notifications }) => {
-  const listRef = useRef<List>(null);
+  // react-window v2 measures dynamic rows itself — expanding a grouped card
+  // needs no manual layout reset (the v1 resetAfterIndex API was removed).
   
   // Track keys of expanded grouped notification cards
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
-  // Reset list layout cache whenever expanded keys change
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.resetAfterIndex(0);
-    }
-  }, [expandedKeys]);
+  // react-window v2 measures dynamic rows itself — expanding a grouped card
+  // needs no manual layout reset (the v1 resetAfterIndex API was removed).
 
   const toggleGroupExpanded = (key: string) => {
     setExpandedKeys((prev) => {
@@ -213,20 +210,21 @@ export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ noti
 
   return (
     <div className="w-full h-full" role="feed" aria-label="Notifications feed">
-      <AutoSizer>
-        {({ height, width }) => (
-          <List
-            ref={listRef}
-            height={height}
-            itemCount={flatItems.length}
-            itemSize={getItemSize}
-            width={width}
+      {/* react-virtualized-auto-sizer v2 dropped the children-as-function
+          pattern (renderProp/ChildComponent instead), and react-window v2
+          types rows via rowComponent, not children. */}
+      <AutoSizer
+        renderProp={({ height, width }) => (
+          <List<Record<string, never>>
+            style={{ height: height ?? 0, width: width ?? 0 }}
+            rowCount={flatItems.length}
+            rowHeight={getItemSize}
+            rowComponent={Row}
+            rowProps={{}}
             className="scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-800"
-          >
-            {Row}
-          </List>
+          />
         )}
-      </AutoSizer>
+      />
     </div>
   );
 };

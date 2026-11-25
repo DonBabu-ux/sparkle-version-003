@@ -391,7 +391,7 @@ export default function MessagesSettings() {
     () => AudioSessionManager.volumeController.getAll()
   );
   const [audioToggles, setAudioToggles] = useState<Record<string, boolean>>(
-    () => (AudioSessionManager.getSettings() as Record<string, boolean>) || {}
+    () => (AudioSessionManager.getToggles()) || {}
   );
   const [globalNotificationSound, setGlobalNotificationSound] = useState<string>(() => {
     try {
@@ -725,7 +725,7 @@ export default function MessagesSettings() {
   const handleThemeChange = async (theme: SoundTheme) => {
     setAudioTheme(theme);
     await AudioSessionManager.setTheme(theme);
-    setAudioToggles(AudioSessionManager.getSettings() as Record<string, boolean>);
+    setAudioToggles(AudioSessionManager.getToggles());
     AudioSessionManager.playSound('send');
     setSoundThemeSheet(false);
     showSuccess(`Theme: ${theme}`);
@@ -753,7 +753,7 @@ export default function MessagesSettings() {
 
   const handleAudioToggle = (key: string, val: boolean) => {
     AudioSessionManager.updateSettings({ [key]: val });
-    setAudioToggles(AudioSessionManager.getSettings() as Record<string, boolean>);
+    setAudioToggles(AudioSessionManager.getToggles());
     showSuccess(val ? 'Enabled' : 'Disabled');
   };
 
@@ -761,7 +761,7 @@ export default function MessagesSettings() {
     AudioSessionManager.resetSettings();
     setAudioTheme(AudioSessionManager.themeController.getCurrentTheme());
     setAudioVolumes(AudioSessionManager.volumeController.getAll());
-    setAudioToggles(AudioSessionManager.getSettings() as Record<string, boolean>);
+    setAudioToggles(AudioSessionManager.getToggles());
     setGlobalNotificationSound('default');
     try {
       localStorage.setItem('sparkle_default_notification_sound', 'default');

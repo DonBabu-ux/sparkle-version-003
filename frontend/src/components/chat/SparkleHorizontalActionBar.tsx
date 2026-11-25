@@ -9,7 +9,7 @@ import {
   Volume2,
   MoreVertical,
 } from 'lucide-react';
-import { useThemeStore } from '../../store/themeStore';
+
 
 export interface SparkleSelectionToolbarProps {
   selectedCount: number;
@@ -35,8 +35,10 @@ export const SparkleHorizontalActionBar: React.FC<SparkleSelectionToolbarProps> 
   onDelete,
   onMore,
 }) => {
-  const currentTheme = useThemeStore((state) => state.currentTheme);
-  const primaryColor = currentTheme?.colors?.primary || '#ff1493';
+  // Batch actions span multiple chats, so there is no single chat theme —
+  // the brand default (previous fallback path) applies. The store exposes
+  // per-chat themes via getThemeForChat(chatId), not a global currentTheme.
+  const primaryColor = '#ff1493';
 
   if (selectedCount === 0) return null;
 

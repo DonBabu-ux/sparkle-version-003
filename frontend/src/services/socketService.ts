@@ -20,7 +20,7 @@ ServerFailoverManager.onServerChange((newServer, previousServer) => {
   logger.warn(`🔌 [SocketService] Active server changed (${previousServer.id} -> ${newServer.id}). Reconnecting all sockets...`);
   consecutiveConnectErrors = 0;
   
-  _sockets.forEach((sock, key) => {
+  _sockets.forEach((sock) => {
     try {
       sock.disconnect();
       sock.removeAllListeners();

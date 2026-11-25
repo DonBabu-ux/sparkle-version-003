@@ -116,7 +116,7 @@ export default function CameraStage({
       setTorchAvailable(cameraRecorder.isTorchSupported());
       // Camera is ready — show preview immediately, then preload music in background
       setPhase("ready");
-      if (!cameraRecorder.hasMicPermission) {
+      if (stream.getAudioTracks().length === 0) {
         showError("Microphone permission not granted. Recording will proceed without microphone sound.");
       }
       if (selectedMusic) {

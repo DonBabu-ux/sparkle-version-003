@@ -635,7 +635,7 @@ function CommentItem({
 
         <div className="flex items-center gap-4 mt-1 px-2 text-[12px] font-bold text-black/40 dark:text-white/40">
           <span className="text-[11px] font-normal">{timeAgo(comment.created_at)}</span>
-          <button onClick={(e) => onLike(comment.comment_id, e)} className={`hover:underline ${comment.is_liked ? 'text-primary' : ''}`}>Like{comment.like_count > 0 && ` (${formatCount(comment.like_count)})`}</button>
+          <button onClick={() => onLike(comment.comment_id)} className={`hover:underline ${comment.is_liked ? 'text-primary' : ''}`}>Like{comment.like_count > 0 && ` (${formatCount(comment.like_count)})`}</button>
           <button onClick={() => onReply(comment)} className="hover:underline">Reply</button>
           <button onClick={handleTranslate} className="hover:underline text-[11px] font-normal">{translated ? 'Original' : 'Translate'}</button>
           <div className="relative">

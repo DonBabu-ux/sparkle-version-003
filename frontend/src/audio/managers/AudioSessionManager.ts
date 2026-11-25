@@ -123,8 +123,46 @@ export class AudioSessionManager {
     this.eventBus.emit('stop_all');
   }
 
+  public getToggles(): Record<string, boolean> {
+    return this.soundManager
+      ? this.soundManager.getToggles()
+      : {
+          masterSounds: true,
+          messageSounds: true,
+          outChatIncoming: true,
+          notificationSounds: true,
+          comments: true,
+          likes: true,
+          followers: true,
+          stories: true,
+          marketplace: true,
+          calls: true,
+        };
+  }
+
   public getSettings() {
-    return this.soundManager ? this.soundManager.getSettings() : {};
+    // No audio engine yet (e.g. pre-user-gesture Safari) — return the default
+    // shape so consumers can read every settings field unconditionally.
+    return this.soundManager ? this.soundManager.getSettings() : {
+      masterSounds: true,
+      messageSounds: true,
+      outChatIncoming: true,
+      notificationSounds: true,
+      comments: true,
+      likes: true,
+      followers: true,
+      stories: true,
+      marketplace: true,
+      calls: true,
+      soundTheme: 'Sparkle Original',
+      masterVolume: 1.0,
+      volumeMessages: 0.9,
+      volumeNotifications: 0.95,
+      volumeStories: 0.85,
+      volumeMarketplace: 0.85,
+      volumeCalls: 1.0,
+      volumeSystem: 0.7,
+    };
   }
 
   public updateSettings(partial: any): void {

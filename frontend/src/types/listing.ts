@@ -17,6 +17,8 @@ export interface Listing {
   seller_verified?: number | boolean;
   is_wishlisted?: boolean;
   media?: { media_url: string }[];
+  media_url?: string;
+  location_name?: string;
   image_urls?: string[];
   created_at?: string;
 }

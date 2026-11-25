@@ -4,6 +4,7 @@ interface SpinnerProps {
   size?: 'small' | 'medium' | 'large' | 'xl';
   className?: string;
   color?: string;
+  style?: React.CSSProperties;
 }
 
 const sizeConfig = {
@@ -21,6 +22,7 @@ const Spinner: React.FC<SpinnerProps> = ({
   size = 'medium',
   className = '',
   color,
+  style,
 }) => {
   const { box, dot, offset } = sizeConfig[size];
   const center = box / 2;
@@ -34,7 +36,7 @@ const Spinner: React.FC<SpinnerProps> = ({
   return (
     <div
       className={`inline-flex items-center justify-center shrink-0 ${isClassColor ? color : ''} ${className}`}
-      style={{ width: `${box}px`, height: `${box}px` }}
+      style={{ width: `${box}px`, height: `${box}px`, ...style }}
       aria-label="Loading"
       role="status"
     >

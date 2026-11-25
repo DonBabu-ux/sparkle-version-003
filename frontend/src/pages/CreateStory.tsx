@@ -396,11 +396,12 @@ export default function CreateStory() {
 
                 if (validFiles.length > 0) {
                   const mapped = validFiles.map(f => {
-                    const secureUrl = Capacitor.convertFileSrc(f.uri || f.path);
+                    // @capacitor/filesystem FileInfo has no `path` — uri is the only handle.
+                    const secureUrl = Capacitor.convertFileSrc(f.uri);
                     const isVideo = f.name.toLowerCase().endsWith('.mp4') || f.name.toLowerCase().endsWith('.mov') || f.name.toLowerCase().endsWith('.webm');
                     return {
                       url: secureUrl,
-                      path: f.path || f.uri,
+                      path: f.uri,
                       isVideo,
                       name: f.name
                     };
@@ -424,7 +425,8 @@ export default function CreateStory() {
                   path: item.path
                 });
                 
-                const byteString = atob(fileData.data);
+                // readFile may hand back a Blob in some encodings — only strings decode.
+                const byteString = atob(typeof fileData.data === 'string' ? fileData.data : '');
                 const ab = new ArrayBuffer(byteString.length);
                 const ia = new Uint8Array(ab);
                 for (let i = 0; i < byteString.length; i++) {
@@ -704,7 +706,8 @@ export default function CreateStory() {
     if (picked.length === 1) {
       handleSelectDeviceMedia(picked[0]);
     } else {
-      openMultiMediaEditor(picked);
+      // Normalise optional file (device media) to the editor's null-able shape
+      openMultiMediaEditor(picked.map(p => ({ ...p, file: p.file ?? null })));
       setPhase('editor');
     }
     setPageIds([]);
@@ -726,7 +729,7 @@ export default function CreateStory() {
       const snapshot = syncActivePage();
       const draftId = activeDraftId || storyDrafts.newDraftId();
       const mediaRefs: Array<{ key: string; name: string; kind: string; isVideo: boolean; storageBytes: number }> = [];
-      const pagePayload: Array<Omit<storyDrafts.StoryDraftPage, 'mediaKey'>> = [];
+      const pagePayload: storyDrafts.StoryDraftPage[] = [];
       for (const page of snapshot) {
         let mediaKey: string | null = null;
         if (page.file) {
@@ -2138,7 +2141,7 @@ export default function CreateStory() {
 
                             <div className="mt-10 flex gap-4">
                                 <button onClick={() => setActiveTool(null)} className="h-14 px-8 bg-white/10 rounded-full text-sm font-semibold text-white hover:bg-white/20 transition-colors">Cancel</button>
-                                <button onClick={() => handleAddTextSticker(editorText, activeTool === 'mention' ? 'mention' : 'text')} className="h-14 px-10 bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full text-sm font-semibold transition-all">Add</button>
+                                <button onClick={() => handleAddTextSticker(editorText, (activeTool as string) === 'mention' ? 'mention' : 'text')} className="h-14 px-10 bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full text-sm font-semibold transition-all">Add</button>
                             </div>
                         </motion.div>
                       )}

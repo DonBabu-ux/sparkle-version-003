@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Search, Music, ImageIcon, ChevronDown, Check,
+  Search, Music, ImageIcon, ChevronDown,
   Play, Pause, AlertCircle, MoreVertical, LayoutGrid, FolderOpen, ChevronRight, Plus
 } from 'lucide-react';
 import { useReelCreatorStore } from '../reelCreatorStore';
@@ -10,7 +10,7 @@ import {
   loadDeviceMedia, filesToGalleryItems, openNativePicker, pickDirectory,
   listFolderMedia, getMediaSources, resolveItemFile, formatDuration
 } from '../services/mediaLibraryService';
-import { InlineSpinner, PINK } from './shell';
+import { InlineSpinner } from './shell';
 import { useCreateMomentsTheme } from '../useCreateMomentsTheme';
 import { logger } from '../../../utils/logger';
 import { showError, showSuccess } from '../../../utils/toast';
@@ -25,10 +25,10 @@ import { showError, showSuccess } from '../../../utils/toast';
  */
 export default function CreateStage({
   onOpenMusic,
-  onOpenCamera,
   onNext,
 }: {
   onOpenMusic: () => void;
+  /** Camera is opened from the flow header; kept for API compatibility. */
   onOpenCamera: () => void;
   onNext: () => void;
 }) {

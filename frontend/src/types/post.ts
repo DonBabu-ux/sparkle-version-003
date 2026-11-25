@@ -34,14 +34,16 @@ export interface Post {
     avatar: string;
     comment: string;
   }[];
-  // Add missing properties found during build
-  sparks?: number | unknown[];
+  // Counts are plain numbers in every API response that returns them;
+  // `sparks` count lives in spark_count and is kept as a number alias.
+  sparks?: number;
   media?: string[];
   media_type?: string;
+  type?: string;
   image_url?: string;
   likes_count?: number;
   comments_count?: number;
-  comments?: number | unknown[];
+  comments?: number;
   share_count?: number;
   top_liker_name?: string;
   media_files?: { url: string; type: string }[];
@@ -53,4 +55,12 @@ export interface Post {
     username: string;
     name: string;
   }[] | string;
+  /** Feed item type discriminator returned by the posts feed. */
+  post_type?: string;
+  /** Viewer's role in the post's group ('admin' | 'moderator' | 'member'). */
+  user_role?: string;
+  /** 1 when the author's account is deleted/anonymized. */
+  author_deleted?: boolean | number;
+  location?: string;
+  category?: string;
 }

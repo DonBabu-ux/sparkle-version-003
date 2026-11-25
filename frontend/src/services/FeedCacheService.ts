@@ -79,7 +79,7 @@ export const PrefetchEngine = {
           }
         } else {
           // Preload HD/medium for strong network, low-res for weak/unstable network
-          const qualityPreset = networkQuality === 'strong' ? 'auto' : 'low';
+          const qualityPreset = networkQuality === 'strong' ? 'hd' : 'low';
           const optimizedUrl = getOptimizedMediaUrl(post.media_url, qualityPreset, 800);
           MediaCacheService.prefetchImage(optimizedUrl);
           
@@ -99,7 +99,7 @@ export const PrefetchEngine = {
               MediaCacheService.prefetchVideo(file.url);
             }
           } else {
-            const qualityPreset = networkQuality === 'strong' ? 'auto' : 'low';
+            const qualityPreset = networkQuality === 'strong' ? 'hd' : 'low';
             const optimizedUrl = getOptimizedMediaUrl(file.url, qualityPreset, 600);
             MediaCacheService.prefetchImage(optimizedUrl);
 

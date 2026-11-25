@@ -195,7 +195,7 @@ export default function MarketplaceModals() {
                     <img src={selectedListing.image_url} className="w-16 h-16 rounded-xl object-cover" alt="" />
                     <div>
                       <h4 className="font-bold text-sm truncate w-40">{selectedListing.title}</h4>
-                      <p className="text-lg font-black text-[#1877F2]">KES {parseFloat(selectedListing.price).toLocaleString()}</p>
+                      <p className="text-lg font-black text-[#1877F2]">KES {parseFloat(String(selectedListing.price)).toLocaleString()}</p>
                     </div>
                   </div>
 
@@ -217,7 +217,7 @@ export default function MarketplaceModals() {
                     {[0.9, 0.95, 1.0].map(mult => (
                       <button 
                         key={mult}
-                        onClick={() => setOfferPrice((parseFloat(selectedListing.price) * mult).toString())}
+                        onClick={() => setOfferPrice((parseFloat(String(selectedListing.price)) * mult).toString())}
                         className="py-3 bg-white dark:bg-zinc-800 border border-marketplace-border rounded-xl font-bold text-xs hover:bg-marketplace-bg transition-colors"
                       >
                         {mult === 1.0 ? 'Full Price' : `${Math.round((1-mult)*100)}% Off`}

@@ -14,7 +14,7 @@ const api = axios.create({
 });
 
 // Update axios baseURL whenever active failover server changes
-ServerFailoverManager.onServerChange((newServer) => {
+ServerFailoverManager.onServerChange(() => {
   api.defaults.baseURL = EnvironmentService.getApiBaseUrl();
   csrfToken = null;
   csrfFetchAttempted = false;

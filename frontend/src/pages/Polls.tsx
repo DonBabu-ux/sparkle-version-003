@@ -37,7 +37,7 @@ interface Poll {
 }
 
 export default function Polls() {
-  const { user } = useUserStore();
+  const { } = useUserStore();
   const { setActiveModal } = useModalStore();
   const navigate = useNavigate();
   const [polls, setPolls] = useState<Poll[]>([]);

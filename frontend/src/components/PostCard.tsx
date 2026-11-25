@@ -21,37 +21,19 @@ import { VideoPlayer } from './VideoPlayer';
 import { emitHeart as spawnTikTokHeart } from './TikTokHearts';
 import clsx from 'clsx';
 import { logger } from '../utils/logger';
+import type { Post as FeedPost } from '../types/post';
 
-export interface Post {
-  post_id: string;
-  user_id: string;
-  username: string;
-  name?: string;
-  avatar_url?: string;
-  content: string;
-  media_url?: string;
-  media_type?: string;
-  media_files?: { url: string; type: string }[];
-  post_type: string;
-  created_at: string;
-  spark_count: number;
-  comment_count: number;
-  reshare_count: number;
-  is_sparked: boolean;
-  is_saved: boolean;
-  /** 1 when the author's account is deleted/anonymized (no reachable profile). */
-  author_deleted?: boolean | number;
-  location?: string;
-  feeling?: string;
-  activity?: string;
-  user_role?: string;
-  group_id?: string;
-  top_liker_name?: string;
-}
+// The canonical feed shape is shared with every other feed consumer via
+// types/post.ts; this re-export keeps existing `from './PostCard'` imports
+// working while guaranteeing the feed store and this component agree.
+export interface Post extends FeedPost {}
+export type { FeedPost };
 
 interface PostCardProps {
   post: Post;
   onRefresh?: () => void;
+  /** Fired after the author/feed removes this post, so the feed can drop it. */
+  onDeleted?: (postId: string) => void;
 }
 
 // Custom Icons for better branding
@@ -131,11 +113,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const commentCount =
     storePost.comment_count ||
     storePost.comments_count ||
-    (typeof storePost.comments === 'number'
-      ? storePost.comments
-      : Array.isArray(storePost.comments)
-      ? storePost.comments.length
-      : 0);
+    storePost.comments ||
+    0;
   const shareCount = storePost.reshare_count || storePost.share_count || 0;
 
   const [menuOpen, setMenuOpen] = useState(false);

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
-import LockedLivePage from './LockedLivePage';
+
 import Spinner from '../components/ui/Spinner';
 import { useSocket } from '../hooks/useSocket';
 import { TikTokHearts } from '../components/TikTokHearts';

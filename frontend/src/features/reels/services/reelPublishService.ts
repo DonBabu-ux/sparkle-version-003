@@ -267,6 +267,9 @@ export interface PublishOutcome {
   wasComposited: boolean;
   storyShared: boolean;
   storyError?: string;
+  /** Optional post-publish side effects (never block or roll back the reel). */
+  savedToDevice?: boolean;
+  saveError?: string;
 }
 
 /** Build the multipart fields for POST /moments from the current creator state. */

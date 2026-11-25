@@ -133,9 +133,9 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
           className={`w-full h-auto block transition-opacity duration-300 ${
             isLoaded ? 'opacity-100' : 'opacity-50'
           } ${imageClassName}`}
-          style={{ 
+          style={{
             maxHeight: 'inherit',
-            ...props.style
+            ...style
           }}
         />
       )}

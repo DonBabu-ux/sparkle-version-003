@@ -33,7 +33,7 @@ const initialState = {
     lat: -1.2921, 
     lng: 36.8219, 
     name: 'Nairobi, Kenya',
-    source: 'default'
+    source: 'default' as const
   }, 
   radiusKm: 15,
   minPrice: null,

@@ -26,8 +26,10 @@ const h = vi.hoisted(() => {
         handlers,
         socket,
         ioMock: vi.fn(() => socket),
-        refreshTokenOnce: vi.fn(() => Promise.resolve('fresh-token')),
-        ensureFreshAccessToken: vi.fn(() => Promise.resolve(null))
+        // Mocks mirror the production signatures (arg-taking), so the vi.mock
+        // wrappers below can spread their args through without type errors.
+        refreshTokenOnce: vi.fn((..._a: unknown[]) => Promise.resolve('fresh-token')),
+        ensureFreshAccessToken: vi.fn((..._a: unknown[]) => Promise.resolve(null))
     };
 });
 

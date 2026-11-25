@@ -66,10 +66,11 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
       hls.attachMedia(video);
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        // Force and LOCK the highest quality level (Fixed HD)
+        // Force and LOCK the highest quality level (Fixed HD).
+        // autoLevelEnabled is read-only in hls.js 1.4+ — pinning currentLevel
+        // and loadLevel to the top index already disables level switching.
         hls.currentLevel = hls.levels.length - 1;
         hls.loadLevel = hls.levels.length - 1;
-        hls.autoLevelEnabled = false; // Disable switching
         if (active) video.play().catch(() => {});
       });
 

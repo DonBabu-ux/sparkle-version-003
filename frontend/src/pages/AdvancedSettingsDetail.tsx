@@ -42,7 +42,7 @@ export default function AdvancedSettingsDetail() {
   const socket = useSocket();
   const { user, setUser } = useUserStore();
 
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [, setUpdating] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

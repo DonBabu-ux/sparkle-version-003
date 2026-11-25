@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Image as ImageIcon, Video, Mic, FileText, Sparkles, AlertCircle, Clock } from 'lucide-react';
+import { X, Video, Mic, FileText, Sparkles, AlertCircle, Clock } from 'lucide-react';
 import { useChatStore } from '../../store/chatStore';
 import type { ChatMessage } from '../../store/chatStore';
 
@@ -81,7 +81,7 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({
   }
 
   const isDeleted = Boolean(message.is_deleted_for_everyone || message.is_deleted);
-  const expiryTime = message.expiresAt || message.expires_at;
+  const expiryTime = message.expiresAt;
   const isExpired = Boolean(expiryTime && new Date(expiryTime).getTime() <= Date.now());
 
   const type = (message.type || 'text').toLowerCase();

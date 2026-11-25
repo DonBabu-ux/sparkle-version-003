@@ -33,7 +33,7 @@ function Gift({ position, scale = 0.3, color = '#ff008a' }) {
 
 // Orbit ring visualiser (torus)
 function OrbitRing({ radius = 2, speed = 0.01, clockwise = true }) {
-  const ref = React.useRef();
+  const ref = React.useRef<any>(null);
   useFrame(() => {
     if (ref.current) {
       ref.current.rotation.y += speed * (clockwise ? 1 : -1);
@@ -48,7 +48,7 @@ function OrbitRing({ radius = 2, speed = 0.01, clockwise = true }) {
 }
 
 // Floating label attached to microphone
-function FloatingLabel({ text, position = [0, 0, 0] }) {
+function FloatingLabel({ text, position = [0, 0, 0] as [number, number, number] }) {
   return (
     <Html position={position} style={{ pointerEvents: 'none' }} center>
       <div style={{

@@ -1,16 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowLeft, Plus, Globe, Users, Lock, ChevronRight, Settings2,
+  ArrowLeft, Plus, Globe, Users, Lock, ChevronRight,
   AlertCircle, Loader2, Check, Save, X, Lightbulb, Sparkles,
   Maximize2, Minimize2, Link2, Share2, Search, AtSign, Hash,
-  Play, SlidersHorizontal, ExternalLink, RefreshCw, Send, CheckCircle2
+  Play, SlidersHorizontal, RefreshCw, Send, CheckCircle2
 } from 'lucide-react';
 import api from '../../../api/api';
 import { useReelCreatorStore } from '../reelCreatorStore';
 import { useCreateMomentsTheme } from '../useCreateMomentsTheme';
-import { BottomSheet, InlineSpinner, PINK } from './shell';
+import { BottomSheet, InlineSpinner } from './shell';
 import { saveDraft } from '../services/draftService';
-import { publishReelBackground, PublishError, AUDIENCE_LABELS, type PublishProgress } from '../services/reelPublishService';
+import { publishReelBackground, PublishError, type PublishProgress } from '../services/reelPublishService';
 import { openNativePicker, filesToGalleryItems } from '../services/mediaLibraryService';
 import type { AudienceKind } from '../types';
 import { showError, showSuccess } from '../../../utils/toast';
@@ -18,9 +18,6 @@ import { logger } from '../../../utils/logger';
 
 const TITLE_MAX = 250;
 const DESC_MAX = 5000;
-const MAX_HASHTAGS = 5;
-const MAX_MENTIONS = 10;
-
 interface Person {
   user_id: string;
   username: string;
@@ -46,12 +43,12 @@ interface HashtagItem {
  */
 export default function ComposeStage({
   onBack,
-  onOpenAudience,
   onOpenShareStory,
   onPublishedBackground,
   onDraftSaved,
 }: {
   onBack: () => void;
+  /** Navigation hook supplied by the flow; rendered inline here. */
   onOpenAudience: () => void;
   onOpenShareStory: () => void;
   onPublishedBackground: (uploadId: string) => void;
@@ -105,7 +102,7 @@ export default function ComposeStage({
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
   const [attachedLink, setAttachedLink] = useState('');
   const [linkInput, setLinkInput] = useState('');
-  const [shareDestination, setShareDestination] = useState<string>('Standard');
+  const [shareDestination] = useState<string>('Standard');
 
   // ── In-place Reel Preview Modal ──
   const [previewModalOpen, setPreviewModalOpen] = useState(false);

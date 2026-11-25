@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Mail, ArrowRight, ArrowLeft, Check, Eye, EyeOff,
   GraduationCap, Building2, Briefcase, Gift,
-  Sparkles, Users, Heart, Play, ShoppingBag, ShieldCheck, MessageCircle,
+  Sparkles, Users, Heart, Play, ShoppingBag, ShieldCheck,
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
@@ -660,20 +660,7 @@ export default function Signup() {
           )}
 
           <div className="flex flex-col gap-4">
-            {/* Step 1: Welcome */}
-            {step === 1 && (
-              <div className="flex flex-col gap-4">
-                <button onClick={nextStep} className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#ff1493] text-sm font-bold text-white transition-colors hover:bg-[#ff2d87]" type="button">
-                  Get started
-                  <ArrowRight size={18} strokeWidth={2.5} />
-                </button>
-
-                <p className="text-center text-sm text-slate-600 dark:text-zinc-300">
-                  Already have an account?{' '}
-                  <Link to="/login" className="font-bold text-[#ff1493] hover:underline">Sign in</Link>
-                </p>
-              </div>
-            )}
+            {/* Step 1 has its own full-screen layout (early return above) - no card here. */}
 
             {/* Step 2: Details */}
             {step === 2 && (

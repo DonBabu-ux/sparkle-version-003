@@ -115,7 +115,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
     if (!acc[letter]) acc[letter] = [];
     acc[letter].push(c);
     return acc;
-  }, {});
+  }, {} as Record<string, any[]>);
 
   // ─────────────────────────────────────────────
   // SCREEN: Choose People
@@ -156,7 +156,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
             </div>
           </div>
 
-          {Object.entries(grouped).sort().map(([letter, contacts]) => (
+          {Object.entries(grouped).sort().map(([letter, contacts]: [string, any[]]) => (
             <div key={letter}>
               <div className="px-4 py-1.5">
                 <span className="text-white/40 text-[12px] font-semibold">{letter}</span>

@@ -1,4 +1,3 @@
-import { Capacitor } from '@capacitor/core';
 import { logger } from '../utils/logger';
 
 export interface ServerEndpointConfig {

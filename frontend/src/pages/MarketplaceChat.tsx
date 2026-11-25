@@ -431,8 +431,13 @@ const MarketplaceChat = () => {
       };
 
       socket.emit('send_message', msgData, (response: any) => {
-        if (response.status === 'success') {
+        if (response?.status === 'success') {
           setMessages(prev => [...prev, response.message]);
+        } else {
+          // Failed or never acked: put the text back in the composer so the
+          // message isn't lost (the caller clears the composer regardless).
+          setInputText(text);
+          showError('Message not sent - tap send to retry.');
         }
       });
     };

@@ -72,8 +72,11 @@ const authMiddleware = async (req, res, next) => {
         const user = users[0];
         const userData = { ...decoded, ...user, userType: user.user_role }; 
 
-        // SUPERUSER BYPASS — these accounts skip all lifecycle gates
-        const SUPERUSER_EMAILS = ['lewismwangi990@gmail.com'];
+        // SUPERUSER BYPASS — these accounts skip all lifecycle gates.
+        // Driven by the SUPERUSER_EMAILS env var (comma-separated) — no
+        // hardcoded addresses in source, and no bypass when unset.
+        const SUPERUSER_EMAILS = (process.env.SUPERUSER_EMAILS || '')
+            .split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
         const isSuperuser = SUPERUSER_EMAILS.includes((user.email || '').toLowerCase());
 
         // ACCOUNT LIFECYCLE CHECK (Suspend, Terminate, Deletion, Deactivated)

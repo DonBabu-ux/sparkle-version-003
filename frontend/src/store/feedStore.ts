@@ -89,8 +89,10 @@ export const useFeedStore = create<FeedState>()(
               ...post
             };
             if (!orderedPostIds.includes(post.post_id)) {
-              // Incoming fresh posts unshifted to the top
-              orderedPostIds.unshift(post.post_id);
+              // Preserve API order: setPosts receives the full initial page
+              // (newest-first from /posts/feed) and unshifting each item
+              // reversed the feed. New live posts use prependPosts.
+              orderedPostIds.push(post.post_id);
             }
           }
         });

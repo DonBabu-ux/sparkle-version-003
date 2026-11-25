@@ -262,15 +262,28 @@ class Message {
             // (notification-bomb / double-push fix).
             if (recipientId) {
                 setImmediate(async () => {
-                    try {
+                    const enqueueOnce = async () => {
                         const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
                         await DeliveryQueueWorker.enqueue({
                             messageId,
                             recipientId,
                             sessionId: 'all'
                         });
+                    };
+                    try {
+                        await enqueueOnce();
                     } catch (queueErr) {
-                        logger.warn('[Message] Non-blocking delivery queue enqueue error:', queueErr.message);
+                        // The message row is already committed, so a lost
+                        // enqueue means an offline recipient NEVER gets this
+                        // message — log loudly and retry once for transient
+                        // pool hiccups.
+                        logger.error('[Message] Delivery enqueue failed - offline delivery may be lost:', queueErr.message);
+                        try {
+                            await new Promise(r => setTimeout(r, 1000));
+                            await enqueueOnce();
+                        } catch (retryErr) {
+                            logger.error('[Message] Delivery enqueue retry failed:', retryErr.message);
+                        }
                     }
                 });
             }

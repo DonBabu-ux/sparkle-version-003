@@ -915,13 +915,16 @@ const forgotPassword = async (req, res) => {
         }
 
         const token = crypto.randomInt(100000, 999999).toString();
+        // Store only the SHA-256 hash (VARCHAR(64) matches exactly). The plaintext
+        // code goes to the user's email; a DB dump/log leak can't be replayed.
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
         // Clear previous resets for this user to avoid confusion/collisions
         await query('DELETE FROM password_resets WHERE email = ?', [email]);
 
         await query(
             'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at, created_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW())',
-            [crypto.randomUUID(), user.user_id, email, token]
+            [crypto.randomUUID(), user.user_id, email, tokenHash]
         );
 
         logger.info(`Password reset requested for ${email} — code issued (not logged for security)`);
@@ -952,18 +955,37 @@ const resetPassword = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Verification code and new password are required' });
         }
 
-        // Query by token first (the 6-digit code)
+        // Brute-force guard: cap verify attempts per code (5/hour) when Redis is
+        // available. Fails open if Redis is unreachable — the 60s issuance
+        // cooldown and 1-hour expiry still bound the attack window.
+        try {
+            const { connection } = require('../utils/queue');
+            if (connection) {
+                const attemptsKey = `pwreset:attempts:${resetCode}`;
+                const attempts = await connection.incr(attemptsKey);
+                if (attempts === 1) await connection.expire(attemptsKey, 3600);
+                if (attempts > 5) {
+                    logger.warn('Password reset locked out after too many attempts');
+                    return res.status(429).json({ status: 'error', message: 'Too many attempts. Please request a new code.' });
+                }
+            }
+        } catch (rateErr) {
+            logger.warn('Password reset attempt guard skipped:', rateErr.message);
+        }
+
+        // Query by the token's SHA-256 hash (the plaintext code is never stored).
         // We order by created_at DESC to get the most recent one if there are collisions
+        const resetCodeHash = crypto.createHash('sha256').update(resetCode).digest('hex');
         const resets = await query(
             'SELECT *, NOW() as db_now FROM password_resets WHERE token = ? AND expires_at > NOW() AND used_at IS NULL ORDER BY created_at DESC',
-            [resetCode]
+            [resetCodeHash]
         );
 
-        logger.info(`Reset attempt: Code=${resetCode}, Email=${email}. Found ${resets.length} active records in DB.`);
+        logger.info(`Reset attempt for ${email || 'unknown email'}. Found ${resets.length} active records in DB.`);
 
         let reset = null;
         if (resets.length > 0) {
-            // Log details for each record found
+            // Log details for each record found (never the code itself)
             resets.forEach(r => {
                 const expired = new Date(r.expires_at) < new Date(r.db_now);
                 logger.info(`Checking record: Email=${r.email}, Expires=${r.expires_at}, DB_Now=${r.db_now}, Expired=${expired}`);
@@ -979,7 +1001,7 @@ const resetPassword = async (req, res) => {
         }
 
         if (!reset) {
-            logger.warn(`Password reset failed for ${email || 'unknown'} - Code: ${resetCode}. Reason: No valid matching/unexpired code found.`);
+            logger.warn(`Password reset failed for ${email || 'unknown'}: no valid matching/unexpired code found.`);
             return res.status(400).json({ status: 'error', message: 'Invalid or expired verification code' });
         }
 

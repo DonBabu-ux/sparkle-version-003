@@ -30,7 +30,7 @@ async function deliverNotificationToUser(userId, { type, priority, data, eventId
     // degraded path, so a top-level require would be a cycle.
     const NotificationService = require('./notification.service');
 
-    const shouldSend = await NotificationService.canSendToUser(userId, eventId);
+    const shouldSend = await NotificationService.canSendToUser(userId, eventId, type);
     if (!shouldSend) return { skipped: true };
 
     await pool.query(
@@ -88,10 +88,22 @@ async function pushToUserDevices(userId, type, data, eventId) {
         // token keeps the tag stable for that device (retries still collapse)
         // while letting each device keep its own card.
         const tag = stringifiedEventTag(fcmData);
+        // Per-token try/catch: one dead token (or a single failed request) must not
+        // abort the pushes to the user's REMAINING devices.
+        const failedTokens = [];
         for (const t of tokens) {
             const perToken = { ...fcmData };
             if (tag) perToken.tag = `${tag}_${shortHash(t.token)}`;
-            await sendFcmNotification([t.token], data.title, data.content, perToken);
+            try {
+                await sendFcmNotification([t.token], data.title, data.content, perToken);
+            } catch (sendErr) {
+                failedTokens.push(t.token);
+                logger.warn(`FCM: send failed for one device of user ${userId}:`, sendErr.message);
+            }
+        }
+        if (failedTokens.length === tokens.length && tokens.length > 0) {
+            // Every device failed — surface it so the caller sees a real error.
+            throw new Error(`FCM delivery failed for all ${tokens.length} device(s)`);
         }
     } catch (err) {
         logger.error(`FCM: Delivery failed for user ${userId}:`, err.message);

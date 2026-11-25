@@ -114,11 +114,14 @@ class NotificationService {
         }
     }
 
-    static async canSendToUser(userId, eventId) {
+    static async canSendToUser(userId, eventId, type = null) {
         if (!connection) return true; // Fail-open if no connection
 
         const dedupeKey = `notif:dedupe:${userId}:${eventId}`;
-        const cooldownKey = `notif:cooldown:${userId}`;
+        // Per-user cooldown MUST be scoped per type: a single per-user key
+        // silently dropped the second notification of ANY kind within 5s
+        // (e.g. a message + a like in the same window — the like vanished).
+        const cooldownKey = `notif:cooldown:${userId}:${type || 'any'}`;
 
         const isDuplicate = await connection.get(dedupeKey);
         if (isDuplicate) return false;

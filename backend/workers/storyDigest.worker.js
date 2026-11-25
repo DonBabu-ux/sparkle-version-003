@@ -3,6 +3,7 @@ const pool = require('../config/database');
 const logger = require('../utils/logger');
 const StoryDigestService = require('../services/storyDigestService');
 const NotificationService = require('../services/notification.service');
+const { connection: queueConnection } = require('../utils/queue');
 
 // Every hour on the quarter, staggered from the marketplace notifier (*/30)
 // and the message reminder worker (10,40). One digest per user per sweep is
@@ -11,6 +12,7 @@ const SCHEDULE = '15 * * * *';
 
 cron.schedule(SCHEDULE, async () => {
   let connection;
+  let committed = false;
   try {
     connection = await pool.getConnection();
     await connection.beginTransaction();
@@ -57,6 +59,7 @@ cron.schedule(SCHEDULE, async () => {
     );
 
     await connection.commit();
+    committed = true;
 
     const byUser = new Map();
     for (const row of rows) {
@@ -77,6 +80,16 @@ cron.schedule(SCHEDULE, async () => {
 
       const copy = StoryDigestService.buildCopy(chosen);
 
+      // Atomic cross-instance claim BEFORE sending: the notified row is
+      // written only AFTER the send, so two instances on the same cron
+      // second would both deliver this user's digest.
+      let lockKey = null;
+      if (queueConnection) {
+        lockKey = `storydigest:lock:${userId}`;
+        const claimed = await queueConnection.set(lockKey, '1', 'EX', 300, 'NX');
+        if (claimed !== 'OK') { skipped += 1; continue; }
+      }
+
       try {
         await NotificationService.send({
           type: 'story',
@@ -94,6 +107,10 @@ cron.schedule(SCHEDULE, async () => {
         await StoryDigestService.markNotified({ userId, storyIds });
         sent += 1;
       } catch (notifErr) {
+        // Release the claim so a failed send retries on the next sweep.
+        if (lockKey && queueConnection) {
+          await queueConnection.del(lockKey).catch(() => {});
+        }
         logger.error(`[storyDigest] failed for user ${userId}: ${notifErr.message}`);
       }
     }
@@ -105,6 +122,12 @@ cron.schedule(SCHEDULE, async () => {
       );
     }
   } catch (error) {
+    // Roll back before releasing: mysql2's pool does NOT auto-rollback, so
+    // returning the connection with an open transaction leaks REPEATABLE
+    // READ snapshots into whoever borrows it next.
+    try {
+      if (connection && !committed) await connection.rollback();
+    } catch (_) { /* already closed */ }
     logger.error('[storyDigest] sweep failed:', error.message);
   } finally {
     if (connection) {

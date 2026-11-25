@@ -221,6 +221,9 @@ api.interceptors.response.use(
     // If 401 and not already retrying
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login')) {
       if (isRefreshing) {
+        // Mark before queuing: a queued replay that 401s again must fail fast
+        // instead of starting a whole new refresh cycle per queued request.
+        originalRequest._retry = true;
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -236,6 +239,11 @@ api.interceptors.response.use(
 
       const refreshToken = useUserStore.getState().refreshToken;
       if (!refreshToken) {
+        // Release the single-flight lock before bailing: leaving
+        // isRefreshing=true here parks every later 401 in failedQueue behind
+        // a promise nobody ever resolves (permanent auth deadlock).
+        isRefreshing = false;
+        processQueue(error, null);
         useUserStore.getState().logout();
         return Promise.reject(error);
       }
@@ -243,6 +251,10 @@ api.interceptors.response.use(
       // Single-flight refresh (shared with AuthService/socketService) + retry on transient failures
       const MAX_REFRESH_RETRIES = 3;
       let attempt = 0;
+      // Identity guard: logout() can auto-switch to another stored account
+      // (keeping isAuthenticated true), which would otherwise replay this
+      // request — and every queued one — with the OTHER account's token.
+      const accountIdAtRefresh = useUserStore.getState().activeAccountId;
       const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
       
       while (attempt < MAX_REFRESH_RETRIES) {
@@ -254,7 +266,14 @@ api.interceptors.response.use(
           return api(originalRequest);
         } catch (refreshError: unknown) {
           attempt++;
+          const switchedAccount = useUserStore.getState().activeAccountId !== accountIdAtRefresh;
           const sessionDead = !useUserStore.getState().isAuthenticated;
+          if (switchedAccount) {
+            // Never resume another account's queued requests under this identity.
+            processQueue(refreshError, null);
+            isRefreshing = false;
+            return Promise.reject(refreshError);
+          }
           if (attempt >= MAX_REFRESH_RETRIES || sessionDead) {
             processQueue(refreshError, null);
             if (sessionDead) useUserStore.getState().logout();

@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Mail, ArrowRight, ArrowLeft, Check, Eye, EyeOff,
@@ -137,6 +137,10 @@ export default function Signup() {
     }
   }, [otpCooldown]);
 
+  // Monotonic check sequences (stale-response guards for the availability checks)
+  const usernameCheckSeq = useRef(0);
+  const emailCheckSeq = useRef(0);
+
   useEffect(() => {
     if (!form.username.trim() || form.username.length < 3) {
       setUsernameAvailable(null);
@@ -144,17 +148,21 @@ export default function Signup() {
       return;
     }
     setCheckingUsername(true);
+    // Monotonic sequence: a slow response for an older value must never
+    // overwrite the newer one (stale "taken"/"available" state).
+    const seq = ++usernameCheckSeq.current;
     const handler = setTimeout(async () => {
       try {
         const res = await api.get(`/auth/check-username?username=${encodeURIComponent(form.username.trim())}`);
+        if (seq !== usernameCheckSeq.current) return;
         if (res.data) {
           setUsernameAvailable(res.data.available);
           setUsernameSuggestions(res.data.suggestions || []);
         }
       } catch {
-        setUsernameAvailable(null);
+        if (seq === usernameCheckSeq.current) setUsernameAvailable(null);
       } finally {
-        setCheckingUsername(false);
+        if (seq === usernameCheckSeq.current) setCheckingUsername(false);
       }
     }, 500);
     return () => clearTimeout(handler);
@@ -167,16 +175,19 @@ export default function Signup() {
       return;
     }
     setCheckingEmail(true);
+    // Same stale-response guard as the username check.
+    const seq = ++emailCheckSeq.current;
     const handler = setTimeout(async () => {
       try {
         const res = await api.get(`/auth/check-email?email=${encodeURIComponent(emailTrim)}`);
+        if (seq !== emailCheckSeq.current) return;
         if (res.data) {
           setEmailAvailable(res.data.available);
         }
       } catch {
-        setEmailAvailable(null);
+        if (seq === emailCheckSeq.current) setEmailAvailable(null);
       } finally {
-        setCheckingEmail(false);
+        if (seq === emailCheckSeq.current) setCheckingEmail(false);
       }
     }, 500);
     return () => clearTimeout(handler);

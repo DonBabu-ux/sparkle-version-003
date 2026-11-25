@@ -188,9 +188,15 @@ class TelegramBotService {
                 let data = '';
                 res.on('data', c => data += c);
                 res.on('end', () => {
-                    const json = JSON.parse(data);
-                    if (json.ok) resolve(json.result);
-                    else reject(new Error(json.description || 'Failed to get file info'));
+                    try {
+                        const json = JSON.parse(data);
+                        if (json.ok) resolve(json.result);
+                        else reject(new Error(json.description || 'Failed to get file info'));
+                    } catch (parseErr) {
+                        // A 502/HTML gateway page or truncated body must not escape
+                        // this callback — server.js exits the process on uncaughtException.
+                        reject(new Error('Invalid JSON response from Telegram getFile'));
+                    }
                 });
             }).on('error', reject);
         });
@@ -202,6 +208,8 @@ class TelegramBotService {
         const buffer = await new Promise((resolve, reject) => {
             https.get(downloadUrl, (res) => {
                 if (res.statusCode !== 200) {
+                    // Drain the body before rejecting so the socket isn't leaked.
+                    res.resume();
                     return reject(new Error(`Failed to download telegram file: ${res.statusCode}`));
                 }
                 const chunks = [];

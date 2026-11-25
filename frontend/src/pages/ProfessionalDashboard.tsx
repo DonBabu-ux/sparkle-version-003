@@ -419,6 +419,10 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
       setError('Enter a valid M-Pesa phone number (e.g. +254..., 07..., or 01...)');
       return;
     }
+    if (method === 'bank' && (!bankCode || !accountNumber.trim() || !accountName.trim())) {
+      setError('Select your bank and enter the account number and account name');
+      return;
+    }
     if (!wallet || amountCents > wallet.available_balance) { setError('Insufficient balance'); return; }
     setLoading(true); setError('');
     try {

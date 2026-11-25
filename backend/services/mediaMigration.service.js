@@ -18,8 +18,12 @@ class MediaMigrationService {
     static async downloadMedia(url) {
         return new Promise((resolve, reject) => {
             const client = url.startsWith('https') ? https : http;
-            client.get(url, (res) => {
+            // 60s socket timeout: without it a stalled origin hangs migrateAsset
+            // forever and blocks the whole batch loop.
+            client.get(url, { timeout: 60000 }, (res) => {
                 if (res.statusCode !== 200) {
+                    // Drain the body so the socket isn't leaked on the reject.
+                    res.resume();
                     return reject(new Error(`Failed to download source media (HTTP ${res.statusCode}) from ${url}`));
                 }
 

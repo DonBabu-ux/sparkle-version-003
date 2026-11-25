@@ -3,6 +3,7 @@ const pool = require('../config/database');
 const logger = require('../utils/logger');
 const MessageReminderService = require('../services/messageReminderService');
 const NotificationService = require('../services/notification.service');
+const { connection: queueConnection } = require('../utils/queue');
 
 // Every 30 minutes, staggered from the marketplace inactivity notifier
 // (*/30 on the same schedule would collide). 10 past the half hour.
@@ -29,6 +30,7 @@ const sendReminder = async (row) => {
 
 cron.schedule(SCHEDULE, async () => {
   let connection;
+  let committed = false;
   try {
     connection = await pool.getConnection();
     await connection.beginTransaction();
@@ -72,6 +74,7 @@ cron.schedule(SCHEDULE, async () => {
     );
 
     await connection.commit();
+    committed = true;
 
     let sent = 0;
     let cleared = 0;
@@ -114,6 +117,17 @@ cron.schedule(SCHEDULE, async () => {
       }
 
       // ── Deliver ────────────────────────────────────────────────────────
+      // Atomic cross-instance claim BEFORE sending. Two instances running
+      // the same cron second both read reminder_id IS NULL and both send —
+      // the reminder row is written only AFTER the send, so it is not a lock.
+      // The NX lock elects one sender; the loser skips to the next sweep.
+      let lockKey = null;
+      if (queueConnection) {
+        lockKey = `msgreminder:lock:${recipientId}:${chatId}`;
+        const claimed = await queueConnection.set(lockKey, '1', 'EX', 300, 'NX');
+        if (claimed !== 'OK') continue; // another instance owns this send
+      }
+
       try {
         await sendReminder(row);
         // Record only after a successful send, so a Failure is retried next
@@ -125,6 +139,10 @@ cron.schedule(SCHEDULE, async () => {
         });
         sent += 1;
       } catch (notifErr) {
+        // Release the claim so a failed send retries on the next sweep.
+        if (lockKey && queueConnection) {
+          await queueConnection.del(lockKey).catch(() => {});
+        }
         logger.error(
           `[messageReminder] failed to deliver reminder for user ${recipientId} in chat ${chatId}: ${notifErr.message}`
         );
@@ -138,6 +156,10 @@ cron.schedule(SCHEDULE, async () => {
       );
     }
   } catch (error) {
+    // Roll back before releasing: mysql2's pool does NOT auto-rollback.
+    try {
+      if (connection && !committed) await connection.rollback();
+    } catch (_) { /* already closed */ }
     logger.error('[messageReminder] sweep failed:', error.message);
   } finally {
     if (connection) {

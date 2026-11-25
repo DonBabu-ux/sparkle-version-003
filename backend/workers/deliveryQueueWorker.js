@@ -330,7 +330,9 @@ class DeliveryQueueWorker {
 
                 // 3d. Advance retry counter with exponential back-off
                 const nextAttempt = item.attempts + 1;
-                const delaySec = RETRY_INTERVALS_SEC[Math.min(nextAttempt, RETRY_INTERVALS_SEC.length - 1)];
+                // attempts is 0-based; the first retry must use interval[0]
+                // (1s), not interval[1] (2s) — the old code skipped the first.
+                const delaySec = RETRY_INTERVALS_SEC[Math.min(nextAttempt - 1, RETRY_INTERVALS_SEC.length - 1)];
                 await db.query(`
                     UPDATE delivery_queue
                     SET attempts = ?, next_retry_at = DATE_ADD(NOW(), INTERVAL ? SECOND)

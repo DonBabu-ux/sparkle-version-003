@@ -1108,20 +1108,10 @@ async processDepositConfirmation(reference, actor = {}) {
                 logger.warn('[WalletService] Failed notify failed:', err.message);
             }
 
-            // Terminal notification ("✅ Withdrawal Completed")
-            try {
-                const [owner] = await pool.query('SELECT user_id FROM wallets WHERE wallet_id = ?', [row.wallet_id]);
-                if (owner.length) {
-                    await notifyWithdrawalOnce(owner[0].user_id, amountCents, 'Completed', withdrawalId);
-                }
-            } catch (err) {
-                logger.warn('[WalletService] Completed notify failed:', err.message);
-            }
-
-            return { status: 'completed' };
+            return { status: 'failed' };
         } catch (err) {
             await connection.rollback();
-            logger.error('[WalletService] finalizeWithdrawalSuccess failed:', err.message);
+            logger.error('[WalletService] failWithdrawalAndRefund failed:', err.message);
             throw err;
         } finally {
             connection.release();

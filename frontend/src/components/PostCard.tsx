@@ -179,8 +179,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     try {
       await api.post(`/posts/${post.post_id}/like`);
     } catch {
-      // Rollback on failure
-      patchPost(post.post_id, { is_sparked: !newSparked, spark_count: sparkCount });
+      // Roll back relative to CURRENT store state, not this render's closure:
+      // with two in-flight taps a stale closure discards the newer tap's
+      // increment (count visibly jumps backwards).
+      const current = useFeedStore.getState().postsById[post.post_id];
+      patchPost(post.post_id, {
+        is_sparked: !newSparked,
+        spark_count: Math.max(0, ((current?.spark_count ?? newCount) as number) + (newSparked ? -1 : 1)),
+      });
     }
   };
 

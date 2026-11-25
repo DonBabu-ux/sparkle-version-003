@@ -10,9 +10,21 @@ const telegramBotService = require('../../services/telegramBot.service');
 const logger = require('../../utils/logger');
 
 // Webhook — receives messages from Telegram Bot API
-// No auth middleware: Telegram sends these; we validate by checking the bot token in URL
+// Authenticated via X-Telegram-Bot-Api-Secret-Token (TELEGRAM_WEBHOOK_SECRET),
+// constant-time compared; commands are gated to TELEGRAM_ADMIN_CHAT_ID only.
 router.post('/webhook', async (req, res) => {
     try {
+        const crypto = require('crypto');
+        const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+        const providedSecret = req.headers['x-telegram-bot-api-secret-token'];
+        const providedBuf = Buffer.from(String(providedSecret || ''));
+        const expectedBuf = Buffer.from(String(expectedSecret || ''));
+        if (!expectedSecret || providedBuf.length !== expectedBuf.length ||
+            !crypto.timingSafeEqual(providedBuf, expectedBuf)) {
+            logger.warn('[TelegramWebhook] Rejected update: missing or invalid secret token');
+            return res.sendStatus(401);
+        }
+
         const update = req.body;
         // Basic guard: must have message or callback_query
         if (!update || (!update.message && !update.callback_query)) {
@@ -22,12 +34,18 @@ router.post('/webhook', async (req, res) => {
         const msg = update.message || update.callback_query?.message;
         const text = (msg?.text || '').trim();
         const chatId = String(msg?.chat?.id || '');
+        const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID || process.env.TELEGRAM_ADMIN_ID;
 
         if (text && chatId) {
-            // Async command handling — don't block the webhook response
-            telegramBotService.handleCommand(text, chatId).catch(e => {
-                logger.warn('[TelegramWebhook] Command handler error:', e.message);
-            });
+            // Commands leak internal telemetry - admin chat only.
+            if (adminChatId && String(chatId) === String(adminChatId)) {
+                // Async command handling - do not block the webhook response
+                telegramBotService.handleCommand(text, chatId).catch(e => {
+                    logger.warn('[TelegramWebhook] Command handler error:', e.message);
+                });
+            } else {
+                logger.warn('[TelegramWebhook] Ignored command from non-admin chat', chatId);
+            }
         }
 
         res.sendStatus(200);

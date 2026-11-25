@@ -48,6 +48,9 @@ class MediaCleanupWorker {
   async runCleanupCycle() {
     if (this.isProcessing) return;
     this.isProcessing = true;
+    // Hoisted: the outer catch reports this count, and a `let` inside the
+    // try would be out of scope there (ReferenceError masking the real error).
+    let processedCount = 0;
 
     try {
       let eligible = [];
@@ -63,7 +66,6 @@ class MediaCleanupWorker {
       }
 
       console.log(`[MediaCleanupWorker] Found ${eligible.length} media object(s) eligible for server cleanup.`);
-      let processedCount = 0;
 
       for (const item of eligible) {
         try {

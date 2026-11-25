@@ -120,7 +120,11 @@ class PaystackService {
         // string of the right character length decodes to a short/empty buffer
         // (Buffer.from('zzz', 'hex') is 0 bytes), which would otherwise make
         // timingSafeEqual throw instead of rejecting.
-        if (typeof signature !== 'string' || typeof rawBody !== 'string') return false;
+        // Accept a Buffer defensively (some body parsers/legacy callers pass one) —
+        // HMAC must run over the exact bytes, not a re-serialised object.
+        if (typeof signature !== 'string') return false;
+        if (Buffer.isBuffer(rawBody)) rawBody = rawBody.toString('utf8');
+        if (typeof rawBody !== 'string' || rawBody.length === 0) return false;
         const expected = crypto.createHmac('sha512', secret).update(rawBody).digest();
         const received = Buffer.from(signature, 'hex');
         if (received.length !== expected.length) return false;

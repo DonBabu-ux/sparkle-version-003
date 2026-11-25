@@ -17,14 +17,17 @@ import { logger } from './utils/logger';
 // which let unconverted routes flash paint light in dark mode).
 (function applyStoredThemeEarly() {
   try {
-    const raw = localStorage.getItem('user-storage');
-    if (!raw) return;
-    const theme = JSON.parse(raw)?.state?.theme;
     const root = document.documentElement;
-    if (theme === 'dark') {
+    const raw = localStorage.getItem('user-storage');
+    const theme = raw ? JSON.parse(raw)?.state?.theme : undefined;
+    // No stored choice yet (new visitor): follow the device preference so
+    // the very first frame matches the store's initial theme above.
+    const resolved =
+      theme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    if (resolved === 'dark') {
       root.classList.add('dark');
       root.style.colorScheme = 'dark';
-    } else if (theme === 'light') {
+    } else if (resolved === 'light') {
       root.classList.remove('dark');
       root.style.colorScheme = 'light';
     }

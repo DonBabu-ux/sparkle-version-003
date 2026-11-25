@@ -66,7 +66,10 @@ export const useUserStore = create<UserState>()(
       isAuthenticated: false,
       accounts: [],
       activeAccountId: null,
-      theme: 'light',
+      // New sessions follow the device/browser preference; returning users
+      // keep their stored choice via persist.
+      theme: (typeof window !== 'undefined' && window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light',
 
       setTheme: (theme) => set({ theme }),
       login: (token, refreshToken, user) => {

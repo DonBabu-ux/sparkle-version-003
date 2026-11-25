@@ -19,6 +19,11 @@
       var theme = parsed && parsed.state && parsed.state.theme;
       if (theme === 'dark') { html.classList.add('dark'); html.style.colorScheme = 'dark'; }
       else if (theme === 'light') { html.classList.remove('dark'); html.style.colorScheme = 'light'; }
+      if (!theme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        theme = 'dark';
+        html.classList.add('dark');
+        html.style.colorScheme = 'dark';
+      }
       if (theme === 'dark' || theme === 'light') html.setAttribute('data-theme', theme);
     }
   } catch (e) { /* storage blocked or unparseable — the app settles the theme later */ }

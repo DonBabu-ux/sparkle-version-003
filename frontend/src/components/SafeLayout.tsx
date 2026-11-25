@@ -39,7 +39,7 @@ export const StatusBarBackground: React.FC<{
   style?: React.CSSProperties;
 }> = ({ backgroundColor, className = '', style }) => {
   const theme = useUserStore((state) => state.theme);
-  const defaultBg = theme === 'dark' ? '#000000' : '#ffffff';
+  const defaultBg = theme === 'dark' ? '#18181b' : '#f8e7ed';
   
   return (
     <div

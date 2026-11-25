@@ -129,7 +129,7 @@ export default function Navbar() {
         className={clsx(
           "md:hidden grid grid-cols-7 items-center fixed bottom-0 left-0 right-0 w-full z-(--z-chrome) transition-all duration-500 pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))]",
           isDarkBase
-            ? "bg-black border-t border-white/10"
+            ? "bg-zinc-900 border-t border-white/10"
             : "bg-white/95 dark:bg-zinc-900/80 backdrop-blur-3xl border-t border-black/10 dark:border-white/5 shadow-[0_-2px_16px_rgba(0,0,0,0.06)] dark:shadow-none"
         )}
       >

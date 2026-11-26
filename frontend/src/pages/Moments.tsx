@@ -538,6 +538,7 @@ const ReelItem = React.memo(({
                 src={cachedMediaUrl || safeMediaSrc || mediaSrc || undefined}
                 fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : (cachedMediaUrl ? (safeMediaSrc || mediaSrc || undefined) : undefined)}
                 poster={moment.thumbnail_url}
+                noErrorPlaceholder
                 active={active && !userPaused}
                 muted={muted}
                 onTimeUpdate={onVideoTimeUpdate}
@@ -1696,6 +1697,7 @@ export default function Moments() {
                                     src={getSafeVideoUrl(moment.video_url || moment.media_url || moment.streaming_url) || undefined}
                                     data-original-src={getMediaUrl(moment.video_url || moment.media_url || moment.streaming_url) || undefined}
                                     onError={handleMomentVideoError}
+                                    data-no-error-placeholder="true"
                                     muted
                                     autoPlay={false}
                                     loop

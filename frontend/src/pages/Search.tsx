@@ -1,6 +1,6 @@
 import { showError, showSuccess } from '../utils/toast';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search as SearchIcon, X, Clock, MoreHorizontal, ChevronRight, Hash, Trash2, User, Sparkles, Send, ArrowLeft, Hand, TrendingUp, Check, Plus } from 'lucide-react';
 import api from '../api/api';
@@ -58,6 +58,7 @@ interface SearchResult {
 
 export default function Search() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user: currentUser } = useUserStore();
   const [query, setQuery] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('all');
@@ -166,6 +167,11 @@ export default function Search() {
     }, 450),
     [handleSearch]
   );
+
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q && q.trim()) setQuery(q);
+  }, [searchParams]);
 
   useEffect(() => {
     fetchInitialData();

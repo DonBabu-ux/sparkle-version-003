@@ -17,6 +17,7 @@ interface HlsVideoPlayerProps {
   loop?: boolean;
   className?: string;
   videoClassName?: string;
+  noErrorPlaceholder?: boolean;
   style?: React.CSSProperties;
   videoStyle?: React.CSSProperties;
   onTimeUpdate?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
@@ -35,6 +36,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
   loop = true,
   className = "",
   videoClassName = "w-full h-full object-cover",
+  noErrorPlaceholder,
   style,
   videoStyle,
   onTimeUpdate,
@@ -147,6 +149,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
       <video
         ref={localVideoRef}
         poster={poster}
+        data-no-error-placeholder={noErrorPlaceholder ? 'true' : undefined}
         muted={muted}
         loop={loop}
         playsInline

@@ -194,7 +194,7 @@ export default function MomentStudio() {
                   <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-black/5 dark:bg-white/5 shrink-0">
                     {thumb ? (
                       isVideoUrl(thumb) || m.media_type === 'video' ? (
-                        <video src={getMediaUrl(thumb)} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                        <video src={getMediaUrl(thumb)} data-no-error-placeholder="true" className="w-full h-full object-cover" muted playsInline preload="metadata" />
                       ) : (
                         <img src={getMediaUrl(thumb)} alt="" className="w-full h-full object-cover" />
                       )

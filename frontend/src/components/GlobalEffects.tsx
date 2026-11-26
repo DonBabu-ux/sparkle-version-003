@@ -24,6 +24,7 @@ export default function GlobalEffects() {
       } else if (target.tagName === 'VIDEO') {
         const video = target as HTMLVideoElement;
         if (video.dataset.fallbackApplied) return;
+        if (video.dataset.noErrorPlaceholder) return;
         // The player components retry (rendition swap + a fresh media load)
         // and React re-runs mount effects in dev — both produce transient
         // errors on videos that recover moments later. This handler runs on

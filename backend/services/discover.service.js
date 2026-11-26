@@ -140,6 +140,7 @@ class DiscoverService {
                 WHERE u.account_status = 'active'
                   AND (m.audience IS NULL OR m.audience = 'public')
                   AND m.deleted_at IS NULL
+                  AND (m.media_status IS NULL OR m.media_status = 'ok')
                   ${userId ? 'AND m.user_id != ?' : ''}
                 ORDER BY (COALESCE(m.like_count,0)*3 + COALESCE(m.comment_count,0)*5 + COALESCE(m.share_count,0)*8) DESC,
                          m.created_at DESC
@@ -168,6 +169,7 @@ class DiscoverService {
                   AND u.account_status = 'active'
                   AND (m.audience IS NULL OR m.audience = 'public')
                   AND m.deleted_at IS NULL
+                  AND (m.media_status IS NULL OR m.media_status = 'ok')
                   ${userId ? 'AND m.user_id != ?' : ''}
                 ORDER BY ((COALESCE(m.like_count,0)*5 + COALESCE(m.comment_count,0)*10 + COALESCE(m.share_count,0)*15 + 1)
                           / (COALESCE(m.view_count,0) + 10)) DESC
@@ -202,6 +204,7 @@ class DiscoverService {
                   AND u.account_status = 'active'
                   AND (m.audience IS NULL OR m.audience = 'public')
                   AND m.deleted_at IS NULL
+                  AND (m.media_status IS NULL OR m.media_status = 'ok')
                   AND m.user_id != ?
                 ORDER BY m.created_at DESC
                 LIMIT ? OFFSET ?
@@ -222,13 +225,14 @@ class DiscoverService {
                        m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark,
                        m.created_at,
                        u.username, u.name AS user_name, u.avatar_url, u.is_verified,
-                       'recent' AS source_type
-                FROM moments m
-                JOIN users u ON m.user_id = u.user_id
-                WHERE u.account_status = 'active'
-                  AND (m.audience IS NULL OR m.audience = 'public')
-                  AND m.deleted_at IS NULL
-                  ${userId ? 'AND m.user_id != ?' : ''}
+'recent' AS source_type
+                 FROM moments m
+                 JOIN users u ON m.user_id = u.user_id
+                 WHERE u.account_status = 'active'
+                   AND (m.audience IS NULL OR m.audience = 'public')
+                   AND m.deleted_at IS NULL
+                   AND (m.media_status IS NULL OR m.media_status = 'ok')
+                   ${userId ? 'AND m.user_id != ?' : ''}
                 ORDER BY m.created_at DESC
                 LIMIT ? OFFSET ?
             `, userId ? [userId, limit, offset] : [limit, offset]);

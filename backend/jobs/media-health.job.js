@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const crypto = require('crypto');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
+const { probeMediaUrl } = require('../utils/mediaProbe');
 
 /**
  * Media Health Worker
@@ -15,7 +16,10 @@ const logger = require('../utils/logger');
  * hiccup never deletes content.
  *
  * Action differs by surface:
- *  - moments / stories : media is mandatory -> delete the row
+ *  - moments           : media is mandatory -> flag media_status = 'failing'
+ *                        so feed/discover/search queries skip it (a healed
+ *                        URL clears the flag; the moment is never deleted)
+ *  - stories           : media is mandatory -> delete the row
  *  - posts / messages  : text survives      -> NULL the media_url column
  *  - post_media        : attachment gone    -> delete the attachment row
  *  - marketplace etc.  : row survives       -> NULL the media/image column
@@ -31,7 +35,7 @@ const BATCH_LIMIT = 500;           // max URLs probed per table per run
 
 // table -> { columns: [...], onDead: 'delete_row' | 'null_column', nullCols?: [...] }
 const SURFACES = {
-    moments:        { idCol: 'moment_id',  urlCols: ['media_url'], onDead: 'delete_row' },
+    moments:        { idCol: 'moment_id',  urlCols: ['media_url', 'video_url', 'streaming_url'], onDead: 'flag_unavailable' },
     stories:        { idCol: 'story_id',   urlCols: ['media_url'], onDead: 'delete_row' },
     posts:          { idCol: 'post_id',    urlCols: ['media_url'], onDead: 'null_column', nullCols: ['media_url', 'media_type'] },
     post_media:     { idCol: 'media_id',   urlCols: ['media_url'], onDead: 'delete_row' },
@@ -65,41 +69,43 @@ const ensureTable = async () => {
 
 const hashUrl = (url) => crypto.createHash('sha256').update(url).digest('hex');
 
-// HEAD a URL; treat 200/206/301/302 as alive. Some CDNs reject HEAD (405/403)
-// so fall back to a ranged GET before declaring it dead.
-const probeUrl = async (url) => {
-    try {
-        let res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
-        if (res.status === 405 || res.status === 403) {
-            res = await fetch(url, {
-                method: 'GET',
-                headers: { Range: 'bytes=0-0' },
-                signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-            });
-        }
-        return res.status;
-    } catch (e) {
-        return 0; // network error -> treat as failure
-    }
-};
+// Probe one URL for real media bytes. Shared with the upload gate — a zero
+// body or an HTML error page must count as dead for both callers.
+const probeUrl = (url) => probeMediaUrl(url, { timeoutMs: PROBE_TIMEOUT_MS });
 
-// Pull candidate URLs for one surface (one URL per row, capped).
+// Pull candidate URLs for one surface, keyset-paginated by id so every row is
+// eventually probed. A bare LIMIT leaves which rows get seen up to the storage
+// engine, so an untested video can simply never be probed.
 const collectUrls = async (tableName, cfg) => {
     const colList = cfg.urlCols.join(', ');
-    const [rows] = await pool.query(
-        `SELECT ${cfg.idCol} as row_id, ${colList}
-         FROM \`${tableName}\`
-         WHERE (${cfg.urlCols.map(c => `\`${c}\` LIKE 'http%'`).join(' OR ')})
-         LIMIT ${BATCH_LIMIT}`
-    );
+    const urlCond = cfg.urlCols.map(c => `\`${c}\` LIKE 'http%'`).join(' OR ');
     const out = [];
-    for (const r of rows) {
-        for (const col of cfg.urlCols) {
-            const u = r[col];
-            if (u && typeof u === 'string' && u.startsWith('http')) {
-                out.push({ tableName, col, rowId: r.row_id, url: u });
+    let lastId = null;
+    for (;;) {
+        const params = [];
+        let keyset = '';
+        if (lastId !== null) {
+            keyset = `AND \`${cfg.idCol}\` > ?`;
+            params.push(lastId);
+        }
+        const [rows] = await pool.query(
+            `SELECT \`${cfg.idCol}\` as row_id, ${colList}
+             FROM \`${tableName}\`
+             WHERE (${urlCond}) ${keyset}
+             ORDER BY \`${cfg.idCol}\` ASC
+             LIMIT ${BATCH_LIMIT}`,
+            params
+        );
+        for (const r of rows) {
+            for (const col of cfg.urlCols) {
+                const u = r[col];
+                if (u && typeof u === 'string' && u.startsWith('http')) {
+                    out.push({ tableName, col, rowId: r.row_id, url: u });
+                }
             }
         }
+        if (rows.length < BATCH_LIMIT) break;
+        lastId = rows[rows.length - 1].row_id;
     }
     return out;
 };
@@ -108,7 +114,15 @@ const collectUrls = async (tableName, cfg) => {
 const actOnDead = async (surface) => {
     const cfg = SURFACES[surface.tableName];
     try {
-        if (cfg.onDead === 'delete_row') {
+        if (cfg.onDead === 'flag_unavailable') {
+            // Non-destructive skip: flag the row so feed/discover/search SQL
+            // filters it out, and leave the moment itself intact.
+            const [res] = await pool.query(
+                `UPDATE \`${surface.tableName}\` SET media_status = 'failing' WHERE \`${cfg.idCol}\` = ?`, [surface.rowId]
+            );
+            logger.warn(`[MediaHealth] Flagged ${surface.tableName} row ${surface.rowId} media unavailable (${surface.col}): ${surface.url}`);
+            return res.affectedRows;
+        } else if (cfg.onDead === 'delete_row') {
             const [res] = await pool.query(
                 `DELETE FROM \`${surface.tableName}\` WHERE \`${cfg.idCol}\` = ?`, [surface.rowId]
             );
@@ -152,7 +166,7 @@ const runHealthCheck = async () => {
     logger.info(`[MediaHealth] Probing ${urls.length} unique URLs (${all.length} references).`);
 
     // 2. Probe with bounded concurrency.
-    const statusMap = new Map(); // url -> status
+    const statusMap = new Map(); // url -> probe result { alive, status, reason }
     let i = 0;
     async function worker() {
         while (i < urls.length) {
@@ -168,14 +182,17 @@ const runHealthCheck = async () => {
     //    chunked multi-row upserts keep this to a handful of queries.
     const aliveHashes = [];
     const deadRefs = []; // { hash, url, status, tableName, col, rowId }
-    for (const [url, status] of statusMap) {
+    const aliveRefs = []; // same shape — drives the un-flag (recovery) pass
+    for (const [url, probe] of statusMap) {
         const hash = hashUrl(url);
-        const alive = status === 200 || status === 206 || status === 301 || status === 302;
-        if (alive) {
+        if (probe.alive) {
             aliveHashes.push(hash);
+            for (const ref of byUrl.get(url)) {
+                aliveRefs.push({ hash, url, status: probe.status, ...ref });
+            }
         } else {
             for (const ref of byUrl.get(url)) {
-                deadRefs.push({ hash, url, status, ...ref });
+                deadRefs.push({ hash, url, status: probe.status, ...ref });
             }
         }
     }
@@ -227,12 +244,17 @@ const runHealthCheck = async () => {
     // 3d. Act on confirmed-dead (two-strike) and mark resolved.
     let deadConfirmed = 0, acted = 0;
     const resolvedHashes = [];
+    const flaggedIds = new Set(); // moments rows flagged media_status = 'failing'
     for (const ref of deadRefs) {
         const fc = failCountByHash.get(ref.hash) || 0;
-        if (fc >= FAIL_THRESHOLD) {
+        if (fc < FAIL_THRESHOLD) continue;
+        if (SURFACES[ref.tableName].onDead === 'flag_unavailable') {
+            flaggedIds.add(ref.rowId);
+            acted += 1;
+        } else {
             acted += await actOnDead(ref);
-            resolvedHashes.push(ref.hash);
         }
+        resolvedHashes.push(ref.hash);
     }
     deadConfirmed = new Set(
         deadRefs.filter(r => (failCountByHash.get(r.hash) || 0) >= FAIL_THRESHOLD).map(r => r.hash)
@@ -245,7 +267,33 @@ const runHealthCheck = async () => {
         );
     }
 
-    logger.info(`[MediaHealth] Done. probed=${urls.length} deadConfirmed=${deadConfirmed} rowsActed=${acted} recovered=${recovered}`);
+    // 3e. Flag confirmed-dead moments so feed/discover/search skip them (batched).
+    if (flaggedIds.size > 0) {
+        const ids = [...flaggedIds];
+        for (let start = 0; start < ids.length; start += 500) {
+            const chunk = ids.slice(start, start + 500);
+            await pool.query(
+                `UPDATE moments SET media_status = 'failing' WHERE moment_id IN (?)`, [chunk]
+            );
+        }
+    }
+
+    // 3f. Recovery: a moment whose every probed URL is alive this run goes
+    //     back to 'ok' (skip only applies to *confirmed* unavailability).
+    const aliveMomentIds = new Set(
+        aliveRefs.filter(r => r.tableName === 'moments').map(r => r.rowId)
+    );
+    const recoverable = [...aliveMomentIds].filter(id => !flaggedIds.has(id));
+    if (recoverable.length > 0) {
+        for (let start = 0; start < recoverable.length; start += 500) {
+            const chunk = recoverable.slice(start, start + 500);
+            await pool.query(
+                `UPDATE moments SET media_status = 'ok' WHERE moment_id IN (?) AND media_status = 'failing'`, [chunk]
+            );
+        }
+    }
+
+    logger.info(`[MediaHealth] Done. probed=${urls.length} deadConfirmed=${deadConfirmed} rowsActed=${acted} recovered=${recovered} flagged=${flaggedIds.size}`);
 };
 
 const initMediaHealthJob = () => {

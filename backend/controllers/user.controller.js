@@ -599,7 +599,7 @@ const suspendAccount = async (req, res) => {
     } catch (error) {
         const errorMsg = error?.message || String(error).slice(0, 200);
         logger.error('Suspend account error: ' + errorMsg);
-        res.status(500).json({ error: errorMsg });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -645,7 +645,7 @@ const deleteAccount = async (req, res) => {
     } catch (error) {
         const errorMsg = error?.message || String(error).slice(0, 200);
         logger.error('Delete account error: ' + errorMsg);
-        res.status(500).json({ error: errorMsg });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -686,7 +686,7 @@ const terminateAccount = async (req, res) => {
     } catch (error) {
         const errorMsg = error?.message || String(error).slice(0, 200);
         logger.error('Terminate account error: ' + errorMsg);
-        res.status(500).json({ error: errorMsg });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

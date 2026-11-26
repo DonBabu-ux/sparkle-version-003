@@ -80,7 +80,9 @@ const result = await LLMService.runVision({
         if (!result?.success) {
             return res.status(502).json({
                 success: false,
-                message: result?.error || 'Media analysis is unavailable right now. Try again later.'
+                // Upstream provider strings can carry provider URLs and request traces —
+                // answer with the fixed message and keep the detail server-side.
+                message: 'Media analysis is unavailable right now. Try again later.'
             });
         }
 

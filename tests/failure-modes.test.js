@@ -310,10 +310,10 @@ describe('repo-wide failure contracts', () => {
         const offenders = [];
         for (const file of walkJs(join(ROOT, 'backend'))) {
             const src = stripComments(readFileSync(file, 'utf8'));
-            // A dynamic value follows `error:` after the whitespace. The
+            // A dynamic value follows `error:`/`message:` after the whitespace. The
             // lookahead must swallow the whitespace too, or it tests the space
             // itself and every static message matches.
-            const leak = /res\s*\.\s*status\(\s*5\d{2}\s*\)\s*\.\s*json\(\s*\{[^{}]*?error:\s*(?!\s*['"`])/;
+            const leak = /res\s*\.\s*status\(\s*5\d{2}\s*\)\s*\.\s*json\(\s*\{[^{}]*?(error|message):\s*(?!\s*['"`])/;
             if (leak.test(src)) offenders.push(file.slice(ROOT.length + 1));
         }
         assert.deepEqual(offenders, [], `5xx responses must answer a fixed message: ${offenders.join(', ')}`);

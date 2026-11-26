@@ -354,7 +354,7 @@ const createListing = [
             
             res.status(500).json({
                 success: false,
-                message: error?.message || 'Failed to create listing',
+                message: 'Failed to create listing',
                 debug: process.env.NODE_ENV === 'development' ? errorDetails : undefined
             });
         }
@@ -479,7 +479,7 @@ const deleteListing = async (req, res) => {
         logger.error('Delete listing error:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to delete listing'
+            message: 'Failed to delete listing'
         });
     }
 };
@@ -906,7 +906,7 @@ const toggleFavorite = [
             logger.error('Toggle favorite error:', error);
             res.status(500).json({
                 success: false,
-                message: error.message || 'Failed to update favorite'
+                message: 'Failed to update favorite'
             });
         }
     }
@@ -1237,7 +1237,7 @@ const toggleSellerFavorite = [
             logger.error('Toggle seller favorite error:', error);
             res.status(500).json({
                 success: false,
-                message: error.message || 'Failed to update seller wishlist'
+                message: 'Failed to update seller wishlist'
             });
         }
     }

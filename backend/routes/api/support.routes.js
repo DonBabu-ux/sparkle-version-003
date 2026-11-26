@@ -304,12 +304,23 @@ router.get('/tickets/:ticketId', optionalAuthMiddleware, async (req, res) => {
     const { ticketId } = req.params;
 
     try {
+        // Ownership scoping: a ticket is readable by its owner (or an admin).
+        // Without this, any caller — authenticated or anonymous — could read
+        // or post to any ticket id, which is guessable (UUID only on the
+        // INSERT path; ids come from the client on legacy contact tickets).
+        const isAdmin = req.user?.role === 'admin';
+        const ownerScope = isAdmin
+            ? '1 = 1'
+            : userId
+                ? 'user_id = ?'
+                : 'user_id IS NULL';
+        const ownerParams = isAdmin || !userId ? [] : [userId];
         const [rows] = await pool.query(
             `SELECT ticket_id, name AS subject, type AS category, status, message, created_at
                FROM support_requests
-              WHERE ticket_id = ?
+              WHERE ticket_id = ? AND ${ownerScope}
               LIMIT 1`,
-            [ticketId]
+            [ticketId, ...ownerParams]
         );
 
         if (!rows || rows.length === 0) {
@@ -376,6 +387,22 @@ router.post('/tickets/:ticketId/messages', optionalAuthMiddleware, async (req, r
     try {
         const senderName = req.user?.username || req.user?.name || 'User';
         const isAdmin = req.user?.role === 'admin' ? 1 : 0;
+
+        // Same ownership rule as the read path: never post to someone
+        // else's ticket.
+        const ownerScope = isAdmin
+            ? '1 = 1'
+            : userId
+                ? 'user_id = ?'
+                : 'user_id IS NULL';
+        const ownerParams = isAdmin || !userId ? [] : [userId];
+        const [owned] = await pool.query(
+            `SELECT ticket_id FROM support_requests WHERE ticket_id = ? AND ${ownerScope} LIMIT 1`,
+            [ticketId, ...ownerParams]
+        );
+        if (!owned || owned.length === 0) {
+            return res.status(404).json({ success: false, error: 'Ticket not found.' });
+        }
 
         await pool.query(
             `INSERT INTO support_ticket_messages

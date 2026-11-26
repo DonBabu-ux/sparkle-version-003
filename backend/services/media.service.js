@@ -229,20 +229,31 @@ class MediaService {
         const summary = { destroyed: 0, kept: 0, errors: [] };
         if (!Array.isArray(urls)) return summary;
 
+        // One destroy per public id per invocation: sibling registry rows for
+        // the same asset, and the same asset under a different version
+        // segment, must not issue a second destroy.
+        const donePublicIds = new Set();
+
         for (const url of urls) {
             if (!url || typeof url !== 'string') continue;
 
             try {
-                // Find matching registry rows
+                // Match the registry row on the URL's public id, not the exact
+                // secure_url: the same asset is served under many version
+                // segments, and an exact-match lookup leaves the registry row
+                // behind after the bytes are already destroyed.
+                const ref = MediaService.extractCloudinaryRef(url);
+                const lookupId = ref ? ref.publicId : url;
                 const [rows] = await pool.query(
                     'SELECT * FROM media_registry WHERE secure_url = ? OR object_key = ? OR cloudinary_public_id = ?',
-                    [url, url, url]
+                    [url, url, lookupId]
                 );
 
                 if (rows.length === 0) {
-                    // Check if it's a Cloudinary URL not in registry
-                    const ref = MediaService.extractCloudinaryRef(url);
-                    if (ref) {
+                    // Cloudinary URL with no registry row (legacy row): the ref
+                    // itself decides the public id and resource type.
+                    if (ref && !donePublicIds.has(ref.publicId)) {
+                        donePublicIds.add(ref.publicId);
                         const referenced = await MediaService.isMediaUrlReferenced(ref.publicId);
                         if (!referenced) {
                             try {
@@ -258,33 +269,38 @@ class MediaService {
                     continue;
                 }
 
-                for (const row of rows) {
-                    const identifier = row.object_key || row.cloudinary_public_id;
-                    const referenced = await MediaService.isMediaUrlReferenced(identifier, [row.media_id]);
+                const candidateIds = rows.map((r) => r.media_id).filter(Boolean);
+                const publicId = ref ? ref.publicId : (rows[0].object_key || rows[0].cloudinary_public_id);
+                if (donePublicIds.has(publicId)) continue;
+                donePublicIds.add(publicId);
 
-                    if (referenced) {
-                        summary.kept++;
-                        logger.debug(`Media cleanup kept referenced asset ${identifier}`);
-                        continue;
+                const referenced = await MediaService.isMediaUrlReferenced(publicId, candidateIds);
+                if (referenced) {
+                    summary.kept++;
+                    logger.debug(`Media cleanup kept referenced asset ${publicId}`);
+                    continue;
+                }
+
+                // Bytes are destroyed once; every registry row for the public
+                // id is then dropped.
+                try {
+                    const first = rows[0];
+                    if (first.storage_provider === 'r2' && first.object_key) {
+                        await storageManager.getAdapter('r2').deleteObject({ key: first.object_key, bucket: first.bucket_name });
+                    } else if (first.storage_provider === 'b2' && first.object_key) {
+                        await storageManager.getAdapter('b2').deleteObject({ key: first.object_key, bucket: first.bucket_name });
+                    } else if (first.cloudinary_public_id && !first.cloudinary_public_id.startsWith('url_import_')) {
+                        const isVideo = first.secure_url && first.secure_url.match(/\.(mp4|webm|mov|avi)$/i);
+                        await cloudinary.uploader.destroy(first.cloudinary_public_id, { resource_type: isVideo ? 'video' : 'image' });
                     }
 
-                    // Delete from authoritative provider
-                    try {
-                        if (row.storage_provider === 'r2' && row.object_key) {
-                            await storageManager.getAdapter('r2').deleteObject({ key: row.object_key, bucket: row.bucket_name });
-                        } else if (row.storage_provider === 'b2' && row.object_key) {
-                            await storageManager.getAdapter('b2').deleteObject({ key: row.object_key, bucket: row.bucket_name });
-                        } else if (row.cloudinary_public_id && !row.cloudinary_public_id.startsWith('url_import_')) {
-                            const isVideo = row.secure_url && row.secure_url.match(/\.(mp4|webm|mov|avi)$/i);
-                            await cloudinary.uploader.destroy(row.cloudinary_public_id, { resource_type: isVideo ? 'video' : 'image' });
-                        }
-
+                    for (const row of rows) {
                         await pool.query('DELETE FROM media_registry WHERE media_id = ?', [row.media_id]);
-                        summary.destroyed++;
-                    } catch (delErr) {
-                        summary.errors.push(`${identifier}: ${delErr.message}`);
-                        logger.error(`Media delete failed for ${identifier}:`, delErr.message);
                     }
+                    summary.destroyed++;
+                } catch (delErr) {
+                    summary.errors.push(`${publicId}: ${delErr.message}`);
+                    logger.error(`Media delete failed for ${publicId}:`, delErr.message);
                 }
             } catch (err) {
                 summary.errors.push(`${url}: ${err.message}`);

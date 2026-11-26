@@ -55,7 +55,11 @@ const MIGRATION_RUN = [
     { file: '20261107_story_digests.js', verify: [] },
     // Identity bloom filter outbox: transactional MySQL -> Redis synchronization
     // queue for username/email identity membership.
-    { file: '20261107_create_identity_bloom_outbox.js', verify: ['identity_bloom_outbox'] }
+    { file: '20261107_create_identity_bloom_outbox.js', verify: ['identity_bloom_outbox'] },
+    // The skip flag for confirmed-unavailable moment media. The health job
+    // writes it; every feed/discover/search query filters on it. Default 'ok'
+    // backfills existing rows, so nothing is hidden until proven dead.
+    { file: '20261126_moments_media_status.js', verify: ['moments.media_status'] }
 ];
 
 // Dispositions for every other migration file, verified against the live schema.

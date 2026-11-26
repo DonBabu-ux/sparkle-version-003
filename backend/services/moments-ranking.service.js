@@ -116,6 +116,7 @@ class MomentsRankingService {
                         FROM moments m
                         JOIN users u ON m.user_id = u.user_id
                         WHERE m.deleted_at IS NULL
+                          AND (m.media_status IS NULL OR m.media_status = 'ok')
                           AND (m.audience IS NULL OR m.audience = 'public')
                     ) t WHERE t.rn <= 100
                 `),
@@ -126,6 +127,7 @@ class MomentsRankingService {
                         FROM moments m JOIN users u ON m.user_id = u.user_id
                         WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 48 HOUR)
                           AND m.deleted_at IS NULL
+                          AND (m.media_status IS NULL OR m.media_status = 'ok')
                           AND (m.audience IS NULL OR m.audience = 'public')
                         ORDER BY base_score DESC LIMIT 200
                     ) t
@@ -135,6 +137,7 @@ class MomentsRankingService {
                         FROM moments m JOIN users u ON m.user_id = u.user_id
                         WHERE m.like_count > 10
                           AND m.deleted_at IS NULL
+                          AND (m.media_status IS NULL OR m.media_status = 'ok')
                           AND (m.audience IS NULL OR m.audience = 'public')
                         ORDER BY RAND() LIMIT 100
                     ) t
@@ -210,6 +213,7 @@ class MomentsRankingService {
                 JOIN follows f ON f.following_id = m.user_id AND f.follower_id = ?
                 WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY)
                   AND m.deleted_at IS NULL
+                  AND (m.media_status IS NULL OR m.media_status = 'ok')
                   AND (m.audience IS NULL OR m.audience IN ('public','friends','close_friends'))
                 ORDER BY m.created_at DESC
                 LIMIT 50
@@ -384,6 +388,7 @@ class MomentsRankingService {
                    u.username, u.name as user_name, u.avatar_url, 0.4 as base_score
             FROM moments m JOIN users u ON m.user_id = u.user_id
             WHERE m.deleted_at IS NULL
+              AND (m.media_status IS NULL OR m.media_status = 'ok')
               AND (m.audience IS NULL OR m.audience = 'public')
             ORDER BY m.created_at DESC LIMIT ? OFFSET ?
         `, [limit, offset]).then(rows => Array.isArray(rows) ? rows : []);

@@ -146,6 +146,15 @@ describe('moments.createMoment — share-to-story audience', () => {
     let fake;
     afterEach(() => { fake?.restore(); fake = null; });
 
+    // createMoment verifies the upload with a live media probe before
+    // persisting. The media_url below is a fixture, so answer the probe here
+    // instead of letting the handler reach the network.
+    const realFetch = globalThis.fetch;
+    const probeAlive = async () => ({ status: 200, headers: { get: (k) => (k === 'content-length' ? '2048' : 'video/mp4') } });
+    const probeDead = async () => ({ status: 404, headers: { get: () => null } });
+    before(() => { globalThis.fetch = probeAlive; });
+    after(() => { globalThis.fetch = realFetch; });
+
     // Drive the whole publish path: moment INSERT on the transaction
     // connection, story INSERT + shared_to_story UPDATE on the pool.
     const runCreateMoment = async (body) => {
@@ -218,6 +227,18 @@ describe('moments.createMoment — share-to-story audience', () => {
         const { insert, res } = await runCreateMoment({ audience: 'close_friends' });
         assert.equal(insert, undefined);
         assert.equal(res.body.story_created, false);
+    });
+
+    it('rejects the publish when the uploaded media fails verification', async () => {
+        globalThis.fetch = probeDead;
+        try {
+            const { insert, res } = await runCreateMoment({ audience: 'public' });
+            assert.equal(res.statusCode, 422);
+            assert.match(res.body.error, /verified/i);
+            assert.equal(insert, undefined, 'no story is inserted for an unverified upload');
+        } finally {
+            globalThis.fetch = probeAlive;
+        }
     });
 });
 

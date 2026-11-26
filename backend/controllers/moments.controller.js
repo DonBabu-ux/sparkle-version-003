@@ -7,6 +7,7 @@ const NotificationService = require('../services/notification.service');
 const notificationController = require('./notification.controller');
 const { transaction } = require('../utils/database/transaction');
 const { STORY_AUDIENCES } = require('../services/story-audience.service');
+const { probeMediaUrl } = require('../utils/mediaProbe');
 
 const VALID_AUDIENCES = new Set(['public', 'friends', 'close_friends', 'only_me']);
 
@@ -708,6 +709,16 @@ const createMoment = async (req, res) => {
             streaming_url = media_url.replace(/\.[^/.]+$/, '.m3u8');
             // HD Thumbnail (from eager jpg transformation)
             thumbnail_url = media_url.replace(/\.[^/.]+$/, '.jpg');
+        }
+
+        // Verify the upload is fetchable before persisting it. An unverified URL that
+        // 404s or serves 0 bytes is the "media unavailable" tile from the other
+        // side: once written, no feed query can tell until the health job
+        // two-strikes it two hours later.
+        const verification = await probeMediaUrl(media_url, { attempts: 2, verifyBody: true });
+        if (!verification.alive) {
+            logger.error(`[Moments] upload verification failed (${verification.status}${verification.reason ? '/' + verification.reason : ''}): ${media_url}`);
+            return res.status(422).json({ error: 'Upload could not be verified. Please try again.' });
         }
 
         // Extract hashtags (Max 5) — from explicit list or caption/description
@@ -1637,6 +1648,7 @@ const getMomentSuggestions = async (req, res) => {
             JOIN moments m
               ON m.user_id = u.user_id
              AND m.deleted_at IS NULL
+             AND (m.media_status IS NULL OR m.media_status = 'ok')
              AND m.audience = 'public'
              AND m.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
             LEFT JOIN (

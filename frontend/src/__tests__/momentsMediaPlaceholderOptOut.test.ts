@@ -10,6 +10,7 @@ import { readFileSync } from 'fs';
 const globalEffects = readFileSync(new URL('../components/GlobalEffects.tsx', import.meta.url), 'utf8');
 const moments = readFileSync(new URL('../pages/Moments.tsx', import.meta.url), 'utf8');
 const studio = readFileSync(new URL('../pages/MomentStudio.tsx', import.meta.url), 'utf8');
+const explore = readFileSync(new URL('../pages/Explore.tsx', import.meta.url), 'utf8');
 
 describe('moments opt out of the "Media Unavailable" placeholder', () => {
   it('GlobalEffects skips the placeholder for videos carrying the opt-out marker', () => {
@@ -30,5 +31,10 @@ describe('moments opt out of the "Media Unavailable" placeholder', () => {
 
   it('Moment Studio thumbnail video opts out inline', () => {
     expect(studio).toContain('data-no-error-placeholder="true"');
+  });
+
+  // The explore grid renders moments too, so its videos must opt out as well.
+  it('Explore grid moment video opts out inline', () => {
+    expect(explore).toContain('data-no-error-placeholder="true"');
   });
 });

@@ -279,6 +279,7 @@ title="Nothing to see yet"
                     {m.media_type === 'video' ? (
                       <video
                         src={m.media_url}
+                        data-no-error-placeholder="true"
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         autoPlay
                         muted

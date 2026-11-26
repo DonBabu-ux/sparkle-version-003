@@ -84,12 +84,21 @@ function storeRouter(store) {
         if (text === 'SELECT media_id, cloudinary_public_id FROM media_registry WHERE cloudinary_public_id = ?') {
             return [store.registry.filter((r) => r.cloudinary_public_id === params[0])];
         }
-        if (text.startsWith('SELECT 1 FROM media_registry WHERE cloudinary_public_id = ?')) {
-            const [publicId, ...excluded] = params;
+        if (text.startsWith('SELECT 1 FROM media_registry WHERE (cloudinary_public_id = ?')) {
+            const [publicId, objectKey, ...excluded] = params;
             const hit = store.registry.some(
-                (r) => r.cloudinary_public_id === publicId && !excluded.includes(r.media_id)
+                (r) => (r.cloudinary_public_id === publicId || r.object_key === objectKey)
+                    && !excluded.includes(r.media_id)
             );
             return [hit ? [1] : []];
+        }
+        if (text === 'SELECT * FROM media_registry WHERE secure_url = ? OR object_key = ? OR cloudinary_public_id = ?') {
+            const [secureUrl, objectKey, publicId] = params;
+            return [store.registry.filter((r) =>
+                (r.secure_url && r.secure_url === secureUrl)
+                || (r.object_key && r.object_key === objectKey)
+                || (r.cloudinary_public_id && r.cloudinary_public_id === publicId)
+            )];
         }
         if (text.startsWith('SELECT 1 FROM posts WHERE media_url LIKE')) {
             const re = likeToRegExp(params[0]);

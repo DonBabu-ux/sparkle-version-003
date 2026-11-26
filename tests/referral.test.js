@@ -8,6 +8,18 @@ const pool = require('../backend/./config/database');
 const ReferralService = require('../backend/./services/referral.service');
 
 async function runReferralTests() {
+  // Full integration script against a live MySQL. Without a reachable
+  // database every query rejects, which used to fail the suite on any machine
+  // (and CI) that has no local server — probe first and skip cleanly so the
+  // suite is red only when the DB is there and the assertions fail.
+  try {
+    await pool.query('SELECT 1');
+  } catch (err) {
+    console.log(`⏭  Referral integration suite skipped: no reachable MySQL (${err.message.split('\n')[0]}).`);
+    console.log('   Start a local MySQL (or set DB_* env) to run it.');
+    process.exit(0);
+  }
+
   console.log('🧪 Starting Sparkle Referral System Test Suite...\n');
   let passed = 0;
   let failed = 0;

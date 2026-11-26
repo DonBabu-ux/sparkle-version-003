@@ -180,15 +180,6 @@ export default function Explore() {
     if (node) observerRef.current.observe(node);
   }, [loading, loadingMore, hasMore, page]);
 
-  const filteredItems = (() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return mediaItems;
-    return mediaItems.filter(item =>
-      (item.username || '').toLowerCase().includes(q) ||
-      (item.content || '').toLowerCase().includes(q)
-    );
-  })();
-
   return (
     <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-zinc-100 font-sans overflow-hidden transition-colors duration-300">
 
@@ -205,6 +196,11 @@ export default function Explore() {
                    placeholder="Search Sparkle Discovery..."
                    value={searchQuery}
                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                    }
+                  }}
                  className="sparkle-input pl-12 h-11 md:h-12 !rounded-full !bg-[#f6eef3] dark:!bg-zinc-900 focus:!bg-[#fdf8fa] dark:focus:!bg-zinc-800 text-[#18181b] dark:text-zinc-100 border-none shadow-sm"
                />
             </div>
@@ -246,20 +242,18 @@ export default function Explore() {
                 onRetry={() => { setFetchError(null); fetchExploreMedia(1); }}
               />
             </div>
-          ) : filteredItems.length === 0 ? (
+          ) : mediaItems.length === 0 ? (
             <div className="py-20">
                <ModernOfflineState 
                  type="empty"
-                 title={searchQuery.trim() ? 'No matches' : 'Nothing to see yet'}
-                 message={searchQuery.trim()
-                   ? `Nothing found for "${searchQuery.trim()}". Try a different name or keyword.`
-                   : 'There are no posts here right now. Try looking in a different category or refresh the page!'}
+title="Nothing to see yet"
+                  message="There are no posts here right now. Try looking in a different category or refresh the page!"
                  onRetry={() => fetchExploreMedia(1)}
                />
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-1 md:gap-6 pb-24">
-              {filteredItems.map((m, i) => {
+              {mediaItems.map((m, i) => {
                 let spanClass = "col-span-1 row-span-1 aspect-square";
                 if (i % 10 === 0) {
                   spanClass = "col-span-2 row-span-2";
@@ -267,7 +261,7 @@ export default function Explore() {
                   spanClass = "col-span-2 row-span-2";
                 }
 
-                const isLastElement = i === filteredItems.length - 1;
+                const isLastElement = i === mediaItems.length - 1;
 
                 return (
                    <div 

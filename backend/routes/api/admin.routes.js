@@ -80,8 +80,10 @@ router.post('/email-test', requireAdminStepUp, async (req, res) => {
     const results = await emailService.testProviders(testEmail);
     return res.json({ success: true, results });
   } catch (err) {
+    // SMTP/provider failures carry hostnames, ports and credentials context in
+    // their messages — log it, answer generically.
     logger.error('[AdminRoute] email-test error:', err.message);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Email test failed. Check server logs for details.' });
   }
 });
 

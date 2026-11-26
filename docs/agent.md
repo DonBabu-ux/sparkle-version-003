@@ -61,8 +61,11 @@ const handler = async (req, res) => {
         const result = await Model.method(req.body);
         res.json({ status: 'success', data: result });
     } catch (error) {
+        // Log the full error server-side (stack pins the call site); the client
+        // gets a fixed message. Echoing error.message hands the caller a SQL
+        // fragment, a table/column name or the DSN — use utils/serverError.js.
         logger.error('Handler Error:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 ```

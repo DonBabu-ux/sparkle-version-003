@@ -28,7 +28,7 @@ router.get('/migration/status', authMiddleware, adminMiddleware, async (req, res
         res.json({ total: total.total, migrated: migrated.migrated, pending: pending.pending });
     } catch (err) {
         logger.error('[MediaAdmin] migration status error:', err.message);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Failed to load migration status' });
     }
 });
 

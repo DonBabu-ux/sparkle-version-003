@@ -16,9 +16,16 @@ exports.calculateBoost = async (req, res) => {
             calculation,
         });
     } catch (err) {
-        return res.status(400).json({
+        // Operational (validation) rejections keep their message; a driver
+        // fault is a 500 with a fixed message — answering it as a 400 with
+        // err.message both misclassifies the failure and leaks SQL internals.
+        if (err && err.isOperational) {
+            return res.status(400).json({ success: false, message: err.message });
+        }
+        logger.error('[BoostController] Calculate error:', err);
+        return res.status(500).json({
             success: false,
-            message: err.message || 'Failed to calculate boost strength',
+            message: 'Failed to calculate boost strength',
         });
     }
 };
@@ -42,10 +49,13 @@ exports.activateBoost = async (req, res) => {
             boost: result,
         });
     } catch (err) {
-        logger.error('[BoostController] Activate error:', err.message);
-        return res.status(400).json({
+        if (err && err.isOperational) {
+            return res.status(400).json({ success: false, message: err.message });
+        }
+        logger.error('[BoostController] Activate error:', err);
+        return res.status(500).json({
             success: false,
-            message: err.message || 'Failed to activate boost',
+            message: 'Failed to activate boost',
         });
     }
 };
@@ -117,10 +127,13 @@ exports.renewBoost = async (req, res) => {
             boost: result,
         });
     } catch (err) {
-        logger.error('[BoostController] Renew error:', err.message);
-        return res.status(400).json({
+        if (err && err.isOperational) {
+            return res.status(400).json({ success: false, message: err.message });
+        }
+        logger.error('[BoostController] Renew error:', err);
+        return res.status(500).json({
             success: false,
-            message: err.message || 'Failed to renew boost',
+            message: 'Failed to renew boost',
         });
     }
 };

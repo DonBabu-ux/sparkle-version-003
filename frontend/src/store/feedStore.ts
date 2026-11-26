@@ -162,7 +162,10 @@ export const useFeedStore = create<FeedState>()(
               ...state.postsById[postId],
               ...updates
             }
-          }
+          },
+          // Socket patches (spark counts, edits, takedown flags) must bump
+          // the version too, or components keyed on it miss the update.
+          feedVersion: state.feedVersion + 1
         };
       }),
 
@@ -195,18 +198,32 @@ export const useFeedStore = create<FeedState>()(
         };
       }),
 
-      confirmOptimisticPost: (tempId, realPost) => set((state) => {
+confirmOptimisticPost: (tempId, realPost) => set((state) => {
         const postsById = { ...state.postsById };
         const optimisticPosts = { ...state.optimisticPosts };
-        
+
         delete postsById[tempId];
         delete optimisticPosts[tempId];
 
-        if (realPost.post_id) {
-          postsById[realPost.post_id] = realPost;
+        // Without a real id there is nothing to remap to: drop the optimistic
+        // entries and leave the order alone rather than writing undefined ids.
+        if (!realPost.post_id) {
+          return {
+            postsById,
+            optimisticPosts,
+            feedVersion: state.feedVersion + 1
+          };
         }
 
-        const orderedPostIds = state.orderedPostIds.map(id => id === tempId ? realPost.post_id : id);
+        postsById[realPost.post_id] = realPost;
+
+        // The real post can already be in the feed — a delta fetch or socket
+        // echo lands while the optimistic insert is still pending. Remap the
+        // temp slot to the real id, then keep only the first occurrence so a
+        // confirm can never render the same post twice.
+        const orderedPostIds = state.orderedPostIds
+          .map(id => id === tempId ? realPost.post_id : id)
+          .filter((id, i, arr) => arr.indexOf(id) === i);
 
         return {
           postsById,

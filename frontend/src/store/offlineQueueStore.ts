@@ -85,6 +85,10 @@ export const useOfflineQueueStore = create<OfflineQueueState>()(
     {
       name: 'sparkle-offline-queue',
       storage: createJSONStorage(() => localStorage),
+      // Never persist isProcessing: a crash mid-replay would rehydrate a
+      // stuck lock that makes processQueue early-return forever, silently
+      // dropping every queued action.
+      partialize: (state) => ({ queue: state.queue }),
     }
   )
 );

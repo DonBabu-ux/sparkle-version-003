@@ -10,6 +10,14 @@ const logger = require('../utils/logger');
 const walletService = require('./wallet.service');
 const systemMessageService = require('./systemMessage.service');
 
+// Validation rejections a caller may see; a driver fault must never be
+// answerable with the raw message (see boost.controller's operational split).
+const operationalError = (message) => {
+    const err = new Error(message);
+    err.isOperational = true;
+    return err;
+};
+
 class BoostService {
 
     /**
@@ -22,10 +30,10 @@ class BoostService {
         const days = Number(durationDays);
 
         if (isNaN(budget) || budget < 10) {
-            throw new Error('Minimum boost budget is KES 10.00');
+            throw operationalError('Minimum boost budget is KES 10.00');
         }
         if (isNaN(days) || days < 1 || days > 30) {
-            throw new Error('Boost duration must be between 1 and 30 days');
+            throw operationalError('Boost duration must be between 1 and 30 days');
         }
 
         const dailySpend = budget / days;

@@ -563,7 +563,7 @@ key={idx}
 className={clsx(
 "relative overflow-hidden",
 post.media_files!.length === 1
-? "aspect-[4/5] max-h-[70vh] sm:max-h-[600px]"
+? "aspect-[4/5] sm:aspect-auto max-h-[70vh] sm:max-h-[78vh]"
 : post.media_files!.length === 2
 ? "aspect-square"
                             : "aspect-square sm:aspect-[auto] sm:h-full",
@@ -573,8 +573,8 @@ post.media_files!.length === 3 && idx === 0 ? "row-span-2" : ""
 <ProgressiveImage
 src={file.url}
 alt=""
-imageClassName="w-full !h-full object-cover transition-transform duration-700 hover:scale-105"
-width={800}
+imageClassName="w-full h-auto object-cover sm:object-contain transition-transform duration-700 hover:scale-105"
+                  width={800}
 />
                   {idx === 3 && post.media_files!.length > 4 && (
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center">
@@ -591,12 +591,11 @@ width={800}
                   <VideoPlayer src={getMediaUrl(post.media_url)} />
                 </div>
               ) : (
-                <div className="relative w-full aspect-[4/5] max-h-[70vh] sm:max-h-[600px]">
+                <div className="relative w-full aspect-[4/5] sm:aspect-auto max-h-[70vh] sm:max-h-[78vh]">
                   <ProgressiveImage
                     src={post.media_url}
                     alt=""
-                    containerClassName="!absolute inset-0"
-                    imageClassName="w-full !h-full object-cover transition-transform duration-700 hover:scale-105"
+                    imageClassName="w-full h-auto object-cover sm:object-contain transition-transform duration-700 hover:scale-105"
                     width={1080}
                   />
                 </div>

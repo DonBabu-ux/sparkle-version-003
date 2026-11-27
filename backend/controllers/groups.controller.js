@@ -1,5 +1,6 @@
 const Group = require('../models/Group');
 const logger = require('../utils/logger');
+const pool = require('../config/database');
 const { clampPage, clampLimit, clampOffset } = require('../utils/pagination');
 
 /**
@@ -361,6 +362,7 @@ const deleteGroupAPI = async (req, res) => {
         const groupId = req.params.id;
         const userId = req.user.userId || req.user.user_id;
 
+        const group = await Group.findById(groupId);
         const member = await Group.getMember(groupId, userId);
         if (!member || (member.role !== 'owner' && member.role !== 'super_admin' && group.creator_id !== userId)) {
             return res.status(403).json({ error: 'Only the group owner can delete this community' });
@@ -375,15 +377,15 @@ const deleteGroupAPI = async (req, res) => {
 };
 
 const createGroup = async (req, res) => {
-    const pool = require('../config/database');
+    const { name, campus, description, is_public, category } = req.body;
+
+    if (!name) {
+        return res.status(400).json({ error: 'Group name is required' });
+    }
+
     const connection = await pool.getConnection();
     try {
-        const { name, campus, description, is_public, category } = req.body;
         const userId = req.user.userId || req.user.user_id;
-
-        if (!name) {
-            return res.status(400).json({ error: 'Group name is required' });
-        }
 
         await connection.beginTransaction();
 

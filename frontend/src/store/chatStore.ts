@@ -557,14 +557,25 @@ export const useChatStore = create<ChatState>()(
 
         setMessages: (chatId, msgs) => {
           let deletedSet = new Set<string>();
+          let expiredSet = new Set<string>();
           try {
             const raw = localStorage.getItem('sparkle_deleted_msg_ids');
             if (raw) deletedSet = new Set(JSON.parse(raw));
           } catch (e) {}
+          // Expired (disappearing) messages are persisted to their own set for
+          // the same reason as deleted ones: without re-applying it here, a
+          // refetched history resurrects messages the timer already removed.
+          try {
+            const raw = localStorage.getItem('sparkle_expired_msg_ids');
+            if (raw) expiredSet = new Set(JSON.parse(raw));
+          } catch {
+            // storage unavailable — expired ids are simply unknown
+          }
 
           const normalized = msgs
             .map((m) => get().normalizeMessage(m))
-            .filter((m) => !deletedSet.has(m.message_id) && !deletedSet.has(m.id));
+            .filter((m) => !deletedSet.has(m.message_id) && !deletedSet.has(m.id))
+            .filter((m) => !expiredSet.has(m.message_id) && !expiredSet.has(m.id));
 
           const sorted = sortMessagesChronologically(normalized);
 

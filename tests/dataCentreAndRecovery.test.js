@@ -12,6 +12,25 @@ const path = require('path');
 let testUserId = null;
 const testEmail = `test_export_user_${Date.now()}@sparkle.local`;
 
+// Export jobs are processed asynchronously; a fixed sleep made this suite
+// flaky whenever the database was slow (an 8s INSERT pushed the job past a
+// 2s wait). Poll for the terminal state instead.
+const waitForExportJob = async (jobId, timeoutMs = 60000) => {
+    const deadline = Date.now() + timeoutMs;
+    let lastStatus = 'unknown';
+    while (Date.now() < deadline) {
+        const [row] = await pool.query('SELECT * FROM data_export_jobs WHERE job_id = ?', [jobId]);
+        if (row[0]) {
+            lastStatus = row[0].status;
+            if (row[0].status === 'READY' || row[0].status === 'FAILED') {
+                return row[0];
+            }
+        }
+        await new Promise(r => setTimeout(r, 500));
+    }
+    throw new Error(`Export job ${jobId} not terminal within ${timeoutMs}ms (last status: ${lastStatus})`);
+};
+
 async function runTests() {
     console.log('--- 🧪 STARTING DATA CENTRE & RECOVERY PORTAL TEST SUITE ---');
 
@@ -36,8 +55,7 @@ async function runTests() {
         console.log('Queued PDF job:', pdfJob.jobId, 'Status:', pdfJob.status);
 
         // Wait for async processing
-        await new Promise(r => setTimeout(r, 2000));
-        const [pdfRow] = await pool.query('SELECT * FROM data_export_jobs WHERE job_id = ?', [pdfJob.jobId]);
+        const pdfRow = [{ ...await waitForExportJob(pdfJob.jobId) }];
         if (pdfRow[0].status === 'READY' && pdfRow[0].file_path && fs.existsSync(pdfRow[0].file_path)) {
             console.log('✅ PDF Export successfully generated! File size:', pdfRow[0].file_size_bytes, 'bytes');
         } else {
@@ -53,8 +71,7 @@ async function runTests() {
             deliveryEmail: testEmail,
             isAlternate: false
         });
-        await new Promise(r => setTimeout(r, 2000));
-        const [xlsxRow] = await pool.query('SELECT * FROM data_export_jobs WHERE job_id = ?', [xlsxJob.jobId]);
+        const xlsxRow = [{ ...await waitForExportJob(xlsxJob.jobId) }];
         if (xlsxRow[0].status === 'READY' && fs.existsSync(xlsxRow[0].file_path)) {
             console.log('✅ XLSX Export successfully created with formula sanitization! File size:', xlsxRow[0].file_size_bytes, 'bytes');
         } else {
